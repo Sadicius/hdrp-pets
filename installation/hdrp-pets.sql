@@ -1,5 +1,5 @@
 -- HDRP-PETS: Tablas principales para instalación manual
-/* */ 
+
 -- VERSION PARA REFACTORIZAR A UNA ESTRUCTURA MÁS COMPLETA
 -- Tabla: pet_companions
 CREATE TABLE IF NOT EXISTS `pet_companion` (
@@ -16,7 +16,6 @@ CREATE TABLE IF NOT EXISTS `pet_companion` (
     KEY `citizenid` (`citizenid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
 -- Tabla: pet_breeding (estructura robusta)
 CREATE TABLE IF NOT EXISTS `pet_breeding` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
@@ -30,21 +29,3 @@ CREATE TABLE IF NOT EXISTS `pet_breeding` (
     PRIMARY KEY (`id`),
     KEY `citizenid` (`citizenid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-/* 
--- VERSION ACTUAL
--- Tabla: pet_companions
-CREATE TABLE IF NOT EXISTS `pet_companions` (
-    `id` INT(11) NOT NULL AUTO_INCREMENT,
-    `stable` VARCHAR(50) NOT NULL,
-    `citizenid` VARCHAR(50) NOT NULL,
-    `companionid` VARCHAR(11) NOT NULL,
-    `companiondata` LONGTEXT NOT NULL DEFAULT '{}',
-    `components` LONGTEXT NOT NULL DEFAULT '{}',
-    `wild` VARCHAR(11) DEFAULT NULL,
-    `active` TINYINT(4) DEFAULT 0,
-    `breedable` VARCHAR(50) DEFAULT NULL,
-    `inBreed` VARCHAR(50) DEFAULT NULL,
-    PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-*/
