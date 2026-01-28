@@ -393,10 +393,10 @@ RegisterNetEvent('hdrp-pets:server:TradeCompanion', function(playerId, companion
 end)
 
 -- Confirmación del comprador para el trade con precio
-RegisterNetEvent('hdrp-pets:server:TradeCompanionConfirm', function(Seller, companionId, price, response)
+RegisterNetEvent('hdrp-pets:server:TradeCompanionConfirm', function(Sellersrc, companionId, price, response)
     local Buyer = RSGCore.Functions.GetPlayer(source)
-    if not Buyer or not Seller or not companionId then return end
-    local Seller = RSGCore.Functions.GetPlayer(Seller)
+    if not Buyer or not Sellersrc or not companionId then return end
+    local Seller = RSGCore.Functions.GetPlayer(Sellersrc)
     if not Seller then return end
     local price = tonumber(price) or 0
     if response ~= 'accept' then

@@ -101,6 +101,7 @@ server_scripts {
     'server/systems/lifecycle.lua',   -- lifecycle + decay (consolidated)
     'server/systems/veterinary.lua',  -- veterinary services
     'server/systems/breeding.lua',    -- breeding
+    'server/systems/xp.lua',          -- xp
 
     'server/main.lua',
     'server/versionchecker.lua',

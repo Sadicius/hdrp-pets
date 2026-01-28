@@ -224,14 +224,6 @@ function GetPetDisplayName(model)
     end)
 end
 
----Inicializar sistema de herding
-
-exports('GetHerdingStates', function()
-    herdingStates = herdingStates or {}
-    if Config.Debug then
-        print("^2[HDRP-PETS]^7 " .. locale('debug_herding_system_initialized'))
-    end
-end)
 
 ---------------------------------
 -- CLEANUP

@@ -339,7 +339,7 @@ CreateThread(function()
                         State.SetPetTrait(companionid, 'isHunting', true)
                     elseif petData.flag.prevMovement == 'isHerding' then
                         State.SetPetTrait(companionid, 'isHerding', true)
-                        local herdingState = GetPetHerdingState(companionid)
+                        local herdingState = exports['hdrp-pets']:GetPetHerdingState(companionid)
                         if herdingState and not herdingState.active then
                             ResumePetHerding(companionid)
                         elseif not herdingState then
