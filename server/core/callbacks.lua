@@ -162,18 +162,14 @@ lib.callback.register('hdrp-pets:server:getavailablepartners', function(source, 
 end)
 
 -- Callback: obtener genealogía de una mascota
-lib.callback.register('hdrp-pets:server:getgenealogy', function(source, petId)
-    if not Config.Reproduction.GenealogyEnabled then
-        return {enabled = false, message = 'Genealogía desactivada'}
+lib.callback.register('hdrp-pets:server:getgenealogy', function(source, offspring_id)
+    if not offspring_id then return { enabled = false, message = 'No companionid provided' } end
+    local genealogy = Database.GetGenealogyByOffspringId(offspring_id)
+    if not genealogy then
+        return { enabled = false, message = 'No genealogy found' }
     end
-    local genealogy = Database.GetGenealogyByOffspringId(petId)
-    if genealogy then
-        return {enabled = true, genealogy = genealogy}
-    else
-        return {enabled = true, genealogy = nil, message = 'Sin datos de linaje'}
-    end
+    return { enabled = true, genealogy = genealogy }
 end)
-
 
 lib.callback.register('hdrp-pets:server:getbreedinghistory', function(source)
     local src = source

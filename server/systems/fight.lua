@@ -74,7 +74,7 @@ end
 
 -- Comando: /mascota_ranking
 RegisterCommand('pet_ranking', function(src)
-    local companions = Database.GetAllCompanions() -- Debe devolver todas las mascotas con achievements
+    local companions = Database.GetAllCompanionsForRanking() -- Debe devolver todas las mascotas con achievements
     local ranking = {}
 
     for _, companion in ipairs(companions or {}) do
@@ -118,7 +118,7 @@ local function updateStatsFight(winnerPet, loserPet, winnerSrc, loserSrc, isKO, 
     wach.fight.winrate = totalFightsW > 0 and math.floor((wach.fight.victories / totalFightsW) * 100) or 0
 
     Database.UpdateCompanionAchievements(wid, wach)
-    TriggerClientEvent('hdrp-pets:client:updateanimals', src, wid, wach)
+    -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, wid, wach)
 
     -- Mascota perdedora
     local lid = loserPet.PetId or loserPet.Name
@@ -135,7 +135,7 @@ local function updateStatsFight(winnerPet, loserPet, winnerSrc, loserSrc, isKO, 
     lach.fight.winrate = totalFightsL > 0 and math.floor((lach.fight.victories / totalFightsL) * 100) or 0
 
     Database.UpdateCompanionAchievements(lid, lach)
-    TriggerClientEvent('hdrp-pets:client:updateanimals', src, lid, lach)
+    -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, lid, lach)
 end
 
 -- Utilidad: obtener atributos de una mascota (puede ser NPC o mascota de jugador)

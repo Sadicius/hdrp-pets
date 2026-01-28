@@ -48,6 +48,7 @@ client_scripts {
     'client/systems/notify.lua',        -- Notify decay, level up, etc.
     'client/systems/prompts.lua',       -- Prompt system
     'client/systems/breeding.lua',    -- breeding
+    'client/systems/tracking.lua',      -- TRACKING (Find lost pets & track targets)
 
     -- GAMES (Mini-Games for Pets)
     'client/games/bandit.lua',          -- Bandit encounters

@@ -189,3 +189,35 @@ AddEventHandler('hdrp-pets:server:gettrackingskill', function(companionid)
     
     if Config.Debug then print(string.format("^2[TRACKING]^7 Pet %s tracking skill: %.2fx (Level: %d, Bond: %d)", companionid, totalMultiplier, petLevel, bond)) end
 end)
+
+-- Buscar en base de datos (llamado desde prompts del cliente)
+RegisterServerEvent('hdrp-pets:server:searchDatabase')
+AddEventHandler('hdrp-pets:server:searchDatabase', function(playerCoords, companionid)
+    local src = source
+    local Player = RSGCore.Functions.GetPlayer(src)
+    if not Player then return end
+    
+    -- Validar coordenadas
+    if not playerCoords or type(playerCoords) ~= "table" then
+        TriggerClientEvent('ox_lib:notify', src, { 
+            title = locale('sv_error_invalid_coords'), 
+            type = 'error' 
+        })
+        return
+    end
+    
+    local coords = vector3(playerCoords.x, playerCoords.y, playerCoords.z)
+    local searchRadius = Config.TrackingSystem and Config.TrackingSystem.searchRadius or 500.0
+    
+    -- Usar la funcion existente DetectCoordinates
+    local locations = DetectCoordinates(coords, searchRadius)
+    
+    if locations and #locations > 0 then
+        TriggerClientEvent('hdrp-pets:client:receiveTrackableLocations', src, locations)
+    else
+        TriggerClientEvent('ox_lib:notify', src, { 
+            title = locale('sv_track_no_locations') or 'No locations found', 
+            type = 'inform' 
+        })
+    end
+end)

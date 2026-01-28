@@ -370,6 +370,16 @@ function Database.GetAllActiveCompanions()
     return {}
 end
 
+function Database.GetAllCompanionsForRanking()
+    local success, result = pcall(MySQL.query.await, 
+        'SELECT companionid, achievements FROM pet_companion WHERE achievements IS NOT NULL'
+    )
+    if success and result then
+        return result
+    end
+    return {}
+end
+
 -- ================================================
 -- GENEALOGY QUERIES
 -- ================================================
