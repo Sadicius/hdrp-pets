@@ -207,7 +207,7 @@ end
 ]]
 
 local function loopGestation()
-    for companionid, pet in pairs(Database.GetAllActiveCompanions()) do
+    for companionid, pet in ipairs(Database.GetAllActiveCompanions()) do
         if (pet.data and pet.data.veterinary and pet.data.veterinary.inbreed) and pet.data.veterinary.gestationstart and pet.data.veterinary.gestationperiod then
             local elapsed = os.time() - pet.data.veterinary.gestationstart
             if elapsed >= pet.data.veterinary.gestationperiod then

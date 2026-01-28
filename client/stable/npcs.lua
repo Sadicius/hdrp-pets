@@ -12,11 +12,11 @@ CreateThread(function()
     if not PetStableSettings then return end
     for k,v in pairs(PetStableSettings) do
         if Config.EnablePrompts then
-            -- exports['rsg-core']:createPrompt(v.id, v.coords, RSGCore.Shared.Keybinds[Config.KeyBind], locale('cl_menu_pet_shop'), {
-            --     type = 'client',
-            --     event = 'hdrp-pets:client:stablemenu',
-            --     args = {v.stableid}
-            -- })
+            exports['rsg-core']:createPrompt(v.id, v.coords, RSGCore.Shared.Keybinds[Config.KeyBind], locale('cl_menu_pet_shop'), {
+                type = 'client',
+                event = 'hdrp-pets:client:stablemenu',
+                args = {v.stableid}
+            })
         end
         -- Create blip
         if v.showblip then

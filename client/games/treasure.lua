@@ -21,7 +21,7 @@
 -- if not State.Games.currentHuntStep then State.Games.currentHuntStep = {} end
 -- if not State.Games.totalHuntSteps then State.Games.totalHuntSteps = {} end
 
--- local ManageSpawn = require('client.stable.utils_spawn')
+-- local ManageSpawn = lib.load('client.stable.utils_spawn')
 
 -- function isWaterAtCoords(coords)
 -- 	local waterTypes = Config.WaterTypes

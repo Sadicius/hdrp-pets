@@ -31,7 +31,7 @@ local Game_buried = {
     lostBone = 80, -- 1-100 % lost bone for no skills in buried bone
     -- Odds of finding the buried bone 1-100 divided into three sections: none, common, special
     findburied = 65, -- base to find something special (rare)
-    findespecial = 10 -- trash finder (common)
+    findSpecial = 10 -- trash finder (common)
 }
 
 -- DIG RANDOMLY
@@ -74,7 +74,7 @@ local Game_treasure = {
         digAnimTime = 5000, -- WORLD_DOG_DIGGING
         sniAnimTime = 5000, -- WORLD_DOG_SNIFFING_GROUND_WANDER
         guaAnimTime = 5000, -- WORLD_DOG_GUARD_GROWL
-        howAnimTime= 5000, -- WORLD_DOG_HOWLING
+        howAnimTime = 5000, -- WORLD_DOG_HOWLING
     }
 }
 

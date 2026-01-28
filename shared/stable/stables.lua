@@ -9,6 +9,7 @@
 return {
     {   -- valentine
         stableid = 'valentine',
+        id = 'pet_stable_valentine',
         coords = vector3(-283.79, 659.05, 113.38),
         npcmodel = `mbh_rhodesrancher_females_01`,
         npccoords = vector4(-283.79, 659.05, 113.38, 84.08),
@@ -18,6 +19,7 @@ return {
     },
     {   -- blackwater
         stableid = 'blackwater',
+        id = 'pet_stable_blackwater',
         coords = vector3(-939.59, -1238.36, 52.07),
         npcmodel = `u_m_m_bwmstablehand_01`,
         npccoords = vector4(-939.59, -1238.36, 52.07, 238.11),
@@ -27,6 +29,7 @@ return {
     },
     {   -- tumbleweed
         stableid = 'tumbleweed',
+        id = 'pet_stable_tumbleweed',
         coords = vector3(-5584.34, -3065.37, 2.39),
         npcmodel = `u_m_m_bwmstablehand_01`,
         npccoords = vector4(-5584.34, -3065.37, 2.39, 2.41),
@@ -36,7 +39,8 @@ return {
     },
     {   -- wapiti
         stableid = 'wapiti',
-        coords = vector3(-5584.34, -3065.37, 2.39),
+        id = 'pet_stable_wapiti',
+        coords = vector3(453.09, 2209.89, 246.07),
         npcmodel = `u_m_m_bwmstablehand_01`,
         npccoords = vector4(453.09, 2209.89, 246.07, 299.49),
 

@@ -274,7 +274,7 @@ RegisterNetEvent('hdrp-pets:server:surgery', function(companionid)
     
     -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
     
-    if Config.Debug then print(string.format('^2[VETERINARY]^7 Surgery completed for %s (Health: %d%%)', currentData.info.name or petId, math.floor(currentData.stats.health))) end
+    if Config.Debug then print(string.format('^2[VETERINARY]^7 Surgery completed for %s (Health: %d%%)', currentData.info.name or companionid, math.floor(currentData.stats.health))) end
     TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = locale('sv_vet_surgery_success') .. math.floor(currentData.stats.health) .. '%', duration = 5000 })
 
 end)

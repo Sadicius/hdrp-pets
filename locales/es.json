@@ -18,7 +18,9 @@
 	"cl_search_moonshiner": "Ubicación de Alambique",
 	"cl_search_weapons": "Armas Personalizadas Ocultas",
 	"cl_search_plants": "Área de Agricultura",
-
+	"cl_sano": "Sano",
+	"cl_vaccinated": "Vacunado",
+	"cl_diseased": "Enfermo",
 	"cl_figh_dog_desc_a": "Un perro feroz, criado para la fuerza y la tenacidad",
 	"cl_figh_dog_desc_b": "Un collie luchador con ferocidad impredecible",
 	"cl_figh_dog_desc_c": "Un pastor leal, rápido y agresivo",

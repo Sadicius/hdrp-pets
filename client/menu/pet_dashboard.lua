@@ -274,7 +274,7 @@ function ShowPetDashboard(companionid)
         -- icon = 'fa-solid fa-paw',
         arrow = true,
         onSelect = function()
-            local Stats = require('client.menu.pet_stats')
+            local Stats = lib.load('client.menu.pet_stats')
             Stats.ShowTab(companionid)
         end,
         metadata = headerMetadata
@@ -322,7 +322,7 @@ function ShowPetDashboard(companionid)
         arrow = Config.Reproduction.GenealogyEnabled,
         onSelect = function()
             if Config.Reproduction.GenealogyEnabled then
-                local Breeding = require('client.menu.pet_breed')
+                local Breeding = lib.load('client.menu.pet_breed')
                 print('Showing genealogy for companion ID:', companionid)
                 Breeding.openGenealogyMenu(companionid)
             end
@@ -354,7 +354,7 @@ function ShowPetDashboard(companionid)
         -- icon = 'fa-solid fa-bolt',
         arrow = true,
         onSelect = function()
-            local Actions = require('client.menu.pet_actions')
+            local Actions = lib.load('client.menu.pet_actions')
             Actions.ShowTab(companionid)
         end
     }
@@ -425,7 +425,7 @@ function ShowPetDashboard(companionid)
                 lib.notify({ title = locale('cl_error_xp_needed'):format(Config.XP.Trick.Animations), type = 'error' })
                 return
             end
-            local Actions = require('client.menu.pet_actions')
+            local Actions = lib.load('client.menu.pet_actions')
             Actions.ShowAnimationsMenu(companionid)
         end
     }
@@ -438,7 +438,7 @@ function ShowPetDashboard(companionid)
             -- icon = 'fa-solid fa-trophy',
             arrow = true,
             onSelect = function()
-                local Achievements = require('client.menu.pet_achievements')
+                local Achievements = lib.load('client.menu.pet_achievements')
                 Achievements.ShowTab(companionid)
             end
         }

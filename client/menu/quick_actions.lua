@@ -7,7 +7,7 @@ lib.locale()
     - Control: Follow All, Stay All, Call All, Dismiss All
 ]]
 local State = exports['hdrp-pets']:GetState()
-local ManageSpawn = require('client.stable.utils_spawn')
+local ManageSpawn = lib.load('client.stable.utils_spawn')
 local QuickActions = {}
 
 function QuickActions.ShowMenu()

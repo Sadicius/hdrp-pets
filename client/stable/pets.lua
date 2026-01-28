@@ -195,6 +195,7 @@ AddEventHandler("onResourceStop", function(resourceName)
         end
         spawnedPaidPeds[k] = nil
     end
+    spawnedPaidPeds = {}
     -- print('^3[HDRP-AdvancedPets]^7 Cleaned up vendor resources')
 end)
 

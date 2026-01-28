@@ -24,7 +24,7 @@ local function ShowPetMainMenu()
         title = '⚡ ' .. locale('cl_pet_menu_quick_actions'),
         arrow = true,
         onSelect = function()
-            local QuickActions = require('client.menu.quick_actions')
+            local QuickActions = lib.load('client.menu.quick_actions')
             QuickActions.ShowMenu()
         end
     }
@@ -34,7 +34,7 @@ local function ShowPetMainMenu()
         title = '⚡ ' .. locale('cl_pet_menu_quick_care'),
         arrow = true,
         onSelect = function()
-            local QuickCare = require('client.menu.quick_care')
+            local QuickCare = lib.load('client.menu.quick_care')
             QuickCare.ShowMenu()
         end
     }
@@ -87,7 +87,7 @@ local function ShowPetMainMenu()
             title = locale('cl_tab_breeding'),
             arrow = true,
             onSelect = function()
-                local Breeding = require('client.menu.pet_breed')
+                local Breeding = lib.load('client.menu.pet_breed')
                 Breeding.openBreedMenu()
             end
         }

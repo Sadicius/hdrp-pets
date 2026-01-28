@@ -89,7 +89,8 @@ RSGCore.Functions.CreateCallback('hdrp-pets:server:getactivecompanions', functio
     if not Player then cb({}) return end
     
     local success, result = pcall(function()
-        return Database.GetAllCompanionsActive(Player.PlayerData.citizenid)
+        cb(Database.GetAllCompanionsActive(Player.PlayerData.citizenid))
+        return 
     end)
     
     if not success then
@@ -106,7 +107,7 @@ lib.callback.register('hdrp-pets:server:getbreedingstatus', function(source, pet
     local pet = Database.GetCompanionById(petId)
 
     if not pet then return {status = 'error', message = 'Mascota no encontrada'} end
-    local petData = type(pet.data) == 'string' and json.decode(pet.data) or pet.data
+    local petData = type(pet.data) == 'string' and json.decode(pet.data)
     if not petData then goto continue end
     if petData.veterinary.inbreed then
         return {status = 'pregnant', message = locale('cl_breed_pregnant')}
@@ -145,7 +146,7 @@ lib.callback.register('hdrp-pets:server:getavailablepartners', function(source, 
     for _, candidate in pairs(allActive) do
         local candidateData = type(candidate.data) == 'string' and json.decode(candidate.data) or candidate.data
         if not candidateData then goto continue end
-        if candidate.companionid ~= petId and candidateData.veterinary.breedable == petData.veterinary.breedable and candidateData.info.gender ~= petData.info.gender then
+        if candidate.companionid ~= petId and candidateData.veterinary.breedable == true and petData.veterinary.breedable == true and candidateData.info.gender ~= petData.info.gender then
             if candidateData.stats.age >= Config.Reproduction.MinAgeForBreeding and candidateData.stats.age <= Config.Reproduction.MaxBreedingAge and candidateData.stats.health >= Config.Reproduction.RequiredHealth and not candidateData.veterinary.inbreed and (not candidateData.veterinary.breedingcooldown or candidateData.veterinary.breedingcooldown < os.time()) then
                 table.insert(partners, {
                     id = candidate.companionid,

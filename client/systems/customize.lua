@@ -5,7 +5,7 @@ local entities = {}
 local attachedProps = {}
 
 -- Helpers de componentes y props
-local M = require('shared.stable.shop_helpers')
+local M = lib.load('shared.stable.shop_helpers')
 
 PetComponents_Clear = M.PetComponents_Clear
 PetComponents_Merge = M.PetComponents_Merge
@@ -272,7 +272,7 @@ local function MainMenu(ped, companionid)
 end
 
 function CustomPet(ped, companionid)
-    local ManageSpawn = require('client.stable.utils_spawn')
+    local ManageSpawn = lib.load('client.stable.utils_spawn')
     MenuData.CloseAll()
     CurrentPrice = 0
     local petState = State and State.GetPet and State.GetPet(companionid) or nil
@@ -379,7 +379,7 @@ function AttachPropToPet(petEntity, propData)
 end
 
 function OpenPetPropsMenu(ped, companionid)
-    local ManageSpawn = require('client.stable.utils_spawn')
+    local ManageSpawn = lib.load('client.stable.utils_spawn')
     MenuData.CloseAll()
     CurrentPrice = 0
     local petState = State and State.GetPet and State.GetPet(companionid) or nil

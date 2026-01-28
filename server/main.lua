@@ -383,21 +383,17 @@ AddEventHandler('hdrp-pets:server:setrip', function(companionid) -- healt
     
     currentData.veterinary.dead = true
 
-    Database.UpdateCompanionData(companionid, currentData)
-    TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
-    Wait(1000)
-
     if currentData.veterinary.dead == true then
         -- currentData.stats.health = 0
         currentData.stats.hunger = 0
         currentData.stats.thirst = 0
         currentData.stats.happiness = 0
         currentData.stats.strength = 0
-        currentData.stats.dirt = 100
-        currentData.stats.dirt = tonumber(currentData.stats.dirt) or 0
+        currentData.stats.dirt = tonumber(100)
     end
+
     Database.UpdateCompanionData(companionid, currentData)
-    TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
+    -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
 
     local discordMessage = string.format(
         locale('sv_log_user')..":** %s \n**"

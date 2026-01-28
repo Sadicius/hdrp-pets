@@ -2,7 +2,7 @@ local RSGCore = exports['rsg-core']:GetCoreObject()
 lib.locale()
 
 local State = exports['hdrp-pets']:GetState() -- Asegura acceso a State
-local ManageSpawn = require('client.stable.utils_spawn')
+local ManageSpawn = lib.load('client.stable.utils_spawn')
 local ClaimedAnimals = {}
 local RetrievedEntities = {}
 local fetchedObj = {} -- Debe ser tabla para multipet

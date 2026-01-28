@@ -2,7 +2,7 @@ local RSGCore = exports['rsg-core']:GetCoreObject()
 lib.locale()
 
 local State = exports['hdrp-pets']:GetState()
-local M = require('shared.stable.shop_helpers')
+local M = lib.load('shared.stable.shop_helpers')
 local ManageSpawn = {}
 
 ------------------------------------------

@@ -155,7 +155,7 @@ RegisterServerEvent('hdrp-pets:server:givetreasure', function()
     local function getTreasureReward()
         local roll = math.random(1, 100)
         local acc = 0
-        for _, reward in ipairs(Gtreasure.rewards) do
+        for _, reward in ipairs(gameTreasureConfig.rewards) do
             acc = acc + reward.chance
             if roll <= acc then
                 return reward
