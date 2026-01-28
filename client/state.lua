@@ -514,6 +514,17 @@ end
         local pet = State.GetPet(companionid)
     end
 end) ]]
+RegisterNetEvent('hdrp-pets:client:tradeCompleted')
+AddEventHandler('hdrp-pets:client:tradeCompleted', function()
+    -- Refrescar lista de mascotas del jugador
+    TriggerServerEvent('hdrp-pets:server:requestCompanions')
+    
+    lib.notify({ 
+        title = locale('cl_trade_completed') or 'Trade completed', 
+        type = 'success',
+        duration = 5000
+    })
+end)
 
 RegisterNetEvent('hdrp-pets:client:updateanimals', function(id, newData)
     if State.Pets[id] then

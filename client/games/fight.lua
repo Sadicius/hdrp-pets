@@ -689,6 +689,35 @@ CreateThread(function()
     end
 end)
 
+-- Actualiza logros de combate en el cliente
+RegisterNetEvent('hdrp-pets:client:updateCombatAchievements')
+AddEventHandler('hdrp-pets:client:updateCombatAchievements', function(petId, achievements, xpBonus)
+    if not petId or not achievements then return end
+    
+    -- Actualizar achievements en State local
+    local pet = State.GetPet(petId)
+    if pet and pet.data then
+        pet.data.achievements = achievements
+    end
+    
+    -- Notificar XP ganado
+    if xpBonus and xpBonus > 0 then
+        lib.notify({
+            title = locale('cl_fight_xp_gained') or 'Combat XP',
+            description = '+' .. xpBonus .. ' XP',
+            type = 'success'
+        })
+    end
+    
+    if Config.Debug then
+        print(string.format('[FIGHT] Updated achievements for %s: Wins=%d, Fights=%d', 
+            petId, 
+            achievements.fight and achievements.fight.victories or 0,
+            achievements.fight and achievements.fight.fights or 0
+        ))
+    end
+end)
+
 RegisterCommand('pet_fight', function()
     TriggerEvent('hdrp-pets:client:openBettingMenu')
 end)
