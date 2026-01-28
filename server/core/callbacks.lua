@@ -108,7 +108,7 @@ lib.callback.register('hdrp-pets:server:getbreedingstatus', function(source, pet
 
     if not pet then return {status = 'error', message = 'Mascota no encontrada'} end
     local petData = type(pet.data) == 'string' and json.decode(pet.data)
-    if not petData then goto continue end
+    -- if not petData then goto continue end
     if petData.veterinary.inbreed then
         return {status = 'pregnant', message = locale('cl_breed_pregnant')}
     elseif petData.veterinary.breedingcooldown and petData.veterinary.breedingcooldown > os.time() then
@@ -180,4 +180,5 @@ lib.callback.register('hdrp-pets:server:getbreedinghistory', function(source)
     -- Obtener historial robusto de cría por jugador
     local history = Database.GetBreedingHistory(citizenid)
     return history or {}
+
 end)
