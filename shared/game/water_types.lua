@@ -1,0 +1,27 @@
+--[[
+    HDRP-PETS WATER TYPES CONFIGURATION
+    Separated from: shared/config/animations.lua (v5.8.1+)
+    
+    Contains:
+    - Water types for pet drinking detection
+]]
+
+return {
+    {name = 'San Luis River',       waterhash = -1504425495, watertype = 'river'},
+    {name = 'Upper Montana River',  waterhash = -1781130443, watertype = 'river'},
+    {name = 'Owanjila',             waterhash = -1300497193, watertype = 'river'},
+    {name = 'HawkEye Creek',        waterhash = -1276586360, watertype = 'river'},
+    {name = 'Little Creek River',   waterhash = -1410384421, watertype = 'river'},
+    {name = 'Dakota River',         waterhash = 370072007,   watertype = 'river'},
+    {name = 'Beartooth Beck',       waterhash = 650214731,   watertype = 'river'},
+    {name = 'Deadboot Creek',       waterhash = 1245451421,  watertype = 'river'},
+    {name = 'Spider Gorge',         waterhash = -218679770,  watertype = 'river'},
+    {name = 'Roanoke Valley',       waterhash = -1229593481, watertype = 'river'},
+    {name = 'Lannahechee River',    waterhash = -2040708515, watertype = 'river'},
+    {name = 'Random1',              waterhash = 231313522,   watertype = 'river'},
+    {name = 'Random2',              waterhash = 2005774838,  watertype = 'river'},
+    {name = 'Random3',              waterhash = -1287619521, watertype = 'river'},
+    {name = 'Random4',              waterhash = -1308233316, watertype = 'river'},
+    {name = 'Random5',              waterhash = -196675805,  watertype = 'river'},
+    {name = 'Arroyo De La Vibora',  waterhash = -49694339,   watertype = 'river'},
+}

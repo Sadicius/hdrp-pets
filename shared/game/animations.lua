@@ -1,0 +1,142 @@
+--[[
+    HDRP-PETS ANIMATIONS CONFIGURATION
+    Separated from: shared/extra.lua (v5.8.0+)
+    Updated: v5.8.1+ - Removed WaterTypes (moved to water_types.lua)
+    
+    Contains:
+    - Pet animations with experience requirements
+    - type: 'canis', 'felis', 'bird', 'wild', 'reptilia', 'fish'
+]]
+
+lib.locale()
+
+return {
+    {
+        label = locale('anim_sitting'),
+        dict = 'amb_creature_mammal@world_dog_sitting@base',
+        dictname = 'base',
+        type = {'canis'},
+        -- icon = 'fa-solid fa-box',
+        experience = 10,
+    },
+    {
+        label = locale('anim_roll_ground'),
+        dict = 'amb_creature_mammal@world_dog_roll_ground@idle',
+        dictname = 'idle_c',
+        type = {'canis'},
+        -- icon = 'fa-solid fa-box',
+        experience = 20,
+    },
+    {
+        label = locale('anim_begging'),
+        dict = 'amb_creature_mammal@world_dog_begging@idle',
+        dictname = 'idle_a',
+        type = {'canis'},
+        -- icon = 'fa-solid fa-box',
+        experience = 30,
+    },
+    {
+        label = locale('anim_resting'),
+        dict = 'amb_creature_mammal@world_dog_resting@base',
+        dictname = 'base',
+        type = {'canis'},
+        -- icon = 'fa-solid fa-box',
+        experience = 40,
+    },
+    {
+        label = locale('anim_sleeping'),
+        dict = 'amb_creature_mammal@world_dog_sleeping@base',
+        dictname = 'base',
+        type = {'canis'},
+        -- icon = 'fa-solid fa-box',
+        experience = 50,
+    },
+    {
+        label = locale('anim_digging'),
+        dict = 'amb_creature_mammal@world_dog_digging@base',
+        dictname = 'base',
+        type = {'canis'},
+        -- icon = 'fa-solid fa-box',
+        experience = 60,
+    },
+    {
+        label = locale('anim_barking_up'),
+        dict = 'amb_creature_mammal@world_dog_barking_up@base',
+        dictname = 'base',
+        type = {'canis'},
+        -- icon = 'fa-solid fa-box',
+        experience = 70,
+    },
+    {
+        label = locale('anim_barking_vicious'),
+        dict = 'amb_creature_mammal@world_dog_barking_vicious@base',
+        dictname = 'base',
+        type = {'canis'},
+        -- icon = 'fa-solid fa-box',
+        experience = 80,
+    },
+    {
+        label = locale('anim_bark_growl'),
+        dict = 'amb_creature_mammal@world_dog_bark_growl@base',
+        dictname = 'base',
+        type = {'canis'},
+        -- icon = 'fa-solid fa-box',
+        experience = 100,
+    },
+    {
+        label = locale('anim_guard_growl'),
+        dict = 'amb_creature_mammal@world_dog_guard_growl@base',
+        dictname = 'base',
+        type = {'canis'},
+        -- icon = 'fa-solid fa-box',
+        experience = 150,
+    },
+    {
+        label = locale('anim_barking_ground'),
+        dict = 'amb_creature_mammal@world_dog_barking_ground@base',
+        dictname = 'base',
+        type = {'canis'},
+        -- icon = 'fa-solid fa-box',
+        experience = 200,
+    },
+    {
+        label = locale('anim_howling_sitting'),
+        dict = 'amb_creature_mammal@world_dog_howling_sitting@base',
+        dictname = 'base',
+        type = {'canis'},
+        -- icon = 'fa-solid fa-box',
+        experience = 250,
+    },
+    {
+        label = locale('anim_sniffing_ground'),
+        dict = 'amb_creature_mammal@world_dog_sniffing_ground@base',
+        dictname = 'base',
+        type = {'canis'},
+        -- icon = 'fa-solid fa-box',
+        experience = 300,
+    },
+    {
+        label = locale('anim_pooping'),
+        dict = 'amb_creature_mammal@world_dog_pooping@base',
+        dictname = 'base',
+        type = {'canis'},
+        -- icon = 'fa-solid fa-box',
+        experience = 350,
+    },
+    {
+        label = locale('anim_injured_on_ground'),
+        dict = 'amb_creature_mammal@world_dog_injured_on_ground@base',
+        dictname = 'base',
+        type = {'canis'},
+        -- icon = 'fa-solid fa-box',
+        experience = 400,
+    },
+    {
+        label = locale('anim_stunned_on_ground'),
+        dict = 'amb_creature_mammal@world_dog_stunned_on_ground@base',
+        dictname = 'base',
+        type = {'canis'},
+        -- icon = 'fa-solid fa-box',
+        experience = 450,
+    },
+}
