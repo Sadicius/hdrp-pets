@@ -36,11 +36,9 @@ ensure hdrp-pets
 ## Project Structure
 - `client/` — Gameplay, UI, systems (actions, behavior, inventory, pets, herding, wandering, games)
   - `games/` — Mini-games (bandit, bone, buried, hostile, treasure, etc.)
-  - `herding/` — Herding and group follow logic
   - `menu/` — UI menus (main, actions, stats, dashboard, achievements, quick actions/care)
   - `stable/` — Stable, call, flee, rename, trade, NPCs
   - `systems/` — Core systems (behavior, prompts, inventory, decay, ambient, attachment, customize, dataview, xp, consumables)
-  - `wandering/` — Ambient pet movement
 - `server/` — Callbacks, persistence, shop/vet logic, item/trade/reward management
   - `core/` — Validation, database, callbacks
   - `systems/` — Commands, customize, items, management, tracking, trade, lifecycle, veterinary
@@ -57,10 +55,9 @@ ensure hdrp-pets
 - `/pet_find` — Check pet in stable
 - `/pet_call` — Summon active pet(s)
 - `/pet_flee` — Dismiss active pet(s)
-- `/pet_sleep` — Store pet
+- `/pet_store` — Store pet
 - `/pet_revive` — Revive a deceased pet
-- `/pet_treasure` — Start treasure hunt
-- `/pet_bone` / `/pet_buried` — Bone games
+- `/pet_bone`
 - `/pet_hunt` — Toggle hunt mode
 
 ## Keybinds (defaults)
