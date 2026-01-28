@@ -181,7 +181,7 @@ function Database.DeactivateCompanion(companionid, citizenid, stableid)
     
     -- Si no se proporciona stableid, obtener el stable actual de la mascota
     if not stableid or stableid == nil then
-        local companion = Database.GetCompanionById(companionid)
+        local companion = Database.GetCompanionByCompanionId(companionid)
         if companion and companion.stable then
             stableid = companion.stable
         else

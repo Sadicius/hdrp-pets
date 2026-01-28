@@ -189,7 +189,7 @@ RegisterServerEvent('hdrp-pets:server:setactive', function(id)
     if not Player then return end
     print('^3[SERVER] Activating companion with ID: ' .. tostring(id) .. '^7')
     -- Buscar el registro por companionid para obtener el id numérico
-    local companion = Database.GetCompanionById(id)
+    local companion = Database.GetCompanionByCompanionId(id)
     if not companion or not companion.id then
         TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_error_pet_not_found'), type = 'error', duration = 5000 })
         return
