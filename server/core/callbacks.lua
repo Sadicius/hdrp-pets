@@ -37,7 +37,7 @@ RSGCore.Functions.CreateCallback('hdrp-pets:server:getcompanionbyid', function(s
     end
     
     local success, result = pcall(function()
-        return Database.GetCompanionById(companionId)
+        return Database.GetCompanionByCompanionId(companionId)
     end)
     
     if not success then
@@ -104,7 +104,7 @@ end)
 
 -- Callback: obtener estado de reproducción de una mascota
 lib.callback.register('hdrp-pets:server:getbreedingstatus', function(source, petId)
-    local pet = Database.GetCompanionById(petId)
+    local pet = Database.GetCompanionByCompanionId(petId)
 
     if not pet then return {status = 'error', message = 'Mascota no encontrada'} end
     local petData = type(pet.data) == 'string' and json.decode(pet.data)
@@ -126,7 +126,7 @@ lib.callback.register('hdrp-pets:server:getbreedingstatus', function(source, pet
 end)
 
 lib.callback.register('hdrp-pets:server:getpregnancyprogress', function(source, petId)
-    local pet = Database.GetCompanionById(petId)
+    local pet = Database.GetCompanionByCompanionId(petId)
     local petData = type(pet.data) == 'string' and json.decode(pet.data) or pet.data
     if not pet or not petData.veterinary.inbreed or not petData.veterinary.gestationstart or not petData.veterinary.gestationperiod then return {isPregnant = false} end
     local elapsed = os.time() - petData.veterinary.gestationstart
@@ -137,7 +137,7 @@ end)
 
 -- Callback: buscar parejas compatibles para reproducción
 lib.callback.register('hdrp-pets:server:getavailablepartners', function(source, petId)
-    local pet = Database.GetCompanionById(petId)
+    local pet = Database.GetCompanionByCompanionId(petId)
     if not pet then return {} end
     local petData = type(pet.data) == 'string' and json.decode(pet.data) or pet.data
     if not petData then return {} end
