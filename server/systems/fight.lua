@@ -106,36 +106,36 @@ local function updateStatsFight(winnerPet, loserPet, winnerSrc, loserSrc, isKO, 
     -- Mascota ganadora
     local wid = winnerPet.PetId or winnerPet.Name
     local wcompanion = Database.GetCompanionByCompanionId(wid)
-    local wach = wcompanion and json.decode(wcompanion.achievements or '{}') or achievementsComp
-
-    wach.fight.victories = (wach.fight.victories or 0) + 1
-    wach.fight.streak = (wach.fight.streak or 0) + 1
-    wach.fight.maxStreak = math.max(wach.fight.maxStreak or 0, wach.fight.streak)
-    wach.fight.ko = (wach.fight.ko or 0) + (isKO and 1 or 0)
-    wach.fight.fights = (wach.fight.fights or 0) + 1
-
-    local totalFightsW = (wach.fight.victories or 0) + (wach.fight.defeats or 0)
-    wach.fight.winrate = totalFightsW > 0 and math.floor((wach.fight.victories / totalFightsW) * 100) or 0
-
-    Database.UpdateCompanionAchievements(wid, wach)
-    -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, wid, wach)
+    if wcompanion then
+        local wach = wcompanion and json.decode(wcompanion.achievements or '{}') or achievementsComp
+        wach.fight = wach.fight or { victories = 0, defeats = 0, winrate = 0, combatxp = 0, streak = 0, maxStreak = 0, ko = 0, fights = 0 }
+        wach.fight.victories = (wach.fight.victories or 0) + 1
+        wach.fight.streak = (wach.fight.streak or 0) + 1
+        wach.fight.maxStreak = math.max(wach.fight.maxStreak or 0, wach.fight.streak)
+        wach.fight.ko = (wach.fight.ko or 0) + (isKO and 1 or 0)
+        wach.fight.fights = (wach.fight.fights or 0) + 1
+        local totalFightsW = (wach.fight.victories or 0) + (wach.fight.defeats or 0)
+        wach.fight.winrate = totalFightsW > 0 and math.floor((wach.fight.victories / totalFightsW) * 100) or 0
+        Database.UpdateCompanionAchievements(wid, wach)
+        -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, wid, wach)
+    end
 
     -- Mascota perdedora
     local lid = loserPet.PetId or loserPet.Name
     local lcompanion = Database.GetCompanionByCompanionId(lid)
-    local lach = lcompanion and json.decode(lcompanion.achievements or '{}') or achievementsComp
-
-    lach.fight.defeats = (lach.fight.defeats or 0) + 1
-    lach.fight.streak = 0
-    lach.fight.fights = (lach.fight.fights or 0) + 1
-    lach.fight.maxStreak = lach.fight.maxStreak or 0
-    lach.fight.ko = lach.fight.ko or 0
-
-    local totalFightsL = (lach.fight.victories or 0) + (lach.fight.defeats or 0)
-    lach.fight.winrate = totalFightsL > 0 and math.floor((lach.fight.victories / totalFightsL) * 100) or 0
-
-    Database.UpdateCompanionAchievements(lid, lach)
-    -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, lid, lach)
+    if lcompanion then
+        local lach = lcompanion and json.decode(lcompanion.achievements or '{}') or achievementsComp
+        lach.fight = lach.fight or { victories = 0, defeats = 0, winrate = 0, combatxp = 0, streak = 0, maxStreak = 0, ko = 0, fights = 0 }
+        lach.fight.defeats = (lach.fight.defeats or 0) + 1
+        lach.fight.streak = 0
+        lach.fight.fights = (lach.fight.fights or 0) + 1
+        lach.fight.maxStreak = lach.fight.maxStreak or 0
+        lach.fight.ko = lach.fight.ko or 0
+        local totalFightsL = (lach.fight.victories or 0) + (lach.fight.defeats or 0)
+        lach.fight.winrate = totalFightsL > 0 and math.floor((lach.fight.victories / totalFightsL) * 100) or 0
+        Database.UpdateCompanionAchievements(lid, lach)
+        -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, lid, lach)
+    end
 end
 
 -- Utilidad: obtener atributos de una mascota (puede ser NPC o mascota de jugador)
@@ -148,11 +148,12 @@ local function getPetAttributes(pet)
     -- Espera que tenga campos: Name, Health, Strength, etc.
     return {
         Name = pet.Name,
+        Model = pet.Model,
         Health = pet.Health,
         Strength = pet.Strength,
         Owner = pet.Owner,
         PetId = pet.PetId,
-        NPC = false
+        NPC = pet.NPC or false
     }
 end
 
@@ -195,7 +196,24 @@ RegisterNetEvent('hdrp-pets:server:registerPetForNpcFight')
 AddEventHandler('hdrp-pets:server:registerPetForNpcFight', function(petData, outlawstatus)
     local src = source
     -- petData debe contener: Name, Health, Strength, Owner, PetId
-    table.insert(petFightQueue, {pet = petData, src = src})
+    -- Aplanar la estructura si viene anidada desde el cliente
+    local flatPet = petData
+    if petData.data and petData.data.info then
+        local companionid = petData.companionid or petData.PetId
+        -- Si companionid no está en la raíz, intenta buscarlo en data
+        if not companionid and petData.data.id then
+            companionid = petData.data.id
+        end
+        flatPet = {
+            Name = petData.data.info.name,
+            Model = petData.data.info.model,
+            Health = (petData.data.stats and petData.data.stats.health) or 100,
+            Strength = (petData.data.stats and petData.data.stats.strength) or 50,
+            Owner = src,
+            PetId = companionid
+        }
+    end
+    table.insert(petFightQueue, {pet = flatPet, src = src})
     TriggerClientEvent('ox_lib:notify', src, {
         title = locale('cl_fight_registed'),
         description = locale('cl_fight_registed_desc'),
@@ -206,6 +224,7 @@ AddEventHandler('hdrp-pets:server:registerPetForNpcFight', function(petData, out
     if #petFightQueue > 0 then
         local entry = table.remove(petFightQueue, 1)
         local npcDog = DogFightConfig.Dogs[math.random(#DogFightConfig.Dogs)]
+        print("[DEBUG][SERVER] pet_vs_npc: npcDog.Name:", npcDog.Name, "npcDog.Model:", npcDog.Model)
         local playerPed = GetPlayerPed(entry.src)
         local playerCoords = GetEntityCoords(playerPed)
         startFlexibleFight(entry.pet, npcDog, playerCoords, entry.src, "pet_vs_npc")
