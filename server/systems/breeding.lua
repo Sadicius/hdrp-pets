@@ -11,14 +11,7 @@ local Database = lib.load('server.core.database')
 -- Autor: Adaptado de rex-ranch
 -- Este archivo gestiona la lógica principal de reproducción en el servidor
 -- Callback para consultar genealogía por offspring_id
-lib.callback.register('hdrp-pets:server:getgenealogy', function(source, offspring_id)
-    if not offspring_id then return { enabled = false, message = 'No companionid provided' } end
-    local genealogy = Database.GetGenealogyByOffspringId(offspring_id)
-    if not genealogy then
-        return { enabled = false, message = 'No genealogy found' }
-    end
-    return { enabled = true, genealogy = genealogy }
-end)
+
 
 -- Función para validar si una mascota puede reproducirse
 local function CanBreed(pet)

@@ -110,7 +110,7 @@ AddEventHandler('hdrp-pets:server:findtrackablelocations', function(playerCoords
     end
     
     local coords = vector3(playerCoords.x, playerCoords.y, playerCoords.z)
-    local trackingRadius = Config.TrackingSystem.detectionRadius or 1000.0
+    local trackingRadius = Config.TablesTrack.detectionRadius or 1000.0
     
     -- Detect nearby coordinates
     local locations = DetectCoordinates(coords, trackingRadius)
@@ -207,7 +207,7 @@ AddEventHandler('hdrp-pets:server:searchDatabase', function(playerCoords, compan
     end
     
     local coords = vector3(playerCoords.x, playerCoords.y, playerCoords.z)
-    local searchRadius = Config.TrackingSystem and Config.TrackingSystem.searchRadius or 500.0
+    local searchRadius = (Config.TablesTrack and Config.TablesTrack.searchRadius) or 500.0
     
     -- Usar la funcion existente DetectCoordinates
     local locations = DetectCoordinates(coords, searchRadius)

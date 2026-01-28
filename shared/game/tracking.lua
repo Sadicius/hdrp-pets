@@ -7,7 +7,8 @@ lib.locale()
 
 return {
     SearchData = true, -- Enable database search tracking
-    
+    detectionRadius = 1000.0, -- Radius to detect coordinates in meters
+    searchRadius = 500.0, -- Radius to search for trackable items in meters
     -- Track prompt filters
     TrackOnly = {
         Active = true,      -- Enable filtered tracking
