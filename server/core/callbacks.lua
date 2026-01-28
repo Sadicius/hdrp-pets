@@ -104,17 +104,20 @@ end)
 -- Callback: obtener estado de reproducción de una mascota
 lib.callback.register('hdrp-pets:server:getbreedingstatus', function(source, petId)
     local pet = Database.GetCompanionById(petId)
+
     if not pet then return {status = 'error', message = 'Mascota no encontrada'} end
-    if pet.data.veterinary.inbreed then
+    local petData = type(pet.data) == 'string' and json.decode(pet.data) or pet.data
+    if not petData then goto continue end
+    if petData.veterinary.inbreed then
         return {status = 'pregnant', message = locale('cl_breed_pregnant')}
-    elseif pet.data.veterinary.breedingcooldown and pet.data.veterinary.breedingcooldown > os.time() then
-        local timeRemaining = pet.data.veterinary.breedingcooldown - os.time()
+    elseif petData.veterinary.breedingcooldown and petData.veterinary.breedingcooldown > os.time() then
+        local timeRemaining = petData.veterinary.breedingcooldown - os.time()
         return {status = 'cooldown', message = locale('cl_breed_cooldown'), timeRemaining = timeRemaining}
-    elseif pet.data.stats.age < Config.Reproduction.MinAgeForBreeding then
+    elseif petData.stats.age < Config.Reproduction.MinAgeForBreeding then
         return {status = 'too_young', message = locale('cl_breed_not_young')}
-    elseif pet.data.stats.age > Config.Reproduction.MaxBreedingAge then
+    elseif petData.stats.age > Config.Reproduction.MaxBreedingAge then
         return {status = 'too_old', message = locale('cl_breed_too_old')}
-    elseif pet.data.stats.health < Config.Reproduction.RequiredHealth then
+    elseif petData.stats.health < Config.Reproduction.RequiredHealth then
         return {status = 'requirements_not_met', message = locale('cl_breed_not_heath')}
     else
         return {status = 'ready', message = locale('cl_breed_go')}
@@ -123,10 +126,11 @@ end)
 
 lib.callback.register('hdrp-pets:server:getpregnancyprogress', function(source, petId)
     local pet = Database.GetCompanionById(petId)
-    if not pet or not pet.data.veterinary.inbreed or not pet.data.veterinary.gestationstart or not pet.data.veterinary.gestationperiod then return {isPregnant = false} end
-    local elapsed = os.time() - pet.data.veterinary.gestationstart
-    local progress = math.max(0, math.min(100, (elapsed / pet.data.veterinary.gestationperiod) * 100))
-    local timeRemaining = pet.data.veterinary.gestationperiod - elapsed
+    local petData = type(pet.data) == 'string' and json.decode(pet.data) or pet.data
+    if not pet or not petData.veterinary.inbreed or not petData.veterinary.gestationstart or not petData.veterinary.gestationperiod then return {isPregnant = false} end
+    local elapsed = os.time() - petData.veterinary.gestationstart
+    local progress = math.max(0, math.min(100, (elapsed / petData.veterinary.gestationperiod) * 100))
+    local timeRemaining = petData.veterinary.gestationperiod - elapsed
     return {isPregnant = true, progressPercent = progress, timeRemaining = timeRemaining}
 end)
 
@@ -134,12 +138,14 @@ end)
 lib.callback.register('hdrp-pets:server:getavailablepartners', function(source, petId)
     local pet = Database.GetCompanionById(petId)
     if not pet then return {} end
+    local petData = type(pet.data) == 'string' and json.decode(pet.data) or pet.data
+    if not petData then return {} end
     local partners = {}
     local allActive = Database.GetAllActiveCompanions()
-    for _, candidate in ipairs(allActive) do
+    for _, candidate in pairs(allActive) do
         local candidateData = type(candidate.data) == 'string' and json.decode(candidate.data) or candidate.data
         if not candidateData then goto continue end
-        if candidate.companionid ~= petId and candidateData.veterinary.breedable == pet.data.veterinary.breedable and candidateData.info.gender ~= pet.data.info.gender then
+        if candidate.companionid ~= petId and candidateData.veterinary.breedable == petData.veterinary.breedable and candidateData.info.gender ~= petData.info.gender then
             if candidateData.stats.age >= Config.Reproduction.MinAgeForBreeding and candidateData.stats.age <= Config.Reproduction.MaxBreedingAge and candidateData.stats.health >= Config.Reproduction.RequiredHealth and not candidateData.veterinary.inbreed and (not candidateData.veterinary.breedingcooldown or candidateData.veterinary.breedingcooldown < os.time()) then
                 table.insert(partners, {
                     id = candidate.companionid,
