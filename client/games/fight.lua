@@ -294,19 +294,21 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
         onSelect = function()
             local petList = {}
             for id, pet in pairs(State.GetAllPets()) do
-                local xp = pet.companionxp or 0
+                local petName = (pet.data and pet.data.info and pet.data.info.name) or 'Unknown'
+                local petHealth = (pet.data and pet.data.stats and pet.data.stats.health) or 100
+                local petStrength = (pet.data and pet.data.stats and pet.data.stats.strength) or 50
+                local xp = (pet.data and pet.data.progression and pet.data.progression.xp) or 0
                 petList[#petList+1] = {
-                    title = pet.Name .. ' (ID: ' .. id .. ')',
-                    -- description = 'ID: ' .. id,
+                    title = petName .. ' (ID: ' .. id .. ')',
                     metadata = {
                             {label = 'XP', value = xp},
-                            { label = locale('cl_stat_health'), value = pet.Health .. '%'},
-                            { label = locale('cl_stat_strength'), value = pet.Strength .. '%'},
+                            { label = locale('cl_stat_health'), value = petHealth .. '%'},
+                            { label = locale('cl_stat_strength'), value = petStrength .. '%'},
                         },
-                    args = { pet = pet },
+                    args = { pet = pet, companionid = id },
                     onSelect = function(data)
-                        local xp = data.pet.companionxp or 0
-                        if xp < Config.XP.Trick.pet_vs_npc then
+                        local petXp = (data.pet.data and data.pet.data.progression and data.pet.data.progression.xp) or 0
+                        if petXp < Config.XP.Trick.pet_vs_npc then
                             lib.notify({ title = locale('cl_restriction'), description = string.format(locale('cl_restriction_desc'), Config.XP.Trick.pet_vs_npc), type = 'error' })
                             return
                         end
@@ -346,19 +348,21 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
         onSelect = function()
             local petList = {}
             for id, pet in pairs(State.GetAllPets()) do
-                local xp = pet.companionxp or 0
+                local petName = (pet.data and pet.data.info and pet.data.info.name) or 'Unknown'
+                local petHealth = (pet.data and pet.data.stats and pet.data.stats.health) or 100
+                local petStrength = (pet.data and pet.data.stats and pet.data.stats.strength) or 50
+                local xp = (pet.data and pet.data.progression and pet.data.progression.xp) or 0
                 petList[#petList+1] = {
-                    title = pet.Name .. ' (ID: ' .. id .. ')',
-                    -- description = 'ID: ' .. id,
+                    title = petName .. ' (ID: ' .. id .. ')',
                     metadata = {
                         { label = 'XP', value = xp},
-                        { label = locale('cl_stat_health'), value = pet.Health .. '%'},
-                        { label = locale('cl_stat_strength'), value = pet.Strength .. '%'},
+                        { label = locale('cl_stat_health'), value = petHealth .. '%'},
+                        { label = locale('cl_stat_strength'), value = petStrength .. '%'},
                     },
-                    args = { pet = pet },
+                    args = { pet = pet, companionid = id },
                     onSelect = function(data)
-                        local xp = data.pet.companionxp or 0
-                        if xp < Config.XP.Trick.pet_vs_player then
+                        local petXp = (data.pet.data and data.pet.data.progression and data.pet.data.progression.xp) or 0
+                        if petXp < Config.XP.Trick.pet_vs_player then
                             lib.notify({ title = locale('cl_restriction'), description = string.format(locale('cl_restriction_desc'), Config.XP.Trick.pet_vs_player), type = 'error' })
                             return
                         end
@@ -404,7 +408,6 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
     -- Opción: pelea entre dos mascotas propias
     options[#options + 1] = {
         title = locale('cl_fight_two_pets'),
-        -- description = string.format(locale('cl_fight_two_pets_desc'), Config.XP.Trick.own_pets),
         metadata = {
             { label = 'Info', value = string.format(locale('cl_fight_two_pets_desc'), Config.XP.Trick.own_pets)},
         },
@@ -412,14 +415,16 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
         onSelect = function()
             local petList = {}
             for id, pet in pairs(State.Pets or {}) do
-                local xp = pet.companionxp or 0
+                local petName = (pet.data and pet.data.info and pet.data.info.name) or 'Unknown'
+                local petHealth = (pet.data and pet.data.stats and pet.data.stats.health) or 100
+                local petStrength = (pet.data and pet.data.stats and pet.data.stats.strength) or 50
+                local xp = (pet.data and pet.data.progression and pet.data.progression.xp) or 0
                 petList[#petList+1] = {
-                    title = pet.Name .. ' (ID: ' .. id .. ')',
-                    -- description = 'ID: ' .. id,
+                    title = petName .. ' (ID: ' .. id .. ')',
                     metadata = {
                         {label = 'XP', value = xp},
-                        { label = locale('cl_stat_health'), value = pet.Health .. '%'},
-                        { label = locale('cl_stat_strength'), value = pet.Strength .. '%'},
+                        { label = locale('cl_stat_health'), value = petHealth .. '%'},
+                        { label = locale('cl_stat_strength'), value = petStrength .. '%'},
                     },
                     args = { pet = pet, id = id }
                 }
@@ -430,12 +435,12 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
                 if input and input[1] then
                     local ids = {}
                     for id in string.gmatch(input[1], '([^,]+)') do
-                        ids[#ids+1] = tonumber(id)
+                        ids[#ids+1] = id
                     end
                     local pet1 = State.Pets[ids[1]]
                     local pet2 = State.Pets[ids[2]]
-                    local xp1 = pet1 and (pet1.companionxp or 0) or 0
-                    local xp2 = pet2 and (pet2.companionxp or 0) or 0
+                    local xp1 = pet1 and (pet1.data and pet1.data.progression and pet1.data.progression.xp) or 0
+                    local xp2 = pet2 and (pet2.data and pet2.data.progression and pet2.data.progression.xp) or 0
                     if #ids == 2 and pet1 and pet2 then
                         if xp1 < Config.XP.Trick.own_pets or xp2 < Config.XP.Trick.own_pets then
                             lib.notify({ title = locale('cl_restriction'), description = string.format(locale('cl_restriction_desc'), Config.XP.Trick.own_pets), type = 'error' })
@@ -453,7 +458,6 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
     -- Opción: vender mascota (redirige al menú de venta del establo)
     options[#options + 1] = {
         title = locale('cl_menu_sell_pet'),
-        -- description = locale('cl_menu_sell_pet_fight'),
         metadata = {
             { label = 'Info', value = locale('cl_menu_sell_pet_fight')},
         },
@@ -462,12 +466,14 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
             local petList = {}
             for id, pet in pairs(State.GetAllPets()) do
                 if pet.stableid then
+                    local petName = (pet.data and pet.data.info and pet.data.info.name) or 'Unknown'
+                    local petHealth = (pet.data and pet.data.stats and pet.data.stats.health) or 100
+                    local petStrength = (pet.data and pet.data.stats and pet.data.stats.strength) or 50
                     petList[#petList+1] = {
-                        title = pet.Name .. ' (ID ' .. id .. ')',
-                        -- description = 'ID: ' .. id .. ' | Salud: ' .. (pet.Health or '?'),
+                        title = petName .. ' (ID ' .. id .. ')',
                         metadata = {
-                            { label = locale('cl_stat_health'), value = pet.Health .. '%'},
-                            { label = locale('cl_stat_strength'), value = pet.Strength .. '%'},
+                            { label = locale('cl_stat_health'), value = petHealth .. '%'},
+                            { label = locale('cl_stat_strength'), value = petStrength .. '%'},
                         },
                         args = { stableid = pet.stableid },
                         onSelect = function(data)
@@ -799,16 +805,20 @@ function OpenPetSelectionForChallenge(targetPlayerId, targetPlayerName)
     local petList = {}
 
     for id, pet in pairs(State.GetAllPets()) do
-        local xp = pet.companionxp or 0
+        local petName = (pet.data and pet.data.info and pet.data.info.name) or 'Unknown'
+        local petModel = (pet.data and pet.data.info and pet.data.info.model) or ''
+        local petHealth = (pet.data and pet.data.stats and pet.data.stats.health) or 100
+        local petStrength = (pet.data and pet.data.stats and pet.data.stats.strength) or 50
+        local xp = (pet.data and pet.data.progression and pet.data.progression.xp) or 0
         petList[#petList + 1] = {
-            title = pet.Name .. ' (ID: ' .. id .. ')',
+            title = petName .. ' (ID: ' .. id .. ')',
             metadata = {
                 { label = 'XP', value = xp },
-                { label = locale('cl_stat_health'), value = (pet.Health or 100) .. '%' },
-                { label = locale('cl_stat_strength'), value = (pet.Strength or 50) .. '%' },
+                { label = locale('cl_stat_health'), value = petHealth .. '%' },
+                { label = locale('cl_stat_strength'), value = petStrength .. '%' },
             },
             icon = 'fa-solid fa-dog',
-            args = { pet = pet, targetId = targetPlayerId, targetName = targetPlayerName },
+            args = { pet = pet, companionid = id, targetId = targetPlayerId, targetName = targetPlayerName },
             onSelect = function(data)
                 -- Ask for bet amount
                 local pvpConfig = DogFightConfig.PvP or {}
@@ -828,9 +838,9 @@ function OpenPetSelectionForChallenge(targetPlayerId, targetPlayerName)
                     })
 
                     local betAmount = (input and input[1]) or 0
-                    SendPvPChallenge(data.targetId, data.pet, betAmount)
+                    SendPvPChallenge(data.targetId, data.pet, data.companionid, betAmount)
                 else
-                    SendPvPChallenge(data.targetId, data.pet, 0)
+                    SendPvPChallenge(data.targetId, data.pet, data.companionid, 0)
                 end
             end
         }
@@ -851,14 +861,19 @@ function OpenPetSelectionForChallenge(targetPlayerId, targetPlayerName)
 end
 
 -- Send the challenge to the server
-function SendPvPChallenge(targetId, petData, betAmount)
-    -- Prepare pet data for challenge
+function SendPvPChallenge(targetId, petData, companionid, betAmount)
+    -- Prepare pet data for challenge using correct data structure
+    local petName = (petData.data and petData.data.info and petData.data.info.name) or 'Unknown'
+    local petModel = (petData.data and petData.data.info and petData.data.info.model) or ''
+    local petHealth = (petData.data and petData.data.stats and petData.data.stats.health) or 100
+    local petStrength = (petData.data and petData.data.stats and petData.data.stats.strength) or 50
+
     local challengePetData = {
-        Name = petData.Name,
-        Model = petData.Model,
-        Health = petData.Health or 100,
-        Strength = petData.Strength or 50,
-        PetId = petData.PetId or petData.companionid,
+        Name = petName,
+        Model = petModel,
+        Health = petHealth,
+        Strength = petStrength,
+        PetId = companionid,
         Owner = GetPlayerServerId(PlayerId())
     }
 
@@ -933,18 +948,21 @@ function OpenPetSelectionForAccept()
     local petList = {}
 
     for id, pet in pairs(State.GetAllPets()) do
-        local xp = pet.companionxp or 0
+        local petName = (pet.data and pet.data.info and pet.data.info.name) or 'Unknown'
+        local petHealth = (pet.data and pet.data.stats and pet.data.stats.health) or 100
+        local petStrength = (pet.data and pet.data.stats and pet.data.stats.strength) or 50
+        local xp = (pet.data and pet.data.progression and pet.data.progression.xp) or 0
         petList[#petList + 1] = {
-            title = pet.Name .. ' (ID: ' .. id .. ')',
+            title = petName .. ' (ID: ' .. id .. ')',
             metadata = {
                 { label = 'XP', value = xp },
-                { label = locale('cl_stat_health'), value = (pet.Health or 100) .. '%' },
-                { label = locale('cl_stat_strength'), value = (pet.Strength or 50) .. '%' },
+                { label = locale('cl_stat_health'), value = petHealth .. '%' },
+                { label = locale('cl_stat_strength'), value = petStrength .. '%' },
             },
             icon = 'fa-solid fa-dog',
-            args = { pet = pet },
+            args = { pet = pet, companionid = id },
             onSelect = function(data)
-                AcceptPvPChallenge(data.pet)
+                AcceptPvPChallenge(data.pet, data.companionid)
             end
         }
     end
@@ -964,15 +982,21 @@ function OpenPetSelectionForAccept()
 end
 
 -- Accept the challenge with selected pet
-function AcceptPvPChallenge(petData)
+function AcceptPvPChallenge(petData, companionid)
     if not pendingChallenge then return end
 
+    -- Use correct data structure
+    local petName = (petData.data and petData.data.info and petData.data.info.name) or 'Unknown'
+    local petModel = (petData.data and petData.data.info and petData.data.info.model) or ''
+    local petHealth = (petData.data and petData.data.stats and petData.data.stats.health) or 100
+    local petStrength = (petData.data and petData.data.stats and petData.data.stats.strength) or 50
+
     local defenderPetData = {
-        Name = petData.Name,
-        Model = petData.Model,
-        Health = petData.Health or 100,
-        Strength = petData.Strength or 50,
-        PetId = petData.PetId or petData.companionid,
+        Name = petName,
+        Model = petModel,
+        Health = petHealth,
+        Strength = petStrength,
+        PetId = companionid,
         Owner = GetPlayerServerId(PlayerId())
     }
 
