@@ -2,7 +2,7 @@ local RSGCore = exports['rsg-core']:GetCoreObject()
 lib.locale()
 
 local State = exports['hdrp-pets']:GetState()
-local ManageSpawn = require('client.stable.utils_spawn')
+local ManageSpawn = lib.load('client.stable.utils_spawn')
 --[[
     - Store, Follow, Stay, Lay, Hunt, Call, Dismiss (alive)
     - Animations, Track, Wandering Mode

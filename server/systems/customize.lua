@@ -28,7 +28,7 @@ RegisterNetEvent('hdrp-pets:server:savecomponent', function(component, companion
     local citizenid = Player.PlayerData.citizenid
     if (Player.PlayerData.money.cash < price) then TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_error_no_cash'), type = 'error', duration = 5000 }) return end
     if component then
-        local success, result = pcall(MySQL.update, 'UPDATE pet_companion SET components = ? WHERE citizenid = ? AND companionid = ?', {json.encode(component), citizenid, companionid})
+        local success, result = pcall(MySQL.update.await, 'UPDATE pet_companion SET components = ? WHERE citizenid = ? AND companionid = ?', {json.encode(component), citizenid, companionid})
         if not success then return end
         Player.Functions.RemoveMoney('cash', price)
         TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_success_component_saved') .. price, type = 'success', duration = 5000 })

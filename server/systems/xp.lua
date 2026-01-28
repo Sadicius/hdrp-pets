@@ -37,7 +37,7 @@ RegisterServerEvent('hdrp-pets:server:givexp', function(amount, companionid)
 
     Database.UpdateCompanionData(companionid, currentData)
 
-    TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
+    -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
 
     if newLevel > oldLevel and Config.XP and Config.XP.LevelUpNotifications and Config.XP.LevelUpNotifications.Enabled then
         TriggerClientEvent('hdrp-pets:client:levelUp', src, {
@@ -83,7 +83,7 @@ RegisterServerEvent('hdrp-pets:server:removexp', function(amount, companionid)
 
     Database.UpdateCompanionData(companionid, currentData)
 
-    TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
+    -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
 
     if newLevel < oldLevel and Config.XP and Config.XP.LevelUpNotifications and Config.XP.LevelUpNotifications.Enabled then
         TriggerClientEvent('hdrp-pets:client:levelUp', src, {

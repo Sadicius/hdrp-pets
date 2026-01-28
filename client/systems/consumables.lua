@@ -3,7 +3,7 @@ lib.locale()
 
 local State = exports['hdrp-pets']:GetState()
 
-local ManageSpawn = require('client.stable.utils_spawn')
+local ManageSpawn = lib.load('client.stable.utils_spawn')
 -----------------------------------------
 -- ACTIONS FEED, ANIMATIONS
 -----------------------------------------
@@ -160,7 +160,7 @@ AddEventHandler('hdrp-pets:client:feed', function(itemName, companionid)
                 end
             end
             Wait(2000)
-            local ManageSpawn = require('client.stable.utils_spawn')
+            local ManageSpawn = lib.load('client.stable.utils_spawn')
             ManageSpawn.moveCompanionToPlayer(petData.ped, cache.ped)
         else
             lib.notify({ title = locale('cl_error_feed')..' ' .. itemName .. ' '..locale('cl_error_feed_invalid'), type = 'error', duration = 7000 })

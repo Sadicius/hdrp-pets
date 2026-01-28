@@ -7,8 +7,8 @@ local RSGCore = exports['rsg-core']:GetCoreObject()
 lib.locale()
 
 local State = exports['hdrp-pets']:GetState()
-local GameConfig = require('shared.game.games')
-local ManageSpawn = require('client.stable.utils_spawn')
+local GameConfig = lib.load('shared.game.games')
+local ManageSpawn = lib.load('client.stable.utils_spawn')
 
 local DogFightConfig = GameConfig.Gdogfight
 -- Estado migrado a State.Games.fights y helpers de state_helpers.lua
@@ -520,7 +520,7 @@ AddEventHandler('hdrp-pets:client:startFight', function(dog1, dog2)
         duration = 7000
     })
     Citizen.CreateThread(function()
-        Citizen.Wait(60000)
+        Citizen.Wait(120000)
         local fight = State.Games.fights and State.Games.fights['local']
         if not fight or not DoesEntityExist(fight.ped1) or not DoesEntityExist(fight.ped2) then
             isFighting = false

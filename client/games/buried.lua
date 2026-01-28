@@ -5,7 +5,7 @@ local State = exports['hdrp-pets']:GetState()
 local gameBonesConfig = Config.Games.Gbones
 local gameBuriedConfig = Config.Games.Gburied
 local gameDigRandomConfig = Config.Games.Gdigrandom
-local ManageSpawn = require('client.stable.utils_spawn')
+local ManageSpawn = lib.load('client.stable.utils_spawn')
 
 -- HIDE & SEARCH BONE
 local isRetrieving = false
@@ -181,7 +181,7 @@ RegisterNetEvent("hdrp-pets:client:findBuriedBone", function(targetPetId)
     -- Calcular nivel localmente
     local currentLevel = winnerPet.data and winnerPet.data.progression and winnerPet.data.progression.level or 1
     local roll = math.random(1, 100)
-    if roll <= (gameBuriedConfig.findespecial + (currentLevel * 2)) then
+    if roll <= (gameBuriedConfig.findSpecial + (currentLevel * 2)) then
         TriggerServerEvent('hdrp-pets:server:givexp', Config.XP.Increase.PerFindBuried, winnerPet.id)
         TriggerServerEvent("hdrp-pets:server:giverandom")
         if #competingPets > 1 then

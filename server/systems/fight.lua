@@ -2,8 +2,8 @@
 -- Backend para apuestas y gestión de peleas de mascotas
 
 local RSGCore = exports['rsg-core']:GetCoreObject()
-local Database = require('server.core.database')
-local GameConfig = require('shared.game.games')
+local Database = lib.load('server.core.database')
+local GameConfig = lib.load('shared.game.games')
 local DogFightConfig = GameConfig.Gdogfight
 
 local bets = {}

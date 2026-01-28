@@ -2,7 +2,7 @@ local RSGCore = exports['rsg-core']:GetCoreObject()
 lib.locale()
 
 local State = exports['hdrp-pets']:GetState()
-local ManageSpawn = require('client.stable.utils_spawn')
+local ManageSpawn = lib.load('client.stable.utils_spawn')
 
 --- Función base de spawn que encapsula toda la lógica común
 --- @param companionid string ID del companion
@@ -261,55 +261,43 @@ local function CallAllActivePets()
     end)
 end
 
+
+-- HILO DE SEGUIMIENTO Y GESTIÓN DE FLAGS
+CreateThread(function()
 -- HILO DE SEGUIMIENTO REALISTA PARA MULTI-MASCOTA
-local followTimers = {}
-local FOLLOW_TIME = 10000 -- ms que la mascota sigue tras ser llamada (ajustable)
-local function loopCall()
-    local playerCoords = GetEntityCoords(cache.ped)
-    for companionid, petData in pairs(State.GetAllPets()) do
+    local followTimers = {}
+    local FOLLOW_TIME = 10000 -- ms que la mascota sigue tras ser llamada (ajustable)
+    local function loopCall()
+        local playerCoords = GetEntityCoords(cache.ped)
+        for companionid, petData in pairs(State.GetAllPets()) do
 
-        local isFollow = (petData and petData.flag and petData.flag.isFollowing) or false
-        local isHerding = (petData and petData.flag and petData.flag.isHerding) or false
-        local isWandering = (petData and petData.flag and petData.flag.isWandering) or false
-        local isHunting = (petData and petData.flag and petData.flag.isHunting) or false
-        local isCall = (petData and petData.flag and petData.flag.isCall) or false
+            local isFollow = (petData and petData.flag and petData.flag.isFollowing) or false
+            local isHerding = (petData and petData.flag and petData.flag.isHerding) or false
+            local isWandering = (petData and petData.flag and petData.flag.isWandering) or false
+            local isHunting = (petData and petData.flag and petData.flag.isHunting) or false
+            local isCall = (petData and petData.flag and petData.flag.isCall) or false
 
-        if petData and petData.spawned and isCall and DoesEntityExist(petData.ped) then
-            local xp = petData.xp or 0
-            local requiredXP = (Config.XP and Config.XP.Trick and Config.XP.Trick.Follow) or 75
-            local age = (petData.data and petData.data.stats.age) or petData.stats.age or 0
-            local minFollowAge = 3
-            if xp >= requiredXP and age >= minFollowAge then
-                local petCoords = GetEntityCoords(petData.ped)
-                local distance = #(playerCoords - petCoords)
-                -- Guardar el estado previo antes de cambiar a isFollowing (por mascota)
-                if not petData.flag.prevMovement then
-                    if isHunting then
-                        petData.flag.prevMovement = 'isHunting'
-                    elseif isHerding then
-                        petData.flag.prevMovement = 'isHerding'
-                    else
-                        petData.flag.prevMovement = nil
+            if petData and petData.spawned and isCall and DoesEntityExist(petData.ped) then
+                local xp = petData.xp or 0
+                local requiredXP = (Config.XP and Config.XP.Trick and Config.XP.Trick.Follow) or 75
+                local age = (petData.data and petData.data.stats.age) or petData.stats.age or 0
+                local minFollowAge = 3
+                if xp >= requiredXP and age >= minFollowAge then
+                    local petCoords = GetEntityCoords(petData.ped)
+                    local distance = #(playerCoords - petCoords)
+                    -- Guardar el estado previo antes de cambiar a isFollowing (por mascota)
+                    if not petData.flag.prevMovement then
+                        if isHunting then
+                            petData.flag.prevMovement = 'isHunting'
+                        elseif isHerding then
+                            petData.flag.prevMovement = 'isHerding'
+                        else
+                            petData.flag.prevMovement = nil
+                        end
                     end
-                end
 
-                if distance > Config.PetAttributes.FollowDistance then
-                    -- Si está lejos, sigue al jugador
-                    if petData.flag.prevMovement == 'isHunting' then
-                        State.SetPetTrait(companionid, 'isHunting', false)
-                    elseif petData.flag.prevMovement == 'isHerding' then
-                        StopPetHerding(companionid)
-                        State.SetPetTrait(companionid, 'isHerding', false)
-                    else
-                        StopPetWandering(companionid)
-                        State.SetPetTrait(companionid, 'isWandering', false)
-                    end
-                    State.SetPetTrait(companionid, 'isFollowing', true)
-                    ManageSpawn.moveCompanionToPlayer(petData.ped, cache.ped)
-                    followTimers[companionid] = GetGameTimer() + FOLLOW_TIME
-                else
-                    -- Si ya está cerca, inicia el temporizador de seguimiento
-                    if not isFollow then
+                    if distance > Config.PetAttributes.FollowDistance then
+                        -- Si está lejos, sigue al jugador
                         if petData.flag.prevMovement == 'isHunting' then
                             State.SetPetTrait(companionid, 'isHunting', false)
                         elseif petData.flag.prevMovement == 'isHerding' then
@@ -320,43 +308,55 @@ local function loopCall()
                             State.SetPetTrait(companionid, 'isWandering', false)
                         end
                         State.SetPetTrait(companionid, 'isFollowing', true)
+                        ManageSpawn.moveCompanionToPlayer(petData.ped, cache.ped)
                         followTimers[companionid] = GetGameTimer() + FOLLOW_TIME
+                    else
+                        -- Si ya está cerca, inicia el temporizador de seguimiento
+                        if not isFollow then
+                            if petData.flag.prevMovement == 'isHunting' then
+                                State.SetPetTrait(companionid, 'isHunting', false)
+                            elseif petData.flag.prevMovement == 'isHerding' then
+                                StopPetHerding(companionid)
+                                State.SetPetTrait(companionid, 'isHerding', false)
+                            else
+                                StopPetWandering(companionid)
+                                State.SetPetTrait(companionid, 'isWandering', false)
+                            end
+                            State.SetPetTrait(companionid, 'isFollowing', true)
+                            followTimers[companionid] = GetGameTimer() + FOLLOW_TIME
+                        end
                     end
                 end
             end
-        end
-        -- Si está siguiendo, verifica si debe dejar de seguir
-        if isFollow then
-            if followTimers[companionid] and GetGameTimer() > followTimers[companionid] then
-                followTimers[companionid] = nil
-                -- Restaurar el estado previo guardado (por mascota)
-                State.SetPetTrait(companionid, 'isFollowing', false)
-                Wait(500) -- Small wait before changing state
-                if petData.flag.prevMovement == 'isHunting' then
-                    State.SetPetTrait(companionid, 'isHunting', true)
-                elseif petData.flag.prevMovement == 'isHerding' then
-                    State.SetPetTrait(companionid, 'isHerding', true)
-                    local herdingState = GetPetHerdingState(companionid)
-                    if herdingState and not herdingState.active then
-                        ResumePetHerding(companionid)
-                    elseif not herdingState then
-                        SetupPetHerding(companionid, petData.ped, {})
+            -- Si está siguiendo, verifica si debe dejar de seguir
+            if isFollow then
+                if followTimers[companionid] and GetGameTimer() > followTimers[companionid] then
+                    followTimers[companionid] = nil
+                    -- Restaurar el estado previo guardado (por mascota)
+                    State.SetPetTrait(companionid, 'isFollowing', false)
+                    Wait(500) -- Small wait before changing state
+                    if petData.flag.prevMovement == 'isHunting' then
+                        State.SetPetTrait(companionid, 'isHunting', true)
+                    elseif petData.flag.prevMovement == 'isHerding' then
+                        State.SetPetTrait(companionid, 'isHerding', true)
+                        local herdingState = GetPetHerdingState(companionid)
+                        if herdingState and not herdingState.active then
+                            ResumePetHerding(companionid)
+                        elseif not herdingState then
+                            SetupPetHerding(companionid, petData.ped, {})
+                        end
+                        if Config.Debug then print('^2[FOLLOW]^7 Mascota '..tostring(companionid)..' retoma herding tras seguir al jugador') end
+                    else
+                        State.SetPetTrait(companionid, 'isWandering', true)
+                        SetupPetWandering(companionid, petData.ped, GetEntityCoords(petData.ped))
+                        if Config.Debug then print('^2[FOLLOW]^7 Mascota '..tostring(companionid)..' deja de seguir y vuelve a su aire (wandering)') end
                     end
-                    if Config.Debug then print('^2[FOLLOW]^7 Mascota '..tostring(companionid)..' retoma herding tras seguir al jugador') end
-                else
-                    State.SetPetTrait(companionid, 'isWandering', true)
-                    SetupPetWandering(companionid, petData.ped, GetEntityCoords(petData.ped))
-                    if Config.Debug then print('^2[FOLLOW]^7 Mascota '..tostring(companionid)..' deja de seguir y vuelve a su aire (wandering)') end
+                    -- Limpiar el flag temporal
+                    if petData.flag then petData.flag.prevMovement = nil end
                 end
-                -- Limpiar el flag temporal
-                if petData.flag then petData.flag.prevMovement = nil end
             end
         end
     end
-end
-
--- HILO DE SEGUIMIENTO Y GESTIÓN DE FLAGS
-CreateThread(function()
     while true do
         Wait(1000)
         loopCall()

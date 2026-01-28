@@ -7,7 +7,7 @@ local retrievedEntities = {}
 local itemProps = {}
 local isRetrieving = false
 
-local ManageSpawn = require('client.stable.utils_spawn')
+local ManageSpawn = lib.load('client.stable.utils_spawn')
 
 ----------------------------
 -- GAMES FOR ADD XP

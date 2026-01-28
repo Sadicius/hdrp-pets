@@ -517,7 +517,7 @@ return {
             alwaysAttached = false,
             category = "mask",
             model = 'mp005_p_mp_predhunt_skull03x',
-            bone ='PH_HeadProp', --  'PH_HeadProp',
+            bone = 'PH_HeadProp', --  'PH_HeadProp',
             offset = {
                 x = 0.0,
                 y = 0.23,

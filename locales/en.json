@@ -18,7 +18,9 @@
 	"cl_search_moonshiner": "Moonshiner Location",
 	"cl_search_weapons": "Hidden Custom Weapons",
 	"cl_search_plants": "Farming Area",
-
+	"cl_sano": "Healthy",
+	"cl_vaccinated": "Vaccinated",
+	"cl_diseased": "Diseased",
 	"cl_figh_dog_desc_a": "A fierce hound, bred for strength and tenacity",
 	"cl_figh_dog_desc_b": "A scrappy collie with unpredictable ferocity",
 	"cl_figh_dog_desc_c": "A loyal shepherd, quick and aggressive",

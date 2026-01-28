@@ -264,7 +264,7 @@ function Database.UpdateCompanionAchievements(companionid, achievements)
     if not companionid or not achievements then return false end
     
     local success, result = pcall(
-        MySQL.update,
+        MySQL.update.await,
         'UPDATE pet_companion SET achievements = ? WHERE companionid = ?',
         {json.encode(achievements), companionid}
     )
@@ -280,7 +280,7 @@ function Database.UpdateCompanionData(companionid, data)
     if not companionid or not data then return false end
     
     local success, result = pcall(
-        MySQL.update,
+        MySQL.update.await,
         'UPDATE pet_companion SET data = ? WHERE companionid = ?',
         {json.encode(data), companionid}
     )

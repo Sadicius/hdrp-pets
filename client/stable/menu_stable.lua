@@ -81,7 +81,7 @@ RegisterNetEvent('hdrp-pets:client:stablemenu', function(stableid)
             title = locale('cl_tab_breeding'),
             arrow = true,
             onSelect = function()
-                local Breeding = require('client.menu.pet_breed')
+                local Breeding = lib.load('client.menu.pet_breed')
                 Breeding.openBreedMenu()
             end
         }
@@ -600,10 +600,10 @@ RegisterNetEvent('hdrp-pets:client:veterinaryservices', function(data)
         local petData = type(pet.data) == 'string' and json.decode(pet.data) or pet.data or {}
         local info = petData.info or {}
         local vet = petData.veterinary or {}
-        local status = 'Sano'
-        if vet.hasdisease then status = 'Enfermo' end
-        if vet.isvaccinated and vet.vaccineexpire and (not vet.vaccineexpire or os.time() < vet.vaccineexpire) then
-            status = 'Vacunado'
+        local status = locale('cl_sano')
+        if vet.hasdisease then status = locale('cl_diseased') end
+        if vet.isvaccinated and vet.vaccineexpire and os.time() < vet.vaccineexpire then
+            status = locale('cl_vaccinated')
         end
 
         local metadata = {}

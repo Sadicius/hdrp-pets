@@ -198,7 +198,7 @@ return {
             thirst = 0,
             happiness = 5,
             strength = 50,
-            medicineModelHash = 'p_cs_syringe01x',
+            medicineModelHash = `p_cs_syringe01x`,
             label = 'Pet Stimulant'
         },
         
@@ -209,7 +209,7 @@ return {
             thirst = 50,
             happiness = 50,
             strength = 50,
-            medicineModelHash = 'p_cs_syringe01x',
+            medicineModelHash = `p_cs_syringe01x`,
             revive = true,
             label = 'Pet Reviver'
         },
