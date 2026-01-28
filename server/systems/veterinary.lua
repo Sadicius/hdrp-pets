@@ -153,7 +153,7 @@ RegisterNetEvent('hdrp-pets:server:fullcheckup', function(companionid)
     
     -- Update database
     Database.UpdateCompanionData(companionid, currentData) 
-    TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
+    -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
 
     Player.Functions.RemoveMoney('cash', serviceConfig.price)
 
@@ -212,7 +212,7 @@ RegisterNetEvent('hdrp-pets:server:vaccination', function(companionid)
     
     -- Update database
     Database.UpdateCompanionData(companionid, currentData) 
-    TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
+    -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
     
     Player.Functions.RemoveMoney('cash', serviceConfig.price)
     
@@ -272,7 +272,7 @@ RegisterNetEvent('hdrp-pets:server:surgery', function(companionid)
 
     Player.Functions.RemoveMoney('cash', serviceConfig.price)
     
-    TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
+    -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
     
     if Config.Debug then print(string.format('^2[VETERINARY]^7 Surgery completed for %s (Health: %d%%)', currentData.info.name or petId, math.floor(currentData.stats.health))) end
     TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = locale('sv_vet_surgery_success') .. math.floor(currentData.stats.health) .. '%', duration = 5000 })
@@ -321,7 +321,7 @@ RegisterNetEvent('hdrp-pets:server:sterilization', function(companionid)
 
     Player.Functions.RemoveMoney('cash', serviceConfig.price)
 
-    TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
+    -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
 
     if Config.Debug then print(string.format('^2[VETERINARY]^7 Surgery completed for %s (%s)', currentData.info.name or companionid, locale('sv_vet_sterilization_success'))) end
     TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = locale('sv_vet_sterilization_success'), duration = 5000 })
@@ -367,7 +367,7 @@ RegisterNetEvent('hdrp-pets:server:disease:check', function()
         -- Update database if changes occurred
         if diseaseApplied or effectsApplied then
             Database.UpdateCompanionData(petRecord.companionid or companionid, currentData) 
-            TriggerClientEvent('hdrp-pets:client:updateanimals', src, petRecord.companionid or companionid, currentData)
+            -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, petRecord.companionid or companionid, currentData)
             updateCount = updateCount + 1
         end
 

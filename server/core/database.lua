@@ -39,11 +39,10 @@ function Database.GetAllCompanionsActive(citizenid)
         {citizenid, limit}
     )
     
-    if not success or not result then
-        return nil
+    if not success or not result or #result == 0 then
+        return {}
     end
-    
-    return result or (result[1] or nil)
+    return result
 end
 
 ---Check if pet name exists for a player (case-insensitive)
