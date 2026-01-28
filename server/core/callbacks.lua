@@ -180,5 +180,4 @@ lib.callback.register('hdrp-pets:server:getbreedinghistory', function(source)
     -- Obtener historial robusto de cría por jugador
     local history = Database.GetBreedingHistory(citizenid)
     return history or {}
-
 end)

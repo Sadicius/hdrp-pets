@@ -1,9 +1,19 @@
 
 local RSGCore = exports['rsg-core']:GetCoreObject()
 lib.locale()
-local State = exports['hdrp-pets']:GetState()
 local Database = lib.load('server.core.database')
-
+local function GetPetLevel(xp)
+    if not Config.PetAttributes or not Config.PetAttributes.levelAttributes then
+        return 1
+    end
+    
+    for i, level in ipairs(Config.PetAttributes.levelAttributes) do
+        if xp >= level.xpMin and xp <= level.xpMax then
+            return i
+        end
+    end
+    return #Config.PetAttributes.levelAttributes
+end
 -- Evento para dar experiencia manualmente
 RegisterServerEvent('hdrp-pets:server:givexp', function(amount, companionid)
     local src = source
@@ -31,8 +41,8 @@ RegisterServerEvent('hdrp-pets:server:givexp', function(amount, companionid)
 
     local oldXP = currentData.progression.xp or 0
     local newXP = oldXP + amount
-    local oldLevel = State.GetPetLevel(oldXP)
-    local newLevel = State.GetPetLevel(newXP)
+    local oldLevel = GetPetLevel(oldXP)
+    local newLevel = GetPetLevel(newXP)
     currentData.progression.xp = newXP
 
     Database.UpdateCompanionData(companionid, currentData)
@@ -77,8 +87,8 @@ RegisterServerEvent('hdrp-pets:server:removexp', function(amount, companionid)
 
     local oldXP = currentData.progression.xp or 0
     local newXP = math.max(0, oldXP - amount)
-    local oldLevel = State.GetPetLevel(oldXP)
-    local newLevel = State.GetPetLevel(newXP)
+    local oldLevel = GetPetLevel(oldXP)
+    local newLevel = GetPetLevel(newXP)
     currentData.progression.xp = newXP
 
     Database.UpdateCompanionData(companionid, currentData)

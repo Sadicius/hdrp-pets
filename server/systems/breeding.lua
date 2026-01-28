@@ -16,11 +16,11 @@ local Database = lib.load('server.core.database')
 -- Función para validar si una mascota puede reproducirse
 local function CanBreed(pet)
     if not pet then return false end
-    if pet.stats.age < Config.Reproduction.MinAgeForBreeding then return false end
-    if pet.stats.age > Config.Reproduction.MaxBreedingAge then return false end
-    if pet.stats.health < Config.Reproduction.RequiredHealth then return false end
-    if pet.veterinary.inbreed then return false end
-    if pet.veterinary.breedingcooldown and pet.veterinary.breedingcooldown > os.time() then return false end
+    if (pet.stats and pet.stats.age) < Config.Reproduction.MinAgeForBreeding then return false end
+    if (pet.stats and pet.stats.age) > Config.Reproduction.MaxBreedingAge then return false end
+    if (pet.stats and pet.stats.health) < Config.Reproduction.RequiredHealth then return false end
+    if (pet.veterinary and pet.veterinary.inbreed) then return false end
+    if (pet.veterinary and pet.veterinary.breedingcooldown) and pet.veterinary.breedingcooldown > os.time() then return false end
     return true
 end
 
@@ -30,8 +30,8 @@ RegisterNetEvent('hdrp-pets:server:requestbreeding', function(petAId, petBId)
     local petB = Database.GetCompanionByCompanionId(petBId)
     if not petA or not petB then return end
 
-    petA.data = type(petA.data) == 'string' and json.decode(petA.data) or petA.data or {}
-    petB.data = type(petB.data) == 'string' and json.decode(petB.data) or petB.data or {}
+    petA.data = type(petA.data) == 'string' and json.decode(petA.data) or {}
+    petB.data = type(petB.data) == 'string' and json.decode(petB.data) or {}
 
     if not petA.data.info or not petB.data.info then return end
     if petA.data.info.gender == petB.data.info.gender then return end
@@ -40,7 +40,7 @@ RegisterNetEvent('hdrp-pets:server:requestbreeding', function(petAId, petBId)
     -- Inicia gestación en la mascota hembra
     local femaleId = petA.data.info.gender == 'female' and petAId or petBId
     local female = Database.GetCompanionByCompanionId(femaleId)
-    female.data = type(female.data) == 'string' and json.decode(female.data) or female.data or {}
+    female.data = type(female.data) == 'string' and json.decode(female.data) or {}
 
     TriggerClientEvent('ox_lib:notify', src, {
         title = locale('cl_breed_started_title'),
@@ -235,7 +235,8 @@ local function loopGestation()
                     -- Buscar padres (padre y madre) para snapshot de genealogía
                     local parentA, parentB = pet, pet -- fallback por defecto
                     local foundA, foundB = nil, nil
-                    for id, candidate in pairs(Database.GetAllActiveCompanions()) do
+                    local allactive = Database.GetAllActiveCompanions()
+                    for id, candidate in pairs(allactive) do
                         if id ~= companionid and candidate.data and candidate.data.veterinary and candidate.data.veterinary.breedable == pet.data.veterinary.breedable and candidate.data.info and candidate.data.info.gender ~= pet.data.info.gender and candidate.data.veterinary.gestationstart == pet.data.veterinary.gestationstart then
                             if candidate.data.veterinary.inbreed == false or candidate.data.veterinary.inbreed == nil then
                                 if pet.data.info.gender == 'female' then
