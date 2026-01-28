@@ -45,6 +45,12 @@ RegisterNetEvent("hdrp-pets:client:buryBone", function()
     end
 
     local coords = GetEntityCoords(cache.ped)
+    -- Obtener la altura correcta del suelo para que la mascota pueda llegar
+    local foundGround, groundZ = GetGroundZFor_3dCoord(coords.x, coords.y, coords.z + 10.0, false)
+    if foundGround then
+        coords = vector3(coords.x, coords.y, groundZ)
+    end
+
     ManageSpawn.crouchInspectAnim()
 
     TriggerServerEvent("hdrp-pets:server:removeitem", Config.Items.Bone)
