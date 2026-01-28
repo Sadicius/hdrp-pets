@@ -292,6 +292,45 @@ CreateThread(function()
     end
 end)
 
+RegisterCommand('pet_hunt', function()
+    RSGCore.Functions.TriggerCallback('hdrp-pets:server:getactivecompanions', function(serverPets)
+        State.Pets = State.Pets or {}
+        for _, dbPetData in ipairs(serverPets or {}) do
+            local companionid = dbPetData.companionid or nil
+            local petData = type(dbPetData.data) == 'string' and json.decode(dbPetData.data) or dbPetData.data or {}
+            State.Pets[companionid] = State.Pets[companionid] or {}
+            State.Pets[companionid].data = petData
+            -- Puedes sincronizar otros campos si es necesario
+        end
+        local activePets = State.GetAllPets()
+        local spawnedPets = {}
+        for companionid, petData in pairs(activePets) do
+            if petData and petData.spawned and DoesEntityExist(petData.ped) then
+                spawnedPets[companionid] = petData
+            end
+        end
+
+        for companionid, petData in pairs(spawnedPets) do
+            local xp = (petData.progression and petData.progression.xp) or 0
+            local isHunting = (petData and petData.flag and petData.flag.isHunting) or false
+            if xp < Config.XP.Trick.Hunt then
+                lib.notify({ title = locale('cl_error_xp_needed'):format(Config.XP.Trick.Hunt), type = 'error' })
+                return
+            end
+            if petData.ped and DoesEntityExist(petData.ped) and not IsEntityDead(petData.ped) and companionid then
+                if not isHunting then
+                    lib.notify({ title = locale('cl_info_retrieve'), type = 'info', duration = 7000 })
+                    State.SetPetTrait(companionid, 'isHunting', true)
+                else
+                    State.SetPetTrait(companionid, 'isHunting', false)
+                    lib.notify({ title = locale('cl_info_hunt_disabled'), type = 'info', duration = 7000 })
+                end
+            end
+        end
+
+    end)
+end, false)
+
 -- Limpieza de grupo de relación al parar el recurso
 AddEventHandler('onResourceStop', function(resourceName)
     if GetCurrentResourceName() ~= resourceName then return end
