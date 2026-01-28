@@ -91,3 +91,5 @@ See `CHANGELOG.md` for a full list of changes and version history.
 
 ## Credits
 HDRP framework by Sadicius. Additional acknowledgments and contributors in `CHANGELOG.md`.
+
+<img width="500" height="500" alt="qrcode" src="https://github.com/user-attachments/assets/d79129e4-ad53-44af-8cab-cdd6383271a6" />
