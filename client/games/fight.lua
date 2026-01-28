@@ -118,14 +118,14 @@ function MakeDogsFight(ped1, ped2, dog1, dog2)
     Citizen.InvokeNative(0x5240864E847C691C, ped2, false)
     
     if dog1 and dog1.Health then
-        local health1 = Config.PetAttributes.Starting.Health + (dog1.Health * 10) + math.random(-20, 20)
-        SetEntityHealth(ped1, health1)
-        Citizen.InvokeNative(0x166E7CF68597D8B5, ped1, health1)
-        if Config.Debug then print("MakeDogsFight: Set ped1 health to " .. health1) end
+        -- local health1 = dog1.Health + math.random(-20, 20)
+        -- SetEntityHealth(ped1, health1)
+        -- Citizen.InvokeNative(0x166E7CF68597D8B5, ped1, health1)
+        -- if Config.Debug then print("MakeDogsFight: Set ped1 health to " .. health1) end
     end
-    
+
     if dog2 and dog2.Health then
-        local health2 = Config.PetAttributes.Starting.Health + (dog2.Health * 10) + math.random(-20, 20)
+        local health2 = dog2.Health + math.random(-10, 20)
         SetEntityHealth(ped2, health2)
         Citizen.InvokeNative(0x166E7CF68597D8B5, ped2, health2)
         if Config.Debug then print("MakeDogsFight: Set ped2 health to " .. health2) end
@@ -709,15 +709,32 @@ RegisterNetEvent('hdrp-pets:client:endFightForAll')
 AddEventHandler('hdrp-pets:client:endFightForAll', function(fightId, winner)
     local fight = currentFights and currentFights[fightId]
     if not fight then return end
-    local loserPed
-    if winner == fight.dog1.Name then
-        loserPed = fight.ped2
+    local myId = GetPlayerServerId(PlayerId())
+    local isPetVsNpc = (fight.dog1.Owner == myId and fight.dog1.PetId) or (fight.dog2.Owner == myId and fight.dog2.PetId)
+    if isPetVsNpc then
+        -- Siempre eliminar solo el NPC (el que NO es mi mascota), sin importar quién gane
+        local npcPed
+        if fight.dog1.Owner == myId and fight.dog1.PetId then
+            npcPed = fight.ped2
+        else
+            npcPed = fight.ped1
+        end
+        if DoesEntityExist(npcPed) then
+            SetEntityHealth(npcPed, 0)
+            Citizen.InvokeNative(0x5E3BDDBCB83F3D84, npcPed, true, true, false, true, false)
+        end
     else
-        loserPed = fight.ped1
-    end
-    if DoesEntityExist(loserPed) then
-        SetEntityHealth(loserPed, 0)
-        Citizen.InvokeNative(0x5E3BDDBCB83F3D84, loserPed, true, true, false, true, false)
+        -- Pelea normal: eliminar el perdedor
+        local loserPed
+        if winner == fight.dog1.Name then
+            loserPed = fight.ped2
+        else
+            loserPed = fight.ped1
+        end
+        if DoesEntityExist(loserPed) then
+            SetEntityHealth(loserPed, 0)
+            Citizen.InvokeNative(0x5E3BDDBCB83F3D84, loserPed, true, true, false, true, false)
+        end
     end
     local playerPed = PlayerPedId()
     local fightCoords = GetEntityCoords(fight.ped1)
@@ -730,7 +747,18 @@ AddEventHandler('hdrp-pets:client:endFightForAll', function(fightId, winner)
         })
     end
     Citizen.SetTimeout(5000, function()
-        CleanupFight(fightId)
+        if isPetVsNpc then
+            -- Solo eliminar el NPC
+            if fight.dog1.Owner == myId and fight.dog1.PetId then
+                if DoesEntityExist(fight.ped2) then DeleteEntity(fight.ped2) end
+            else
+                if DoesEntityExist(fight.ped1) then DeleteEntity(fight.ped1) end
+            end
+            -- No borres el ped de mi mascota
+            currentFights[fightId] = nil
+        else
+            CleanupFight(fightId)
+        end
     end)
 end)
 
