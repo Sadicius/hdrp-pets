@@ -56,6 +56,7 @@ client_scripts {
     'client/games/buried.lua',          -- Buried treasure
     'client/games/fight.lua',           -- Dog fighting & betting
     'client/games/hostile.lua',         -- Hostile NPCs
+    'client/games/race.lua',            -- Pet racing system
     'client/games/treasure.lua',        -- Treasure hunt
 
     -- MENUS
@@ -96,6 +97,7 @@ server_scripts {
     'server/systems/customize.lua',
     'server/systems/items.lua',       -- items consumables to pets
     'server/systems/fight.lua',
+    'server/systems/race.lua',        -- pet racing system
     'server/systems/management.lua',  -- rewards + customization
     'server/systems/tracking.lua',    -- pet tracking
     'server/systems/trade.lua',       -- pet trading

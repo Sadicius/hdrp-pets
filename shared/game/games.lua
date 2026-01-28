@@ -140,6 +140,148 @@ local Game_bandit = {
     }
 }
 
+-- PET RACING SYSTEM
+-- Three race modes:
+-- 1. Solo Race: Player's own pets race against each other
+-- 2. NPC Race: Player's pet races against NPC pets
+-- 3. PvP Race: Multiple players race their pets against each other
+local Game_race = {
+    -- General settings
+    MinBet = 10,
+    MaxBet = 1000,
+    RaceCooldown = 120,         -- Cooldown between races (seconds)
+    CountdownTime = 5,          -- Countdown before race starts (seconds)
+    MaxRaceTime = 120,          -- Maximum race duration (seconds)
+
+    -- Checkpoint settings
+    CheckpointModel = `p_vmlflag01x`,  -- Flag model for checkpoints
+    CheckpointBlipSprite = -1018164873, -- Blip sprite for checkpoints
+    CheckpointRadius = 3.0,      -- Radius to trigger checkpoint
+
+    -- Race track locations
+    Location = {
+        {
+            Coords = vector3(-2411.77, -2455.10, 60.17),
+            PromptName = locale('cl_race_start_prompt') or 'Start Race',
+            PromptKey = "J",
+            HoldDuration = 1000,
+            PromptDistance = 3.0,
+            ShowBlip = true,
+            Blip = { blipSprite = -1018164873, blipScale = 0.8, blipName = locale('cl_race_blip') or 'Pet Racing' },
+            -- Race track checkpoints (relative offsets from start)
+            Track = {
+                { offset = vector3(0, 20, 0) },
+                { offset = vector3(15, 40, 0) },
+                { offset = vector3(30, 35, 0) },
+                { offset = vector3(40, 15, 0) },
+                { offset = vector3(35, -5, 0) },
+                { offset = vector3(15, -15, 0) },
+                { offset = vector3(0, 0, 0) },  -- Finish line (back to start)
+            }
+        },
+        {
+            Coords = vector3(-1795.0, -420.0, 158.0),
+            PromptName = locale('cl_race_start_prompt') or 'Start Race',
+            PromptKey = "J",
+            HoldDuration = 1000,
+            PromptDistance = 3.0,
+            ShowBlip = true,
+            Blip = { blipSprite = -1018164873, blipScale = 0.8, blipName = locale('cl_race_blip') or 'Pet Racing' },
+            Track = {
+                { offset = vector3(0, 25, 0) },
+                { offset = vector3(20, 45, 0) },
+                { offset = vector3(40, 40, 0) },
+                { offset = vector3(50, 20, 0) },
+                { offset = vector3(45, 0, 0) },
+                { offset = vector3(25, -10, 0) },
+                { offset = vector3(0, 0, 0) },
+            }
+        }
+    },
+
+    -- NPC Dogs for racing (used in NPC mode)
+    NPCDogs = {
+        { Name = locale('dog_bluetickcoonhound') or 'Blue Tick', Model = "a_c_dogbluetickcoonhound_01", Speed = 80, Stamina = 75, Desc = locale('cl_race_dog_desc_a') or 'Fast starter' },
+        { Name = locale('dog_collie') or 'Collie', Model = "a_c_dogcollie_01", Speed = 85, Stamina = 80, Desc = locale('cl_race_dog_desc_b') or 'Balanced runner' },
+        { Name = locale('dog_husky') or 'Husky', Model = "a_c_doghusky_01", Speed = 90, Stamina = 85, Desc = locale('cl_race_dog_desc_c') or 'Endurance champion' },
+        { Name = locale('dog_rufus') or 'Rufus', Model = "a_c_dogrufus_01", Speed = 70, Stamina = 90, Desc = locale('cl_race_dog_desc_d') or 'Slow but steady' },
+        { Name = locale('dog_catahoulacur') or 'Catahoula', Model = "a_c_dogcatahoulacur_01", Speed = 88, Stamina = 70, Desc = locale('cl_race_dog_desc_e') or 'Sprint specialist' },
+        { Name = locale('dog_hound') or 'Hound', Model = "a_c_doghound_01", Speed = 75, Stamina = 95, Desc = locale('cl_race_dog_desc_f') or 'Marathon runner' },
+    },
+
+    -- Solo Race settings (player's pets compete)
+    Solo = {
+        MinPets = 2,            -- Minimum pets required for solo race
+        MaxPets = 6,            -- Maximum pets in a solo race
+        XPReward = {
+            Winner = 30,
+            Participant = 10,
+        }
+    },
+
+    -- NPC Race settings (player vs NPCs)
+    NPC = {
+        NPCCount = 3,           -- Number of NPC competitors
+        MinXP = 50,             -- Minimum XP required to participate
+        XPReward = {
+            Winner = 40,
+            Second = 20,
+            Third = 10,
+            Participant = 5,
+        },
+        Prizes = {
+            First = 100,        -- Cash prize for 1st place
+            Second = 50,        -- Cash prize for 2nd place
+            Third = 25,         -- Cash prize for 3rd place
+        }
+    },
+
+    -- PvP Race settings (multiplayer)
+    PvP = {
+        Enabled = true,
+        MinPlayers = 2,         -- Minimum players to start
+        MaxPlayers = 8,         -- Maximum players in a race
+        JoinTimeout = 60,       -- Seconds to join a race
+        NearbyRadius = 100.0,   -- Radius to notify nearby players
+
+        -- Entry fee and betting
+        EntryFee = {
+            Enabled = true,
+            MinFee = 50,
+            MaxFee = 500,
+        },
+
+        -- Spectator betting
+        SpectatorBets = {
+            Enabled = true,
+            MinBet = 10,
+            MaxBet = 200,
+            WinMultiplier = 2.5,
+            BettingWindow = 20,  -- Seconds to place bets after race starts
+        },
+
+        -- XP rewards
+        XPRewards = {
+            Winner = 50,
+            Second = 30,
+            Third = 20,
+            Participant = 10,
+        },
+
+        -- Prize pool distribution (percentage)
+        PrizeDistribution = {
+            First = 60,          -- Winner gets 60% of pool
+            Second = 25,         -- 2nd gets 25%
+            Third = 15,          -- 3rd gets 15%
+        }
+    },
+
+    -- Law alert settings (optional)
+    LawAlertActive = false,
+    LawAlertChance = 10,
+    OutlawStatusAdd = 2,
+}
+
 local Game_fight = {
     MinBet = 10,
     MaxBet = 1000,
@@ -206,5 +348,6 @@ return {
     Gtreasure = Game_treasure,
     Ghostile = Game_hostile,
     Gbandit = Game_bandit,
-    Gdogfight = Game_fight
+    Gdogfight = Game_fight,
+    Gpetracing = Game_race
 }
