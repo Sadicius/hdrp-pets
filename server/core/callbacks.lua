@@ -145,7 +145,7 @@ lib.callback.register('hdrp-pets:server:getavailablepartners', function(source, 
     local allActive = Database.GetAllActiveCompanions()
     for _, candidate in pairs(allActive) do
         local candidateData = type(candidate.data) == 'string' and json.decode(candidate.data) or candidate.data
-        if not candidateData then goto continue end
+        -- if not candidateData then goto continue end
         if candidate.companionid ~= petId and candidateData.veterinary.breedable == true and petData.veterinary.breedable == true and candidateData.info.gender ~= petData.info.gender then
             if candidateData.stats.age >= Config.Reproduction.MinAgeForBreeding and candidateData.stats.age <= Config.Reproduction.MaxBreedingAge and candidateData.stats.health >= Config.Reproduction.RequiredHealth and not candidateData.veterinary.inbreed and (not candidateData.veterinary.breedingcooldown or candidateData.veterinary.breedingcooldown < os.time()) then
                 table.insert(partners, {
