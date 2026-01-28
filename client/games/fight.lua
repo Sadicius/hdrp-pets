@@ -12,8 +12,34 @@ local ManageSpawn = lib.load('client.stable.utils_spawn')
 
 local DogFightConfig = GameConfig.Gdogfight
 -- Estado migrado a State.Games.fights y helpers de state_helpers.lua
+-- Tabla local para peleas activas
+local currentFights = {}
 local recentlyFought = 0
 local isFighting = false
+
+--- Agrega una pelea activa al estado
+---@param fightId string identificador de la pelea
+---@param data table datos de la pelea (dog1, dog2, ped1, ped2)
+function AddFight(fightId, data)
+    currentFights = currentFights or {}
+    currentFights[fightId] = data
+end
+
+--- Limpia una pelea activa del estado (ahora local)
+---@param fightId string identificador de la pelea
+function CleanupFight(fightId)
+    if currentFights[fightId] then
+        local fight = currentFights[fightId]
+        -- Elimina entidades si existen
+        if fight.ped1 and DoesEntityExist(fight.ped1) then
+            DeleteEntity(fight.ped1)
+        end
+        if fight.ped2 and DoesEntityExist(fight.ped2) then
+            DeleteEntity(fight.ped2)
+        end
+        currentFights[fightId] = nil
+    end
+end
 
 -- Create Dog Fight Prompt
 local function CreateDogFightPrompt(name, key, holdDuration)
@@ -165,6 +191,8 @@ function MakeDogsFight(ped1, ped2, dog1, dog2)
                                 SetEntityCoords(ped1, midpoint.x - 0.75, midpoint.y, midpoint.z, false, false, false, false)
                                 SetEntityCoords(ped2, midpoint.x + 0.75, midpoint.y, midpoint.z, false, false, false, false)
                                 
+                                if Config.Debug then print("ped1 health: " .. GetEntityHealth(ped1)) end
+                                if Config.Debug then print("ped2 health: " .. GetEntityHealth(ped2)) end
                                 if Config.Debug then print("MakeDogsFight: Dogs teleported closer after separation") end
                                 distanceChecks = 0
                             else
@@ -190,10 +218,18 @@ function MakeDogsFight(ped1, ped2, dog1, dog2)
                 lastTaskRefresh = currentTime
             end
 
+            local elapsedSeconds = math.floor((currentTime - fightStartTime) / 1000)
+            local damageMultiplier = 1.0 + (math.floor(elapsedSeconds / 15) * 0.2) -- +20% cada 15s
+
             if currentTime - lastDamageTime1 > 1500 + math.random(0, 1000) then
                 local currentHealth2 = GetEntityHealth(ped2)
                 if currentHealth2 > startHealth2 * 0.1 then
                     local damage = ManageSpawn.CalculateDogDamage(dog1, dog2, 3, 8)
+                    ManageSpawn.ApplyDogDamage(ped2, ped1, damage)
+                    lastDamageTime1 = currentTime
+                else 
+                    local baseDamage = ManageSpawn.CalculateDogDamage(dog1, dog2, 3, 8)
+                    local damage = math.floor(baseDamage * damageMultiplier)
                     ManageSpawn.ApplyDogDamage(ped2, ped1, damage)
                     lastDamageTime1 = currentTime
                 end
@@ -203,6 +239,11 @@ function MakeDogsFight(ped1, ped2, dog1, dog2)
                 local currentHealth1 = GetEntityHealth(ped1)
                 if currentHealth1 > startHealth1 * 0.1 then
                     local damage = ManageSpawn.CalculateDogDamage(dog2, dog1, 3, 8)
+                    ManageSpawn.ApplyDogDamage(ped1, ped2, damage)
+                    lastDamageTime2 = currentTime
+                else
+                    local baseDamage = ManageSpawn.CalculateDogDamage(dog2, dog1, 3, 8)
+                    local damage = math.floor(baseDamage * damageMultiplier)
                     ManageSpawn.ApplyDogDamage(ped1, ped2, damage)
                     lastDamageTime2 = currentTime
                 end
@@ -526,42 +567,45 @@ AddEventHandler('hdrp-pets:client:startFight', function(dog1, dog2)
         isFighting = false
         return
     end
-    State.AddFight('local', {
+    AddFight('local', {
         dog1 = dog1,
         dog2 = dog2,
         ped1 = ped1,
         ped2 = ped2
     })
+
     MakeDogsFight(ped1, ped2, dog1, dog2)
+
     lib.notify({
         title = locale('cl_fight_started'),
         description = dog1.Name .. ' vs ' .. dog2.Name .. '! ' .. locale('cl_fight_instructions'),
         type = 'inform',
         duration = 7000
     })
+
     Citizen.CreateThread(function()
-        Citizen.Wait(120000)
-        local fight = State.Games.fights and State.Games.fights['local']
-        if not fight or not DoesEntityExist(fight.ped1) or not DoesEntityExist(fight.ped2) then
+        Citizen.Wait(60000)
+        local fight = currentFights and currentFights['local']
+        if not fight or not DoesEntityExist(ped1) or not DoesEntityExist(ped2) then
             isFighting = false
             return
         end
-        local health1 = GetEntityHealth(fight.ped1)
-        local health2 = GetEntityHealth(fight.ped2)
+        local health1 = GetEntityHealth(ped1)
+        local health2 = GetEntityHealth(ped2)
         local winner, loser
         if health1 > health2 then
             winner = dog1.Name
-            loser = fight.ped2
+            loser = ped2
         elseif health2 > health1 then
             winner = dog2.Name
-            loser = fight.ped1
+            loser = ped1
         else
             if math.random() < 0.5 then
                 winner = dog1.Name
-                loser = fight.ped2
+                loser = ped2
             else
                 winner = dog2.Name
-                loser = fight.ped1
+                loser = ped1
             end
         end
         if DoesEntityExist(loser) then
@@ -573,7 +617,7 @@ AddEventHandler('hdrp-pets:client:startFight', function(dog1, dog2)
             outlawstatus = result[1].outlawstatus
             TriggerServerEvent('hdrp-pets:server:endFight', dog1, dog2, winner, outlawstatus)
         end)
-        State.CleanupFight('local')
+        CleanupFight('local')
     end)
 end)
 
@@ -607,12 +651,14 @@ AddEventHandler('hdrp-pets:client:startFightForAll', function(fightId, dog1, dog
         if Config.Debug then print("startFightForAll: Failed to spawn one or both dogs") end
         return
     end
-    State.AddFight(fightId, {
+
+    AddFight(fightId, {
         dog1 = dog1,
         dog2 = dog2,
         ped1 = ped1,
         ped2 = ped2
     })
+
     MakeDogsFight(ped1, ped2, dog1, dog2)
     local playerPed = PlayerPedId()
     local playerCoords = GetEntityCoords(playerPed)
@@ -628,7 +674,7 @@ end)
 
 RegisterNetEvent('hdrp-pets:client:endFightForAll')
 AddEventHandler('hdrp-pets:client:endFightForAll', function(fightId, winner)
-    local fight = State.Games.fights and State.Games.fights[fightId]
+    local fight = currentFights and currentFights[fightId]
     if not fight then return end
     local loserPed
     if winner == fight.dog1.Name then
@@ -651,7 +697,7 @@ AddEventHandler('hdrp-pets:client:endFightForAll', function(fightId, winner)
         })
     end
     Citizen.SetTimeout(5000, function()
-        State.CleanupFight(fightId)
+        CleanupFight(fightId)
     end)
 end)
 
@@ -1207,7 +1253,7 @@ AddEventHandler('hdrp-pets:client:bettingClosed', function(fightId)
 end)
 
 -- Command to open PvP challenge menu directly
-RegisterCommand('pvp_challenge', function()
+RegisterCommand('pet_pvpchallenge', function()
     if DogFightConfig.PvP and DogFightConfig.PvP.Enabled then
         OpenPvPChallengeMenu()
     else
@@ -1216,7 +1262,7 @@ RegisterCommand('pvp_challenge', function()
 end)
 
 -- Command to accept pending challenge
-RegisterCommand('accept_challenge', function()
+RegisterCommand('pet_acceptchallenge', function()
     if pendingChallenge then
         OpenChallengeResponseMenu()
     else

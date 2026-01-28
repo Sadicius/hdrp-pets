@@ -112,6 +112,10 @@ function StartHerdingThread()
     end)
 end
 exports('StartHerdingThread', StartHerdingThread)
+-- Exporta todos los estados de herding
+exports('GetHerdingStates', function()
+    return herdingStates
+end)
 
 function StopAllHerding()
     for companionid in pairs(herdingStates) do

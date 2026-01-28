@@ -471,13 +471,12 @@ RSGCore.Functions.CreateCallback('hdrp-pets:server:getNearbyPlayers', function(s
 
             if distance <= pvpConfig.NearbyRadius then
                 local TargetPlayer = RSGCore.Functions.GetPlayer(playerId)
-                if TargetPlayer then
-                    table.insert(nearbyPlayers, {
-                        id = playerId,
-                        name = TargetPlayer.PlayerData.charinfo.firstname .. ' ' .. TargetPlayer.PlayerData.charinfo.lastname,
-                        distance = math.floor(distance)
-                    })
-                end
+                if not TargetPlayer then return end
+                table.insert(nearbyPlayers, {
+                    id = playerId,
+                    name = TargetPlayer.PlayerData.charinfo.firstname .. ' ' .. TargetPlayer.PlayerData.charinfo.lastname,
+                    distance = math.floor(distance)
+                })
             end
         end
     end

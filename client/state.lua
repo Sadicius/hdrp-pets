@@ -7,9 +7,12 @@ State.Pets      = {} -- Mascotas activas
 State.Games     = {
     bandits = {},   -- Entidades bandido activas
     hostiles = {},  -- Entidades hostiles activas
+    fights = {},    -- Peleas activas (dogfights)
 } -- Estado de minijuegos
 ------------------------------------------
 -- HOSTILES & BANDITS HELPERS
+------------------------------------------
+
 ------------------------------------------
 -- Añadir un bandido activo
 function State.AddBandit(entity, blip)

@@ -112,7 +112,7 @@ function ManageSpawn.CalculateDogDamage(attacker, defender, minDamage, maxDamage
     
     local baseRoll = math.random(minDamage or 3, maxDamage or 8)
     local strengthFactor = attacker.Strength / math.max(30, defender.Strength)
-    local damage = baseRoll * (1 + strengthFactor * 0.2)
+    local damage = baseRoll * (1 + strengthFactor * 0.4)
     
     return math.max(minDamage or 3, math.min(maxDamage or 8, math.floor(damage)))
 end

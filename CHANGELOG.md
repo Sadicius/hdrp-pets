@@ -1,6 +1,13 @@
 
 # Changelog
 
+## [6.7.4] - 2026-01-28
+### Refactor y robustez de estados
+- Sistema de pvp modificado con ayuda de claude,
+- Correccion en buried
+- Correccion en acceso a la informacion byid por byidcompanionid en data
+- Ajustes menores
+
 ## [6.7.3] - 2026-01-28
 ### Refactor y robustez de estados
 - Solucionando problemas localizados en testeos. Todavia requeire de mas pruebas
