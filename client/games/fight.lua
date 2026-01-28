@@ -294,19 +294,21 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
         onSelect = function()
             local petList = {}
             for id, pet in pairs(State.GetAllPets()) do
-                local xp = pet.companionxp or 0
+                local petName = (pet.data and pet.data.info and pet.data.info.name) or 'Unknown'
+                local petHealth = (pet.data and pet.data.stats and pet.data.stats.health) or 100
+                local petStrength = (pet.data and pet.data.stats and pet.data.stats.strength) or 50
+                local xp = (pet.data and pet.data.progression and pet.data.progression.xp) or 0
                 petList[#petList+1] = {
-                    title = pet.Name .. ' (ID: ' .. id .. ')',
-                    -- description = 'ID: ' .. id,
+                    title = petName .. ' (ID: ' .. id .. ')',
                     metadata = {
                             {label = 'XP', value = xp},
-                            { label = locale('cl_stat_health'), value = pet.Health .. '%'},
-                            { label = locale('cl_stat_strength'), value = pet.Strength .. '%'},
+                            { label = locale('cl_stat_health'), value = petHealth .. '%'},
+                            { label = locale('cl_stat_strength'), value = petStrength .. '%'},
                         },
-                    args = { pet = pet },
+                    args = { pet = pet, companionid = id },
                     onSelect = function(data)
-                        local xp = data.pet.companionxp or 0
-                        if xp < Config.XP.Trick.pet_vs_npc then
+                        local petXp = (data.pet.data and data.pet.data.progression and data.pet.data.progression.xp) or 0
+                        if petXp < Config.XP.Trick.pet_vs_npc then
                             lib.notify({ title = locale('cl_restriction'), description = string.format(locale('cl_restriction_desc'), Config.XP.Trick.pet_vs_npc), type = 'error' })
                             return
                         end
@@ -335,7 +337,7 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
         end
     }
 
-    -- Opción: inscribir mascota para pelea contra otra mascota de jugador
+    -- Opción: inscribir mascota para pelea contra otra mascota de jugador (cola de espera)
     options[#options + 1] = {
         title = locale('cl_fight_player'),
         -- description = string.format(locale('cl_fight_player_desc'), Config.XP.Trick.pet_vs_player),
@@ -346,19 +348,21 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
         onSelect = function()
             local petList = {}
             for id, pet in pairs(State.GetAllPets()) do
-                local xp = pet.companionxp or 0
+                local petName = (pet.data and pet.data.info and pet.data.info.name) or 'Unknown'
+                local petHealth = (pet.data and pet.data.stats and pet.data.stats.health) or 100
+                local petStrength = (pet.data and pet.data.stats and pet.data.stats.strength) or 50
+                local xp = (pet.data and pet.data.progression and pet.data.progression.xp) or 0
                 petList[#petList+1] = {
-                    title = pet.Name .. ' (ID: ' .. id .. ')',
-                    -- description = 'ID: ' .. id,
+                    title = petName .. ' (ID: ' .. id .. ')',
                     metadata = {
                         { label = 'XP', value = xp},
-                        { label = locale('cl_stat_health'), value = pet.Health .. '%'},
-                        { label = locale('cl_stat_strength'), value = pet.Strength .. '%'},
+                        { label = locale('cl_stat_health'), value = petHealth .. '%'},
+                        { label = locale('cl_stat_strength'), value = petStrength .. '%'},
                     },
-                    args = { pet = pet },
+                    args = { pet = pet, companionid = id },
                     onSelect = function(data)
-                        local xp = data.pet.companionxp or 0
-                        if xp < Config.XP.Trick.pet_vs_player then
+                        local petXp = (data.pet.data and data.pet.data.progression and data.pet.data.progression.xp) or 0
+                        if petXp < Config.XP.Trick.pet_vs_player then
                             lib.notify({ title = locale('cl_restriction'), description = string.format(locale('cl_restriction_desc'), Config.XP.Trick.pet_vs_player), type = 'error' })
                             return
                         end
@@ -370,7 +374,7 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
                                     TriggerEvent('rsg-lawman:client:lawmanAlert', pcoords, locale('cl_lang_4'))
                                 end
                             end
-                            
+
                             outlawstatus = result[1].outlawstatus
                             TriggerServerEvent('hdrp-pets:server:registerPetForPlayerFight', data.pet,  outlawstatus)
 
@@ -387,10 +391,23 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
         end
     }
 
+    -- Opción: DESAFÍO PVP DIRECTO - Desafiar a un jugador específico
+    if DogFightConfig.PvP and DogFightConfig.PvP.Enabled then
+        options[#options + 1] = {
+            title = locale('cl_pvp_challenge_player'),
+            metadata = {
+                { label = 'Info', value = locale('cl_pvp_challenge_player_desc')},
+            },
+            icon = 'fa-solid fa-crosshairs',
+            onSelect = function()
+                OpenPvPChallengeMenu()
+            end
+        }
+    end
+
     -- Opción: pelea entre dos mascotas propias
     options[#options + 1] = {
         title = locale('cl_fight_two_pets'),
-        -- description = string.format(locale('cl_fight_two_pets_desc'), Config.XP.Trick.own_pets),
         metadata = {
             { label = 'Info', value = string.format(locale('cl_fight_two_pets_desc'), Config.XP.Trick.own_pets)},
         },
@@ -398,14 +415,16 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
         onSelect = function()
             local petList = {}
             for id, pet in pairs(State.Pets or {}) do
-                local xp = pet.companionxp or 0
+                local petName = (pet.data and pet.data.info and pet.data.info.name) or 'Unknown'
+                local petHealth = (pet.data and pet.data.stats and pet.data.stats.health) or 100
+                local petStrength = (pet.data and pet.data.stats and pet.data.stats.strength) or 50
+                local xp = (pet.data and pet.data.progression and pet.data.progression.xp) or 0
                 petList[#petList+1] = {
-                    title = pet.Name .. ' (ID: ' .. id .. ')',
-                    -- description = 'ID: ' .. id,
+                    title = petName .. ' (ID: ' .. id .. ')',
                     metadata = {
                         {label = 'XP', value = xp},
-                        { label = locale('cl_stat_health'), value = pet.Health .. '%'},
-                        { label = locale('cl_stat_strength'), value = pet.Strength .. '%'},
+                        { label = locale('cl_stat_health'), value = petHealth .. '%'},
+                        { label = locale('cl_stat_strength'), value = petStrength .. '%'},
                     },
                     args = { pet = pet, id = id }
                 }
@@ -416,12 +435,12 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
                 if input and input[1] then
                     local ids = {}
                     for id in string.gmatch(input[1], '([^,]+)') do
-                        ids[#ids+1] = tonumber(id)
+                        ids[#ids+1] = id
                     end
                     local pet1 = State.Pets[ids[1]]
                     local pet2 = State.Pets[ids[2]]
-                    local xp1 = pet1 and (pet1.companionxp or 0) or 0
-                    local xp2 = pet2 and (pet2.companionxp or 0) or 0
+                    local xp1 = pet1 and (pet1.data and pet1.data.progression and pet1.data.progression.xp) or 0
+                    local xp2 = pet2 and (pet2.data and pet2.data.progression and pet2.data.progression.xp) or 0
                     if #ids == 2 and pet1 and pet2 then
                         if xp1 < Config.XP.Trick.own_pets or xp2 < Config.XP.Trick.own_pets then
                             lib.notify({ title = locale('cl_restriction'), description = string.format(locale('cl_restriction_desc'), Config.XP.Trick.own_pets), type = 'error' })
@@ -439,7 +458,6 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
     -- Opción: vender mascota (redirige al menú de venta del establo)
     options[#options + 1] = {
         title = locale('cl_menu_sell_pet'),
-        -- description = locale('cl_menu_sell_pet_fight'),
         metadata = {
             { label = 'Info', value = locale('cl_menu_sell_pet_fight')},
         },
@@ -448,12 +466,14 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
             local petList = {}
             for id, pet in pairs(State.GetAllPets()) do
                 if pet.stableid then
+                    local petName = (pet.data and pet.data.info and pet.data.info.name) or 'Unknown'
+                    local petHealth = (pet.data and pet.data.stats and pet.data.stats.health) or 100
+                    local petStrength = (pet.data and pet.data.stats and pet.data.stats.strength) or 50
                     petList[#petList+1] = {
-                        title = pet.Name .. ' (ID ' .. id .. ')',
-                        -- description = 'ID: ' .. id .. ' | Salud: ' .. (pet.Health or '?'),
+                        title = petName .. ' (ID ' .. id .. ')',
                         metadata = {
-                            { label = locale('cl_stat_health'), value = pet.Health .. '%'},
-                            { label = locale('cl_stat_strength'), value = pet.Strength .. '%'},
+                            { label = locale('cl_stat_health'), value = petHealth .. '%'},
+                            { label = locale('cl_stat_strength'), value = petStrength .. '%'},
                         },
                         args = { stableid = pet.stableid },
                         onSelect = function(data)
@@ -736,5 +756,470 @@ end)
 AddEventHandler('onResourceStop', function(resource)
     if resource == GetCurrentResourceName() then
         -- State.CleanupAllFights()
+    end
+end)
+
+-- ============================================
+-- PVP DIRECT CHALLENGE SYSTEM - CLIENT
+-- ============================================
+
+local pendingChallenge = nil
+local activePvPFights = {}
+
+-- Open menu to select a player to challenge
+function OpenPvPChallengeMenu()
+    RSGCore.Functions.TriggerCallback('hdrp-pets:server:getNearbyPlayers', function(players)
+        if not players or #players == 0 then
+            lib.notify({
+                title = locale('cl_pvp_no_players'),
+                description = locale('cl_pvp_no_players_desc'),
+                type = 'error'
+            })
+            return
+        end
+
+        local playerList = {}
+        for _, player in ipairs(players) do
+            playerList[#playerList + 1] = {
+                title = player.name,
+                description = string.format(locale('cl_pvp_player_distance'), player.distance),
+                icon = 'fa-solid fa-user',
+                args = { playerId = player.id, playerName = player.name },
+                onSelect = function(data)
+                    OpenPetSelectionForChallenge(data.playerId, data.playerName)
+                end
+            }
+        end
+
+        lib.registerContext({
+            id = 'pvp_player_selection',
+            title = locale('cl_pvp_select_player'),
+            options = playerList
+        })
+        lib.showContext('pvp_player_selection')
+    end)
+end
+
+-- Select pet and bet amount to send challenge
+function OpenPetSelectionForChallenge(targetPlayerId, targetPlayerName)
+    local petList = {}
+
+    for id, pet in pairs(State.GetAllPets()) do
+        local petName = (pet.data and pet.data.info and pet.data.info.name) or 'Unknown'
+        local petModel = (pet.data and pet.data.info and pet.data.info.model) or ''
+        local petHealth = (pet.data and pet.data.stats and pet.data.stats.health) or 100
+        local petStrength = (pet.data and pet.data.stats and pet.data.stats.strength) or 50
+        local xp = (pet.data and pet.data.progression and pet.data.progression.xp) or 0
+        petList[#petList + 1] = {
+            title = petName .. ' (ID: ' .. id .. ')',
+            metadata = {
+                { label = 'XP', value = xp },
+                { label = locale('cl_stat_health'), value = petHealth .. '%' },
+                { label = locale('cl_stat_strength'), value = petStrength .. '%' },
+            },
+            icon = 'fa-solid fa-dog',
+            args = { pet = pet, companionid = id, targetId = targetPlayerId, targetName = targetPlayerName },
+            onSelect = function(data)
+                -- Ask for bet amount
+                local pvpConfig = DogFightConfig.PvP or {}
+                local ownerBets = pvpConfig.OwnerBets or {}
+
+                if ownerBets.Enabled then
+                    local input = lib.inputDialog(locale('cl_pvp_bet_title'), {
+                        {
+                            type = 'number',
+                            label = locale('cl_pvp_bet_amount'),
+                            description = string.format(locale('cl_pvp_bet_range'), ownerBets.MinBet or 50, ownerBets.MaxBet or 5000),
+                            required = false,
+                            min = 0,
+                            max = ownerBets.MaxBet or 5000,
+                            default = 0
+                        }
+                    })
+
+                    local betAmount = (input and input[1]) or 0
+                    SendPvPChallenge(data.targetId, data.pet, data.companionid, betAmount)
+                else
+                    SendPvPChallenge(data.targetId, data.pet, data.companionid, 0)
+                end
+            end
+        }
+    end
+
+    if #petList == 0 then
+        lib.notify({ title = locale('cl_error_no_pets'), type = 'error' })
+        return
+    end
+
+    lib.registerContext({
+        id = 'pvp_pet_selection',
+        title = string.format(locale('cl_pvp_challenge_to'), targetPlayerName),
+        menu = 'pvp_player_selection',
+        options = petList
+    })
+    lib.showContext('pvp_pet_selection')
+end
+
+-- Send the challenge to the server
+function SendPvPChallenge(targetId, petData, companionid, betAmount)
+    -- Prepare pet data for challenge using correct data structure
+    local petName = (petData.data and petData.data.info and petData.data.info.name) or 'Unknown'
+    local petModel = (petData.data and petData.data.info and petData.data.info.model) or ''
+    local petHealth = (petData.data and petData.data.stats and petData.data.stats.health) or 100
+    local petStrength = (petData.data and petData.data.stats and petData.data.stats.strength) or 50
+
+    local challengePetData = {
+        Name = petName,
+        Model = petModel,
+        Health = petHealth,
+        Strength = petStrength,
+        PetId = companionid,
+        Owner = GetPlayerServerId(PlayerId())
+    }
+
+    TriggerServerEvent('hdrp-pets:server:sendPvPChallenge', targetId, challengePetData, betAmount)
+end
+
+-- Receive a PvP challenge from another player
+RegisterNetEvent('hdrp-pets:client:receivePvPChallenge')
+AddEventHandler('hdrp-pets:client:receivePvPChallenge', function(challengerSrc, challengerName, challengerPet, betAmount, timeout)
+    pendingChallenge = {
+        challengerSrc = challengerSrc,
+        challengerName = challengerName,
+        challengerPet = challengerPet,
+        betAmount = betAmount,
+        timeout = timeout
+    }
+
+    -- Show challenge notification
+    local betText = betAmount > 0 and string.format(' ($%d)', betAmount) or ''
+    lib.notify({
+        title = locale('cl_pvp_challenge_received'),
+        description = string.format(locale('cl_pvp_challenge_received_desc'), challengerName, challengerPet.Name, betText),
+        type = 'inform',
+        duration = timeout * 1000
+    })
+
+    -- Open accept/decline menu
+    OpenChallengeResponseMenu()
+end)
+
+-- Menu to accept or decline challenge
+function OpenChallengeResponseMenu()
+    if not pendingChallenge then
+        lib.notify({ title = locale('cl_pvp_no_challenge'), type = 'error' })
+        return
+    end
+
+    local betText = pendingChallenge.betAmount > 0 and string.format(' - $%d', pendingChallenge.betAmount) or ''
+
+    local options = {
+        {
+            title = locale('cl_pvp_accept_challenge'),
+            description = locale('cl_pvp_select_your_pet'),
+            icon = 'fa-solid fa-check',
+            onSelect = function()
+                OpenPetSelectionForAccept()
+            end
+        },
+        {
+            title = locale('cl_pvp_decline_challenge'),
+            description = locale('cl_pvp_decline_desc'),
+            icon = 'fa-solid fa-times',
+            onSelect = function()
+                TriggerServerEvent('hdrp-pets:server:declinePvPChallenge', pendingChallenge.challengerSrc)
+                pendingChallenge = nil
+            end
+        }
+    }
+
+    lib.registerContext({
+        id = 'pvp_challenge_response',
+        title = string.format(locale('cl_pvp_challenge_from'), pendingChallenge.challengerName) .. betText,
+        options = options
+    })
+    lib.showContext('pvp_challenge_response')
+end
+
+-- Select pet to accept challenge
+function OpenPetSelectionForAccept()
+    if not pendingChallenge then return end
+
+    local petList = {}
+
+    for id, pet in pairs(State.GetAllPets()) do
+        local petName = (pet.data and pet.data.info and pet.data.info.name) or 'Unknown'
+        local petHealth = (pet.data and pet.data.stats and pet.data.stats.health) or 100
+        local petStrength = (pet.data and pet.data.stats and pet.data.stats.strength) or 50
+        local xp = (pet.data and pet.data.progression and pet.data.progression.xp) or 0
+        petList[#petList + 1] = {
+            title = petName .. ' (ID: ' .. id .. ')',
+            metadata = {
+                { label = 'XP', value = xp },
+                { label = locale('cl_stat_health'), value = petHealth .. '%' },
+                { label = locale('cl_stat_strength'), value = petStrength .. '%' },
+            },
+            icon = 'fa-solid fa-dog',
+            args = { pet = pet, companionid = id },
+            onSelect = function(data)
+                AcceptPvPChallenge(data.pet, data.companionid)
+            end
+        }
+    end
+
+    if #petList == 0 then
+        lib.notify({ title = locale('cl_error_no_pets'), type = 'error' })
+        return
+    end
+
+    lib.registerContext({
+        id = 'pvp_accept_pet_selection',
+        title = locale('cl_pvp_select_your_pet'),
+        menu = 'pvp_challenge_response',
+        options = petList
+    })
+    lib.showContext('pvp_accept_pet_selection')
+end
+
+-- Accept the challenge with selected pet
+function AcceptPvPChallenge(petData, companionid)
+    if not pendingChallenge then return end
+
+    -- Use correct data structure
+    local petName = (petData.data and petData.data.info and petData.data.info.name) or 'Unknown'
+    local petModel = (petData.data and petData.data.info and petData.data.info.model) or ''
+    local petHealth = (petData.data and petData.data.stats and petData.data.stats.health) or 100
+    local petStrength = (petData.data and petData.data.stats and petData.data.stats.strength) or 50
+
+    local defenderPetData = {
+        Name = petName,
+        Model = petModel,
+        Health = petHealth,
+        Strength = petStrength,
+        PetId = companionid,
+        Owner = GetPlayerServerId(PlayerId())
+    }
+
+    TriggerServerEvent('hdrp-pets:server:acceptPvPChallenge', pendingChallenge.challengerSrc, defenderPetData)
+    pendingChallenge = nil
+end
+
+-- Challenge expired
+RegisterNetEvent('hdrp-pets:client:challengeExpired')
+AddEventHandler('hdrp-pets:client:challengeExpired', function()
+    if pendingChallenge then
+        lib.notify({
+            title = locale('cl_pvp_challenge_expired'),
+            description = locale('cl_pvp_challenge_expired_desc'),
+            type = 'error'
+        })
+        pendingChallenge = nil
+    end
+end)
+
+-- Start PvP fight for all nearby players
+RegisterNetEvent('hdrp-pets:client:startPvPFightForAll')
+AddEventHandler('hdrp-pets:client:startPvPFightForAll', function(fightId, pet1, pet2, coords, challengerSrc, defenderSrc)
+    if activePvPFights[fightId] then return end
+
+    local x, y, z = coords.x, coords.y, coords.z
+    local _, groundZ = GetGroundZAndNormalFor_3dCoord(x, y, z + 10)
+    if groundZ == 0 then groundZ = z end
+
+    local ped1 = ManageSpawn.spawnDog(pet1.Model, vector3(x - 1.0, y, groundZ), 90.0, pet1.Health or 100)
+    local ped2 = ManageSpawn.spawnDog(pet2.Model, vector3(x + 1.0, y, groundZ), 270.0, pet2.Health or 100)
+
+    if not ped1 or not ped2 then
+        if Config.Debug then print("startPvPFightForAll: Failed to spawn one or both pets") end
+        return
+    end
+
+    activePvPFights[fightId] = {
+        fightId = fightId,
+        pet1 = pet1,
+        pet2 = pet2,
+        ped1 = ped1,
+        ped2 = ped2,
+        coords = coords,
+        challengerSrc = challengerSrc,
+        defenderSrc = defenderSrc
+    }
+
+    MakeDogsFight(ped1, ped2, pet1, pet2)
+
+    -- Notify player
+    local playerCoords = GetEntityCoords(cache.ped)
+    if #(playerCoords - coords) < 50.0 then
+        lib.notify({
+            title = locale('cl_pvp_fight_started'),
+            description = string.format('%s vs %s!', pet1.Name, pet2.Name),
+            type = 'inform',
+            duration = 7000
+        })
+    end
+end)
+
+-- End PvP fight for all players
+RegisterNetEvent('hdrp-pets:client:endPvPFightForAll')
+AddEventHandler('hdrp-pets:client:endPvPFightForAll', function(fightId, winnerName, loserName, isKO, xpReward)
+    local fight = activePvPFights[fightId]
+    if not fight then return end
+
+    -- Kill the loser pet
+    local loserPed
+    if winnerName == fight.pet1.Name then
+        loserPed = fight.ped2
+    else
+        loserPed = fight.ped1
+    end
+
+    if DoesEntityExist(loserPed) then
+        SetEntityHealth(loserPed, 0)
+        Citizen.InvokeNative(0x5E3BDDBCB83F3D84, loserPed, true, true, false, true, false)
+    end
+
+    -- Notify nearby players
+    local playerCoords = GetEntityCoords(cache.ped)
+    if #(playerCoords - fight.coords) < 50.0 then
+        local koText = isKO and ' (KO!)' or ''
+        lib.notify({
+            title = locale('cl_pvp_fight_ended'),
+            description = string.format(locale('cl_pvp_winner_announcement'), winnerName, loserName) .. koText,
+            type = 'success',
+            duration = 7000
+        })
+    end
+
+    -- Cleanup after delay
+    Citizen.SetTimeout(5000, function()
+        if activePvPFights[fightId] then
+            if DoesEntityExist(activePvPFights[fightId].ped1) then
+                DeleteEntity(activePvPFights[fightId].ped1)
+            end
+            if DoesEntityExist(activePvPFights[fightId].ped2) then
+                DeleteEntity(activePvPFights[fightId].ped2)
+            end
+            activePvPFights[fightId] = nil
+        end
+    end)
+end)
+
+-- Notification of nearby PvP fight (for spectators)
+RegisterNetEvent('hdrp-pets:client:pvpFightNearby')
+AddEventHandler('hdrp-pets:client:pvpFightNearby', function(fightId, pet1, pet2, owner1Name, owner2Name, coords)
+    local myId = GetPlayerServerId(PlayerId())
+
+    -- Don't notify the participants
+    if activePvPFights[fightId] then return end
+
+    lib.notify({
+        title = locale('cl_pvp_fight_nearby'),
+        description = string.format(locale('cl_pvp_fight_nearby_desc'), pet1.Name, owner1Name, pet2.Name, owner2Name),
+        type = 'inform',
+        duration = 10000
+    })
+
+    -- Offer to place spectator bet
+    if DogFightConfig.PvP and DogFightConfig.PvP.SpectatorBets and DogFightConfig.PvP.SpectatorBets.Enabled then
+        Citizen.SetTimeout(2000, function()
+            OpenSpectatorBetMenu(fightId, pet1, pet2, owner1Name, owner2Name)
+        end)
+    end
+end)
+
+-- Open spectator betting menu
+function OpenSpectatorBetMenu(fightId, pet1, pet2, owner1Name, owner2Name)
+    local pvpConfig = DogFightConfig.PvP or {}
+    local spectatorBets = pvpConfig.SpectatorBets or {}
+
+    local options = {
+        {
+            title = string.format(locale('cl_pvp_bet_on'), pet1.Name),
+            description = string.format(locale('cl_pvp_owner'), owner1Name),
+            metadata = {
+                { label = locale('cl_stat_health'), value = (pet1.Health or 100) .. '%' },
+                { label = locale('cl_stat_strength'), value = (pet1.Strength or 50) .. '%' },
+            },
+            icon = 'fa-solid fa-dog',
+            onSelect = function()
+                PlaceSpectatorBet(fightId, 'challenger', pet1.Name)
+            end
+        },
+        {
+            title = string.format(locale('cl_pvp_bet_on'), pet2.Name),
+            description = string.format(locale('cl_pvp_owner'), owner2Name),
+            metadata = {
+                { label = locale('cl_stat_health'), value = (pet2.Health or 100) .. '%' },
+                { label = locale('cl_stat_strength'), value = (pet2.Strength or 50) .. '%' },
+            },
+            icon = 'fa-solid fa-dog',
+            onSelect = function()
+                PlaceSpectatorBet(fightId, 'defender', pet2.Name)
+            end
+        },
+        {
+            title = locale('cl_pvp_no_bet'),
+            description = locale('cl_pvp_just_watch'),
+            icon = 'fa-solid fa-eye',
+            onSelect = function()
+                lib.notify({ title = locale('cl_pvp_watching'), type = 'inform' })
+            end
+        }
+    }
+
+    lib.registerContext({
+        id = 'pvp_spectator_bet',
+        title = locale('cl_pvp_place_spectator_bet'),
+        options = options
+    })
+    lib.showContext('pvp_spectator_bet')
+end
+
+-- Place spectator bet
+function PlaceSpectatorBet(fightId, betOnOwner, petName)
+    local pvpConfig = DogFightConfig.PvP or {}
+    local spectatorBets = pvpConfig.SpectatorBets or {}
+
+    local input = lib.inputDialog(string.format(locale('cl_pvp_betting_on'), petName), {
+        {
+            type = 'number',
+            label = locale('cl_bet_amount'),
+            description = string.format(locale('cl_pvp_bet_range'), spectatorBets.MinBet or 10, spectatorBets.MaxBet or 500),
+            required = true,
+            min = spectatorBets.MinBet or 10,
+            max = spectatorBets.MaxBet or 500
+        }
+    })
+
+    if input and input[1] then
+        TriggerServerEvent('hdrp-pets:server:placeSpectatorBet', fightId, betOnOwner, input[1])
+    end
+end
+
+-- Betting closed notification
+RegisterNetEvent('hdrp-pets:client:bettingClosed')
+AddEventHandler('hdrp-pets:client:bettingClosed', function(fightId)
+    lib.notify({
+        title = locale('cl_pvp_betting_closed'),
+        description = locale('cl_pvp_betting_closed_desc'),
+        type = 'inform'
+    })
+end)
+
+-- Command to open PvP challenge menu directly
+RegisterCommand('pvp_challenge', function()
+    if DogFightConfig.PvP and DogFightConfig.PvP.Enabled then
+        OpenPvPChallengeMenu()
+    else
+        lib.notify({ title = locale('cl_pvp_disabled'), type = 'error' })
+    end
+end)
+
+-- Command to accept pending challenge
+RegisterCommand('accept_challenge', function()
+    if pendingChallenge then
+        OpenChallengeResponseMenu()
+    else
+        lib.notify({ title = locale('cl_pvp_no_challenge'), type = 'error' })
     end
 end)

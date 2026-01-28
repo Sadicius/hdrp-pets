@@ -415,4 +415,508 @@ AddEventHandler('playerDropped', function()
     if bets then
         bets[src] = nil
     end
+    -- Clean up PvP challenges
+    if pvpChallenges then
+        pvpChallenges[src] = nil
+        for challengerId, challenge in pairs(pvpChallenges) do
+            if challenge.targetSrc == src then
+                pvpChallenges[challengerId] = nil
+            end
+        end
+    end
+    -- Clean up spectator bets
+    if spectatorBets then
+        spectatorBets[src] = nil
+    end
+end)
+
+-- ============================================
+-- PVP DIRECT CHALLENGE SYSTEM
+-- ============================================
+
+local pvpChallenges = {}
+local pvpFights = {}
+local spectatorBets = {}
+
+-- Get PvP config with fallback defaults
+local function getPvPConfig()
+    return DogFightConfig.PvP or {
+        Enabled = true,
+        ChallengeTimeout = 60,
+        NearbyRadius = 50.0,
+        NotifyRadius = 100.0,
+        OwnerBets = { Enabled = true, MinBet = 50, MaxBet = 5000, WinMultiplier = 2.0 },
+        SpectatorBets = { Enabled = true, MinBet = 10, MaxBet = 500, WinMultiplier = 1.8, BettingWindow = 15 },
+        XPRewards = { Winner = 25, Loser = 5, KOBonus = 10 }
+    }
+end
+
+-- Get nearby players for challenge selection
+RSGCore.Functions.CreateCallback('hdrp-pets:server:getNearbyPlayers', function(source, cb)
+    local src = source
+    local Player = RSGCore.Functions.GetPlayer(src)
+    if not Player then return cb({}) end
+
+    local pvpConfig = getPvPConfig()
+    local playerPed = GetPlayerPed(src)
+    local playerCoords = GetEntityCoords(playerPed)
+    local nearbyPlayers = {}
+
+    local players = RSGCore.Functions.GetPlayers()
+    for _, playerId in ipairs(players) do
+        if playerId ~= src then
+            local targetPed = GetPlayerPed(playerId)
+            local targetCoords = GetEntityCoords(targetPed)
+            local distance = #(playerCoords - targetCoords)
+
+            if distance <= pvpConfig.NearbyRadius then
+                local TargetPlayer = RSGCore.Functions.GetPlayer(playerId)
+                if TargetPlayer then
+                    table.insert(nearbyPlayers, {
+                        id = playerId,
+                        name = TargetPlayer.PlayerData.charinfo.firstname .. ' ' .. TargetPlayer.PlayerData.charinfo.lastname,
+                        distance = math.floor(distance)
+                    })
+                end
+            end
+        end
+    end
+
+    cb(nearbyPlayers)
+end)
+
+-- Send PvP challenge to another player
+RegisterNetEvent('hdrp-pets:server:sendPvPChallenge')
+AddEventHandler('hdrp-pets:server:sendPvPChallenge', function(targetId, petData, betAmount)
+    local src = source
+    local pvpConfig = getPvPConfig()
+
+    if not pvpConfig.Enabled then
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_pvp_disabled'), type = 'error' })
+        return
+    end
+
+    local Player = RSGCore.Functions.GetPlayer(src)
+    local TargetPlayer = RSGCore.Functions.GetPlayer(targetId)
+
+    if not Player or not TargetPlayer then
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_pvp_player_not_found'), type = 'error' })
+        return
+    end
+
+    -- Validate bet amount if betting is enabled
+    if pvpConfig.OwnerBets.Enabled and betAmount > 0 then
+        if betAmount < pvpConfig.OwnerBets.MinBet or betAmount > pvpConfig.OwnerBets.MaxBet then
+            TriggerClientEvent('ox_lib:notify', src, {
+                title = locale('cl_bet_invalid'),
+                description = string.format(locale('cl_bet_invalid_desc'), pvpConfig.OwnerBets.MinBet, pvpConfig.OwnerBets.MaxBet),
+                type = 'error'
+            })
+            return
+        end
+
+        if Player.PlayerData.money.cash < betAmount then
+            TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_bet_insufficient_funds'), type = 'error' })
+            return
+        end
+    end
+
+    -- Check if already has a pending challenge
+    if pvpChallenges[src] then
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_pvp_already_challenging'), type = 'error' })
+        return
+    end
+
+    -- Store the challenge
+    pvpChallenges[src] = {
+        challengerSrc = src,
+        challengerName = Player.PlayerData.charinfo.firstname .. ' ' .. Player.PlayerData.charinfo.lastname,
+        challengerPet = petData,
+        targetSrc = targetId,
+        betAmount = betAmount or 0,
+        timestamp = os.time()
+    }
+
+    -- Notify the target player
+    local challengerName = Player.PlayerData.charinfo.firstname .. ' ' .. Player.PlayerData.charinfo.lastname
+    TriggerClientEvent('hdrp-pets:client:receivePvPChallenge', targetId, src, challengerName, petData, betAmount, pvpConfig.ChallengeTimeout)
+
+    -- Notify the challenger
+    local targetName = TargetPlayer.PlayerData.charinfo.firstname .. ' ' .. TargetPlayer.PlayerData.charinfo.lastname
+    TriggerClientEvent('ox_lib:notify', src, {
+        title = locale('cl_pvp_challenge_sent'),
+        description = string.format(locale('cl_pvp_challenge_sent_desc'), targetName),
+        type = 'success',
+        duration = 5000
+    })
+
+    -- Auto-expire challenge after timeout
+    SetTimeout(pvpConfig.ChallengeTimeout * 1000, function()
+        if pvpChallenges[src] and pvpChallenges[src].targetSrc == targetId then
+            pvpChallenges[src] = nil
+            TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_pvp_challenge_expired'), type = 'error' })
+            TriggerClientEvent('hdrp-pets:client:challengeExpired', targetId)
+        end
+    end)
+end)
+
+-- Accept PvP challenge
+RegisterNetEvent('hdrp-pets:server:acceptPvPChallenge')
+AddEventHandler('hdrp-pets:server:acceptPvPChallenge', function(challengerSrc, defenderPetData)
+    local src = source
+    local pvpConfig = getPvPConfig()
+
+    local challenge = pvpChallenges[challengerSrc]
+    if not challenge or challenge.targetSrc ~= src then
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_pvp_no_challenge'), type = 'error' })
+        return
+    end
+
+    local Player = RSGCore.Functions.GetPlayer(src)
+    local ChallengerPlayer = RSGCore.Functions.GetPlayer(challengerSrc)
+
+    if not Player or not ChallengerPlayer then
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_pvp_player_not_found'), type = 'error' })
+        pvpChallenges[challengerSrc] = nil
+        return
+    end
+
+    local betAmount = challenge.betAmount or 0
+
+    -- Validate bet money for defender
+    if pvpConfig.OwnerBets.Enabled and betAmount > 0 then
+        if Player.PlayerData.money.cash < betAmount then
+            TriggerClientEvent('ox_lib:notify', src, {
+                title = locale('cl_bet_insufficient_funds'),
+                description = string.format(locale('cl_pvp_need_money'), betAmount),
+                type = 'error'
+            })
+            return
+        end
+
+        -- Remove money from both players
+        Player.Functions.RemoveMoney('cash', betAmount)
+        ChallengerPlayer.Functions.RemoveMoney('cash', betAmount)
+    end
+
+    -- Get fight location (defender's position)
+    local defenderPed = GetPlayerPed(src)
+    local fightCoords = GetEntityCoords(defenderPed)
+
+    -- Create the PvP fight
+    local fightId = "pvp_" .. os.time() .. "_" .. challengerSrc .. "_" .. src
+
+    pvpFights[fightId] = {
+        fightId = fightId,
+        challengerSrc = challengerSrc,
+        challengerPet = challenge.challengerPet,
+        defenderSrc = src,
+        defenderPet = defenderPetData,
+        betAmount = betAmount,
+        coords = fightCoords,
+        startTime = os.time(),
+        spectatorBetsOpen = true
+    }
+
+    -- Clear the challenge
+    pvpChallenges[challengerSrc] = nil
+
+    -- Notify both players
+    local challengerName = ChallengerPlayer.PlayerData.charinfo.firstname
+    local defenderName = Player.PlayerData.charinfo.firstname
+
+    TriggerClientEvent('ox_lib:notify', challengerSrc, {
+        title = locale('cl_pvp_challenge_accepted'),
+        description = string.format(locale('cl_pvp_fight_starting'), defenderName),
+        type = 'success'
+    })
+
+    TriggerClientEvent('ox_lib:notify', src, {
+        title = locale('cl_pvp_challenge_accepted'),
+        description = string.format(locale('cl_pvp_fight_starting'), challengerName),
+        type = 'success'
+    })
+
+    -- Notify nearby players about the fight
+    notifyNearbyPlayersOfFight(fightId, fightCoords, challenge.challengerPet, defenderPetData, challengerName, defenderName)
+
+    -- Start the fight for all nearby players
+    TriggerClientEvent('hdrp-pets:client:startPvPFightForAll', -1, fightId, challenge.challengerPet, defenderPetData, fightCoords, challengerSrc, src)
+
+    -- Close betting window after configured time
+    if pvpConfig.SpectatorBets.Enabled then
+        SetTimeout(pvpConfig.SpectatorBets.BettingWindow * 1000, function()
+            if pvpFights[fightId] then
+                pvpFights[fightId].spectatorBetsOpen = false
+                -- Notify spectators that betting is closed
+                local players = RSGCore.Functions.GetPlayers()
+                for _, playerId in ipairs(players) do
+                    if playerId ~= challengerSrc and playerId ~= src then
+                        TriggerClientEvent('hdrp-pets:client:bettingClosed', playerId, fightId)
+                    end
+                end
+            end
+        end)
+    end
+
+    -- Auto-resolve fight after 30 seconds
+    SetTimeout(30000, function()
+        if pvpFights[fightId] then
+            resolvePvPFight(fightId)
+        end
+    end)
+end)
+
+-- Decline PvP challenge
+RegisterNetEvent('hdrp-pets:server:declinePvPChallenge')
+AddEventHandler('hdrp-pets:server:declinePvPChallenge', function(challengerSrc)
+    local src = source
+
+    local challenge = pvpChallenges[challengerSrc]
+    if not challenge or challenge.targetSrc ~= src then
+        return
+    end
+
+    pvpChallenges[challengerSrc] = nil
+
+    local Player = RSGCore.Functions.GetPlayer(src)
+    local defenderName = Player and (Player.PlayerData.charinfo.firstname .. ' ' .. Player.PlayerData.charinfo.lastname) or "Unknown"
+
+    TriggerClientEvent('ox_lib:notify', challengerSrc, {
+        title = locale('cl_pvp_challenge_declined'),
+        description = string.format(locale('cl_pvp_declined_by'), defenderName),
+        type = 'error'
+    })
+
+    TriggerClientEvent('ox_lib:notify', src, {
+        title = locale('cl_pvp_challenge_declined'),
+        description = locale('cl_pvp_you_declined'),
+        type = 'inform'
+    })
+end)
+
+-- Notify nearby players of a fight
+function notifyNearbyPlayersOfFight(fightId, coords, pet1, pet2, owner1Name, owner2Name)
+    local pvpConfig = getPvPConfig()
+    local players = RSGCore.Functions.GetPlayers()
+
+    for _, playerId in ipairs(players) do
+        local playerPed = GetPlayerPed(playerId)
+        local playerCoords = GetEntityCoords(playerPed)
+        local distance = #(playerCoords - coords)
+
+        if distance <= pvpConfig.NotifyRadius then
+            TriggerClientEvent('hdrp-pets:client:pvpFightNearby', playerId, fightId, pet1, pet2, owner1Name, owner2Name, coords)
+        end
+    end
+end
+
+-- Spectator places bet on PvP fight
+RegisterNetEvent('hdrp-pets:server:placeSpectatorBet')
+AddEventHandler('hdrp-pets:server:placeSpectatorBet', function(fightId, betOnOwner, amount)
+    local src = source
+    local pvpConfig = getPvPConfig()
+
+    if not pvpConfig.SpectatorBets.Enabled then
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_pvp_spectator_bets_disabled'), type = 'error' })
+        return
+    end
+
+    local fight = pvpFights[fightId]
+    if not fight then
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_pvp_fight_not_found'), type = 'error' })
+        return
+    end
+
+    -- Can't bet on your own fight
+    if src == fight.challengerSrc or src == fight.defenderSrc then
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_pvp_cant_bet_own_fight'), type = 'error' })
+        return
+    end
+
+    -- Check if betting is still open
+    if not fight.spectatorBetsOpen then
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_pvp_betting_closed'), type = 'error' })
+        return
+    end
+
+    -- Validate amount
+    if amount < pvpConfig.SpectatorBets.MinBet or amount > pvpConfig.SpectatorBets.MaxBet then
+        TriggerClientEvent('ox_lib:notify', src, {
+            title = locale('cl_bet_invalid'),
+            description = string.format(locale('cl_bet_invalid_desc'), pvpConfig.SpectatorBets.MinBet, pvpConfig.SpectatorBets.MaxBet),
+            type = 'error'
+        })
+        return
+    end
+
+    local Player = RSGCore.Functions.GetPlayer(src)
+    if not Player or Player.PlayerData.money.cash < amount then
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_bet_insufficient_funds'), type = 'error' })
+        return
+    end
+
+    -- Already has a bet on this fight?
+    if spectatorBets[src] and spectatorBets[src][fightId] then
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_pvp_already_bet'), type = 'error' })
+        return
+    end
+
+    -- Remove money and store bet
+    Player.Functions.RemoveMoney('cash', amount)
+
+    if not spectatorBets[src] then spectatorBets[src] = {} end
+    spectatorBets[src][fightId] = {
+        amount = amount,
+        betOnOwner = betOnOwner, -- 'challenger' or 'defender'
+        timestamp = os.time()
+    }
+
+    local betOnName = betOnOwner == 'challenger' and fight.challengerPet.Name or fight.defenderPet.Name
+    TriggerClientEvent('ox_lib:notify', src, {
+        title = locale('cl_bet_placed'),
+        description = string.format(locale('cl_pvp_spectator_bet_placed'), amount, betOnName),
+        type = 'success'
+    })
+end)
+
+-- Resolve PvP fight and distribute rewards
+function resolvePvPFight(fightId)
+    local fight = pvpFights[fightId]
+    if not fight then return end
+
+    local pvpConfig = getPvPConfig()
+
+    -- Calculate winner based on pet stats + randomness
+    local pet1 = fight.challengerPet
+    local pet2 = fight.defenderPet
+
+    local score1 = (pet1.Health or 100) + (pet1.Strength or 50) + math.random(1, 60)
+    local score2 = (pet2.Health or 100) + (pet2.Strength or 50) + math.random(1, 60)
+
+    local winnerOwner, loserOwner, winnerPet, loserPet
+    local isKO = math.random(1, 100) <= 30 -- 30% chance of KO
+
+    if score1 > score2 then
+        winnerOwner = 'challenger'
+        loserOwner = 'defender'
+        winnerPet = pet1
+        loserPet = pet2
+    else
+        winnerOwner = 'defender'
+        loserOwner = 'challenger'
+        winnerPet = pet2
+        loserPet = pet1
+    end
+
+    local winnerSrc = winnerOwner == 'challenger' and fight.challengerSrc or fight.defenderSrc
+    local loserSrc = winnerOwner == 'challenger' and fight.defenderSrc or fight.challengerSrc
+
+    -- Distribute owner bets
+    if pvpConfig.OwnerBets.Enabled and fight.betAmount > 0 then
+        local WinnerPlayer = RSGCore.Functions.GetPlayer(winnerSrc)
+        if WinnerPlayer then
+            local winnings = math.floor(fight.betAmount * 2 * pvpConfig.OwnerBets.WinMultiplier)
+            WinnerPlayer.Functions.AddMoney('cash', winnings)
+            TriggerClientEvent('ox_lib:notify', winnerSrc, {
+                title = locale('cl_pvp_bet_won'),
+                description = string.format(locale('cl_pvp_won_amount'), winnings),
+                type = 'success'
+            })
+        end
+
+        TriggerClientEvent('ox_lib:notify', loserSrc, {
+            title = locale('cl_pvp_bet_lost'),
+            description = string.format(locale('cl_pvp_lost_amount'), fight.betAmount),
+            type = 'error'
+        })
+    end
+
+    -- Distribute spectator bets
+    if pvpConfig.SpectatorBets.Enabled then
+        for spectatorSrc, bets in pairs(spectatorBets) do
+            local bet = bets[fightId]
+            if bet then
+                local SpectatorPlayer = RSGCore.Functions.GetPlayer(spectatorSrc)
+                if SpectatorPlayer then
+                    if bet.betOnOwner == winnerOwner then
+                        local winnings = math.floor(bet.amount * pvpConfig.SpectatorBets.WinMultiplier)
+                        SpectatorPlayer.Functions.AddMoney('cash', winnings)
+                        TriggerClientEvent('ox_lib:notify', spectatorSrc, {
+                            title = locale('cl_pvp_spectator_won'),
+                            description = string.format(locale('cl_pvp_won_amount'), winnings),
+                            type = 'success'
+                        })
+                    else
+                        TriggerClientEvent('ox_lib:notify', spectatorSrc, {
+                            title = locale('cl_pvp_spectator_lost'),
+                            description = string.format(locale('cl_pvp_lost_amount'), bet.amount),
+                            type = 'error'
+                        })
+                    end
+                end
+                bets[fightId] = nil
+            end
+        end
+    end
+
+    -- Award XP
+    local xpWinner = pvpConfig.XPRewards.Winner + (isKO and pvpConfig.XPRewards.KOBonus or 0)
+    local xpLoser = pvpConfig.XPRewards.Loser
+
+    -- Update pet stats and achievements
+    updateStatsFight(winnerPet, loserPet, winnerSrc, loserSrc, isKO, true)
+
+    if winnerPet.PetId then checkAchievements(winnerSrc, winnerPet.PetId) end
+    if loserPet.PetId then checkAchievements(loserSrc, loserPet.PetId) end
+
+    -- Update XP for pets
+    if winnerPet.PetId then
+        local wcompanion = Database.GetCompanionByCompanionId(winnerPet.PetId)
+        if wcompanion then
+            local wdata = json.decode(wcompanion.data or '{}')
+            wdata.progression = wdata.progression or {}
+            wdata.progression.xp = (wdata.progression.xp or 0) + xpWinner
+            Database.UpdateCompanionData(winnerPet.PetId, wdata)
+            TriggerClientEvent('hdrp-pets:client:updateanimals', winnerSrc, winnerPet.PetId, wdata)
+        end
+    end
+
+    if loserPet.PetId then
+        local lcompanion = Database.GetCompanionByCompanionId(loserPet.PetId)
+        if lcompanion then
+            local ldata = json.decode(lcompanion.data or '{}')
+            ldata.progression = ldata.progression or {}
+            ldata.progression.xp = (ldata.progression.xp or 0) + xpLoser
+            Database.UpdateCompanionData(loserPet.PetId, ldata)
+            TriggerClientEvent('hdrp-pets:client:updateanimals', loserSrc, loserPet.PetId, ldata)
+        end
+    end
+
+    -- Notify all players about the result
+    TriggerClientEvent('hdrp-pets:client:endPvPFightForAll', -1, fightId, winnerPet.Name, loserPet.Name, isKO, xpWinner)
+
+    -- Clean up
+    pvpFights[fightId] = nil
+end
+
+-- Manual fight resolution (called from client when fight ends naturally)
+RegisterNetEvent('hdrp-pets:server:resolvePvPFight')
+AddEventHandler('hdrp-pets:server:resolvePvPFight', function(fightId)
+    resolvePvPFight(fightId)
+end)
+
+-- Get active PvP fights for client synchronization
+RSGCore.Functions.CreateCallback('hdrp-pets:server:getActivePvPFights', function(source, cb)
+    local activeFightsList = {}
+    for fightId, fight in pairs(pvpFights) do
+        table.insert(activeFightsList, {
+            fightId = fightId,
+            pet1 = fight.challengerPet,
+            pet2 = fight.defenderPet,
+            coords = fight.coords,
+            spectatorBetsOpen = fight.spectatorBetsOpen
+        })
+    end
+    cb(activeFightsList)
 end)

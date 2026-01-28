@@ -164,6 +164,38 @@ local Game_fight = {
     OutlawStatusAdd      = 5, -- amount of outlaw points to add
     OutlawStatusBet      = 1, -- per bet placed
 
+    -- PVP Direct Challenge System
+    PvP = {
+        Enabled = true,                     -- Enable PvP challenges
+        ChallengeTimeout = 60,              -- Seconds to accept a challenge
+        NearbyRadius = 50.0,                -- Radius to find nearby players for challenges
+        NotifyRadius = 100.0,               -- Radius to notify spectators about fights
+
+        -- Owner bets (between pet owners)
+        OwnerBets = {
+            Enabled = true,                 -- Enable betting between owners
+            MinBet = 50,                    -- Minimum bet for owner fights
+            MaxBet = 5000,                  -- Maximum bet for owner fights
+            WinMultiplier = 2.0,            -- Winner gets bet * multiplier (2x = double)
+        },
+
+        -- Spectator bets (others watching the fight)
+        SpectatorBets = {
+            Enabled = true,                 -- Enable spectator betting
+            MinBet = 10,                    -- Minimum spectator bet
+            MaxBet = 500,                   -- Maximum spectator bet
+            WinMultiplier = 1.8,            -- Spectator win multiplier
+            BettingWindow = 15,             -- Seconds to place bets after fight starts
+        },
+
+        -- XP rewards for PvP fights
+        XPRewards = {
+            Winner = 25,                    -- XP for winning
+            Loser = 5,                      -- XP for participating (loser)
+            KOBonus = 10,                   -- Extra XP for KO victory
+        },
+    },
+
 }
 
 return {
