@@ -20,7 +20,8 @@ local function StartPetWander(companionid, pet)
     local targetZ = homePos.z
     local groundZ = 0
     RequestCollisionAtCoord(targetX, targetY, targetZ)
-    GetGroundZFor_3dCoord(targetX, targetY, targetZ, groundZ, false)
+    -- GetGroundZFor_3dCoord(targetX, targetY, targetZ, groundZ, false)
+    local found, groundZ = GetGroundZFor_3dCoord(targetX, targetY, targetZ, false)
     if groundZ ~= 0 then targetZ = groundZ end
     pet.targetPosition = vector3(targetX, targetY, targetZ)
     pet.state = 'moving'
@@ -34,8 +35,8 @@ local function TransitionToIdle(companionid, wanderState)
     local entity = wanderState.entity
     if DoesEntityExist(entity) then
         ClearPedTasks(entity)
-        local idleAnimDict = Config.Wandering.IdleAnimDict or 'combat@damage@rb_writhe'
-        local idleAnimName = Config.Wandering.IdleAnimName or 'rb_writhe_loop'
+        local idleAnimDict = Config.Wandering.IdleAnimDict or 'amb_creature_mammal@world_dog_idle@base'
+        local idleAnimName = Config.Wandering.IdleAnimName or 'base'
         State.PlayPetAnimation(companionid, idleAnimDict, idleAnimName, false)
     end
     wanderState.state = 'idle'

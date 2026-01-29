@@ -82,7 +82,7 @@ RegisterServerEvent('hdrp-pets:server:buy', function(price, model, stable, compa
             hunger      = Config.PetAttributes.Starting.Hunger or 100,      -- Hambre (0-100)
             thirst      = Config.PetAttributes.Starting.Thirst or 100,      -- Sed (0-100)
             happiness   = Config.PetAttributes.Starting.Happiness or 100,   -- Felicidad (0-100)
-            dirt        = Config.PetAttributes.Starting.Dirt or 100,        -- Suciedad (0-100)
+            dirt        = 100,        -- Suciedad (0-100)
             strength    = Config.PetAttributes.Starting.Strength or 100,    -- Fortaleza (0-100)
             health      = Config.PetAttributes.Starting.Health or 100,      -- Salud actual
             age         = 1.0,                                              -- Edad en días
@@ -294,7 +294,7 @@ RegisterServerEvent('hdrp-pets:server:movepet', function(petId, newStableId)
     -- Move pet to new stable
     MySQL.update('UPDATE pet_companion SET stable = ? WHERE companionid = ?', {newStableId, petId})
 
-    TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_success_pet_moved'), description = string.format(locale('sv_success_pet_moved_desc'), pet[1].name, newStableId, moveFee), type = 'success', duration = 5000 })
+    TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_success_pet_moved'), description = string.format(locale('sv_success_pet_moved_desc'), pet[1].data.info.name, newStableId, moveFee), type = 'success', duration = 5000 })
 end)
 
 -- Set companion attributes (dirt)

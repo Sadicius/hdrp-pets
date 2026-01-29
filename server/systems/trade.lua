@@ -370,11 +370,12 @@ RegisterNetEvent('hdrp-pets:server:TradeCompanion', function(playerId, companion
     -- Si no hay precio, transferir directamente
     local success, result = pcall(MySQL.update.await, 'UPDATE pet_companion SET citizenid = ? WHERE companionid = ? AND active = ?', {BuyerCid, companionId, 1})
     if not success then return end
-    local successB, resultB = pcall(MySQL.update.await, 'UPDATE pet_companion SET active = ? WHERE citizenid = ? AND active = ?', {0, BuyerCid, 1})
+
+    local successB, resultB = pcall(MySQL.update.await, 'UPDATE pet_companion SET active = ? WHERE citizenid = ? AND companionid = ? AND active = ?', {0, BuyerCid, companionId, 1})
     if not successB then return end
 
     TriggerClientEvent('ox_lib:notify', playerId, {title = locale('sv_success_pet_owned'), type = 'success', duration = 5000 })
-    TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_success_pet_traded'), type = 'success', duration = 5000 })
+    TriggerClientEvent('ox_lib:notify', Seller, {title = locale('sv_success_pet_traded'), type = 'success', duration = 5000 })
 
     local discordMessage = string.format(
         locale('sv_log_user')..":** %s \n**"

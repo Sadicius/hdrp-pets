@@ -11,6 +11,10 @@ local activeFights = {}
 local petFightQueue = {} -- Para mascotas de jugadores esperando luchar contra NPC
 local playerVsPlayerQueue = {} -- Para luchas entre mascotas de diferentes jugadores
 
+local pvpChallenges = {}
+local pvpFights = {}
+local spectatorBets = {}
+
 local achievementsComp = {
     fight = {
         victories = 0,
@@ -157,7 +161,7 @@ local function getPetAttributes(pet)
     }
 end
 
-local function startFlexibleFight(participant1, participant2, coords, initiatorSrc, fightType)
+local function startFlexibleFight(participant1, participant2, coords, initiatorSrc, fightType, outlawstatus)
     local fightId = "fight_" .. os.time() .. "_" .. (initiatorSrc or math.random(1000,9999))
     local pet1 = getPetAttributes(participant1)
     local pet2 = getPetAttributes(participant2)
@@ -227,13 +231,14 @@ AddEventHandler('hdrp-pets:server:registerPetForNpcFight', function(petData, out
         print("[DEBUG][SERVER] pet_vs_npc: npcDog.Name:", npcDog.Name, "npcDog.Model:", npcDog.Model)
         local playerPed = GetPlayerPed(entry.src)
         local playerCoords = GetEntityCoords(playerPed)
-        startFlexibleFight(entry.pet, npcDog, playerCoords, entry.src, "pet_vs_npc")
-
+ 
         local Player = RSGCore.Functions.GetPlayer(entry.src)
         if not Player then return end
         local citizenid = Player.PlayerData.citizenid
         local newoutlawstatus = (outlawstatus + DogFightConfig.OutlawStatusAdd)
         MySQL.update('UPDATE players SET outlawstatus = ? WHERE citizenid = ?', { newoutlawstatus, citizenid })
+
+        startFlexibleFight(entry.pet, npcDog, playerCoords, entry.src, "pet_vs_npc", newoutlawstatus)
     end
 end)
 
@@ -254,15 +259,15 @@ AddEventHandler('hdrp-pets:server:registerPetForPlayerFight', function(petData, 
         local entry2 = table.remove(playerVsPlayerQueue, 1)
         -- Usar la posición del primero como referencia
         local playerPed = GetPlayerPed(entry1.src)
-
         local playerCoords = GetEntityCoords(playerPed)
-        startFlexibleFight(entry1.pet, entry2.pet, playerCoords, entry1.src, "pet_vs_pet")
 
         local Player = RSGCore.Functions.GetPlayer(entry1.src)
         if not Player then return end
         local citizenid = Player.PlayerData.citizenid
         local newoutlawstatus = (outlawstatus + DogFightConfig.OutlawStatusAdd)
         MySQL.update('UPDATE players SET outlawstatus = ? WHERE citizenid = ?', { newoutlawstatus, citizenid })
+
+        startFlexibleFight(entry1.pet, entry2.pet, playerCoords, entry1.src, "pet_vs_pet", newoutlawstatus)
     end
 end)
 
@@ -393,7 +398,7 @@ AddEventHandler('hdrp-pets:server:endFight', function(fightId, dog1, dog2, winne
         for src, bet in pairs(bets) do
             if bet and bet.fightDogs and bet.fightDogs.dog1 == dog1.Name and bet.fightDogs.dog2 == dog2.Name then
                 local Player = RSGCore.Functions.GetPlayer(src)
-                if not Player then return end
+                -- if not Player then return end
                 if Player then
                     local payout = 0
                     if bet.dogName == winner then
@@ -452,10 +457,6 @@ end)
 -- ============================================
 -- PVP DIRECT CHALLENGE SYSTEM
 -- ============================================
-
-local pvpChallenges = {}
-local pvpFights = {}
-local spectatorBets = {}
 
 -- Get PvP config with fallback defaults
 local function getPvPConfig()

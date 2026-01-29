@@ -47,8 +47,8 @@ local function CleanBoneAnimation(prop, player, petPed)
             ActivatePhysics(prop)
             PlaceObjectOnGroundProperly(prop)
             Wait(1000)
-
-            SetModelAsNoLongerNeeded(prop)
+            local model = GetEntityModel(prop)
+            SetModelAsNoLongerNeeded(model)
             isRetrieving = false
 
             ManageSpawn.moveCompanionToPlayer(petPed, player)

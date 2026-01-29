@@ -78,7 +78,7 @@ local function snapshotOffspring(pet)
 
         info = {
             -- stable  = stable or "valentine",                         -- Localizacion del establo  -- duda aquí // merece la pena modificar por la columna stable
-            name    = pet.data.info.name .. ' Jr.' or nil,                   -- Nombre personalizado
+            name    = (pet.data.info.name .. ' Jr.') or nil,                   -- Nombre personalizado
             model   = pet.data.info.model or nil,                            -- Modelo o especie
             skin    = math.floor(math.random(0, 2)) or 0,                                        -- Skin/variante visual
             gender  = math.random(0,1) == 0 and 'male' or 'female',                   -- Género
@@ -90,7 +90,7 @@ local function snapshotOffspring(pet)
             hunger      = Config.PetAttributes.Starting.Hunger or 100,      -- Hambre (0-100)
             thirst      = Config.PetAttributes.Starting.Thirst or 100,      -- Sed (0-100)
             happiness   = Config.PetAttributes.Starting.Happiness or 100,   -- Felicidad (0-100)
-            dirt        = Config.PetAttributes.Starting.Dirt or 100,        -- Suciedad (0-100)
+            dirt        = 100,        -- Suciedad (0-100)
             strength    = Config.PetAttributes.Starting.Strength or 100,    -- Fortaleza (0-100)
             health      = Config.PetAttributes.Starting.Health or 100,      -- Salud actual
             age         = 1.0,                                              -- Edad en días
@@ -237,9 +237,9 @@ local function loopGestation()
                     local foundA, foundB = nil, nil
                     local allactive = Database.GetAllActiveCompanions()
                     for id, candidate in pairs(allactive) do
-                        if id ~= companionid and candidate.data and candidate.data.veterinary and candidate.data.veterinary.breedable == pet.data.veterinary.breedable and candidate.data.info and candidate.data.info.gender ~= pet.data.info.gender and candidate.data.veterinary.gestationstart == pet.data.veterinary.gestationstart then
-                            if candidate.data.veterinary.inbreed == false or candidate.data.veterinary.inbreed == nil then
-                                if pet.data.info.gender == 'female' then
+                        if id ~= companionid and (candidate.data and candidate.data.veterinary and candidate.data.veterinary.breedable) == true and (pet.data and pet.data.veterinary and pet.data.veterinary.breedable) == true and (candidate.data.info and candidate.data.info.gender) ~= (pet.data.info and pet.data.info.gender) and candidate.data.veterinary.gestationstart == pet.data.veterinary.gestationstart then
+                            if (candidate.data and candidate.data.veterinary and candidate.data.veterinary.breedable) == false or (candidate.data and candidate.data.veterinary and candidate.data.veterinary.breedable) == nil then
+                                if (pet.data and pet.data.info and pet.data.info.gender) == 'female' then
                                     foundA = pet
                                     foundB = candidate
                                 else
@@ -255,10 +255,10 @@ local function loopGestation()
                     -- Preparar snapshot de padres
                     local function snapshotParent(pet)
                         return json.encode({
-                            id = pet.data.id or pet.companionid,
-                            info = pet.data.info or {},
-                            progression = pet.data.progression or {},
-                            veterinary = pet.data.veterinary or {}
+                            id = (pet.data and pet.data.id) or pet.companionid,
+                            info = (pet.data and pet.data.info) or {},
+                            progression = (pet.data and pet.data.progression) or {},
+                            veterinary = (pet.data and pet.data.veterinary) or {}
                         })
                     end
 
@@ -266,8 +266,8 @@ local function loopGestation()
                     if Database.InsertGenealogy then
                         Database.InsertGenealogy({
                             offspring_id = offspring.id,
-                            parent_a_id = parentA.data.id or parentA.companionid,
-                            parent_b_id = parentB.data.id or parentB.companionid,
+                            parent_a_id = (parentA.data and parentA.data.id) or parentA.companionid,
+                            parent_b_id = (parentB.data and parentB.data.id) or parentB.companionid,
                             parent_a_data = snapshotParent(parentA),
                             parent_b_data = snapshotParent(parentB)
                         })
@@ -282,8 +282,8 @@ local function loopGestation()
                 pet.data.veterinary.gestationstart = nil
                 pet.data.veterinary.gestationperiod = nil
 
-                Database.UpdateCompanionData(companionid, pet.data)
-                -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, pet.data)
+                Database.UpdateCompanionData((pet.data and pet.data.id) or companionid, pet.data)
+                -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, (pet.data and pet.data.id) or companionid, pet.data)
 
                 TriggerClientEvent('hdrp-pets:client:newoffspring', -1, offspring.companionid, offspring)
             end

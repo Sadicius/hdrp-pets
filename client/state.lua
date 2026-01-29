@@ -354,6 +354,7 @@ function State.GetPetLevel(xp)
 end
 
 -- Actualiza los niveles de vinculación de todas las mascotas activas
+-- Sin usar de momento
 function State.GetBondingLevels()
     for companionid, v in pairs(State.GetAllPets()) do
         if v and DoesEntityExist(v.ped) then

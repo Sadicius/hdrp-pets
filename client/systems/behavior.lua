@@ -151,7 +151,7 @@ function TrackTarget(data)
     gpsRoute = true
     
     -- Command pet to track target
-    TaskFollowToOffsetOfEntity(petPed, target, 0.0, -1.5, 0.0, 1.0, -1, Config.PetAttributes.TrackDistance * 100000000, 1, 1, 0, 0, 1)
+    TaskFollowToOffsetOfEntity(petPed, target, 0.0, -1.5, 0.0, 1.0, -1, Config.Blip.Track.Distance * 100000000, 1, 1, 0, 0, 1)
     
     -- Create monitoring thread
     CreateThread(function()
@@ -271,7 +271,7 @@ function HuntAnimals(data)
         end
         
         if huntSuccessful then
-            TaskGoToEntity(petPed, PlayerPedId(), -1, 2.0, 1.0, 1073741824, 0)
+            TaskGoToEntity(petPed, cache.ped, -1, 2.0, 1.0, 1073741824, 0)
             TriggerServerEvent('hdrp-pets:server:food')
             Wait(5000)
             lib.notify({ title = locale('cl_hunt_target_reward'), description = locale('cl_hunt_target_reward'), type = 'success', duration = 5000 })

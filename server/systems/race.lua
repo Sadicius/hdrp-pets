@@ -38,7 +38,7 @@ local function getPetRacingData(petData, owner)
     local progression = data.progression or {}
 
     -- Calculate racing stats
-    local speed = (stats.agility or 50) + (progression.xp or 0) / 100
+    local speed = (stats.happiness or 50) + (progression.xp or 0) / 100 -- cambio agility por felicidad
     local stamina = (stats.health or 50) + (stats.happiness or 50) / 2
 
     return {
@@ -220,7 +220,7 @@ AddEventHandler('hdrp-pets:server:joinPvPRace', function(petId, locationIndex, e
     local petProgression = petData.progression or {}
 
     -- Calculate racing stats
-    local speed = (petStats.agility or 50) + (petProgression.xp or 0) / 100
+    local speed = (petStats.happiness or 50) + (petProgression.xp or 0) / 100 -- cambio agility por felicidad
     local stamina = (petStats.health or 50) + (petStats.happiness or 50) / 2
 
     -- Check if queue exists for this location
@@ -660,7 +660,7 @@ AddEventHandler('playerDropped', function()
             if queue.racers[i].owner == src then
                 -- Refund entry fee
                 local Player = RSGCore.Functions.GetPlayer(src)
-                if not Player then return end
+                -- if not Player then return end
                 if Player and queue.entryFee > 0 then
                     Player.Functions.AddMoney('cash', queue.entryFee)
                 end

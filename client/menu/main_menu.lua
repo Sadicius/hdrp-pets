@@ -106,7 +106,7 @@ local function ShowPetMainMenu()
                         if not hasItem then
                             lib.notify({ 
                                 title = locale('cl_error_missing_tool'), 
-                                description = string.format(locale('cl_error_need_tool'), RSGCore.SharedItems[itemName].label),
+                                description = string.format(locale('cl_error_need_tool')), -- , RSGCore.SharedItems[itemName].label),
                                 type = 'error',
                                 duration = 5000 
                             })

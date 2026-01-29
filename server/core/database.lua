@@ -74,7 +74,7 @@ function Database.GetCompanionById(id)
         'SELECT * FROM pet_companion WHERE id = ?',
         {id}
     )
-    print('^3[DATABASE] GetCompanionById called with ID: ' .. tostring(id) .. '^7')
+    if Config.Debug then print('^3[DATABASE] GetCompanionById called with ID: ' .. tostring(id) .. '^7') end
 
     if success and result and result[1] then
         return result[1]
@@ -93,7 +93,7 @@ function Database.GetCompanionByCompanionId(companionid)
         'SELECT * FROM pet_companion WHERE companionid = ?',
         {companionid}
     )
-    print('^3[DATABASE] GetCompanionByCompanionId called with companionid: ' .. tostring(companionid) .. '^7')
+    if Config.Debug then print('^3[DATABASE] GetCompanionByCompanionId called with companionid: ' .. tostring(companionid) .. '^7') end
     if success and result and result[1] then
         return result[1]
     end
@@ -114,7 +114,7 @@ function Database.CountActiveCompanions(citizenid)
     
     if not success then
         if Config.Debug then
-            print('^1[DATABASE ERROR]^7 Failed to count active companions for ' .. citizenid)
+            if Config.Debug then print('^1[DATABASE ERROR]^7 Failed to count active companions for ' .. citizenid) end
         end
         return 0
     end
@@ -146,7 +146,7 @@ end
 ---@return boolean success, string|nil error
 function Database.ActivateCompanionAtomic(companionId, citizenid, maxPets)
     if not companionId or not citizenid then return false, "Invalid parameters" end
-    print('^3[DATABASE] Attempting to activate companion ID ' .. tostring(companionId) .. ' for citizenid ' .. tostring(citizenid) .. '^7')
+    if Config.Debug then print('^3[DATABASE] Attempting to activate companion ID ' .. tostring(companionId) .. ' for citizenid ' .. tostring(citizenid) .. '^7') end
     -- Atomic operation using MySQL transaction
     -- This prevents race condition when multiple requests come simultaneously
     local success, result = pcall(function()
@@ -158,10 +158,10 @@ function Database.ActivateCompanionAtomic(companionId, citizenid, maxPets)
             AND citizenid = ? 
             AND (SELECT COUNT(*) FROM pet_companion WHERE citizenid = ? AND active = 1) < ?
         ]], {companionId, citizenid, citizenid, maxPets})
-        print('^3[DATABASE] Activation affected rows: ' .. tostring(affected) .. '^7')
+        if Config.Debug then print('^3[DATABASE] Activation affected rows: ' .. tostring(affected) .. '^7') end
         return affected
     end)
-    print('^3[DATABASE] Activation success: ' .. tostring(success) .. ', result: ' .. tostring(result) .. '^7')
+    if Config.Debug then print('^3[DATABASE] Activation success: ' .. tostring(success) .. ', result: ' .. tostring(result) .. '^7') end
     if success and result and result > 0 then
         return true, nil
     elseif success and result == 0 then
@@ -206,7 +206,7 @@ function Database.InsertCompanion(data)
         return false, "Invalid data parameters"
     end
     
-    print('^3[DATABASE] Inserting companion with data: stable=' .. tostring(data.stable) .. ', citizenid=' .. tostring(data.citizenid) .. ', companionid=' .. tostring(data.companionid) .. '^7')
+    if Config.Debug then print('^3[DATABASE] Inserting companion with data: stable=' .. tostring(data.stable) .. ', citizenid=' .. tostring(data.citizenid) .. ', companionid=' .. tostring(data.companionid) .. '^7') end
     
     -- First, check if table exists
     local tableCheck = pcall(function()
@@ -214,16 +214,16 @@ function Database.InsertCompanion(data)
     end)
 
     if not tableCheck then
-        print('^1[DATABASE ERROR] Table pet_companion does not exist or is not accessible!^7')
+        if Config.Debug then print('^1[DATABASE ERROR] Table pet_companion does not exist or is not accessible!^7') end
         return false, "Table does not exist"
     end
 
-    print('^2[DATABASE] Table pet_companion exists and is accessible^7')
+    if Config.Debug then print('^2[DATABASE] Table pet_companion exists and is accessible^7') end
     
     -- Convert boolean to tinyint (0/1)
     local activeValue = data.active and 1 or 0
     
-    print('^3[DATABASE] Executing INSERT query...^7')
+    if Config.Debug then print('^3[DATABASE] Executing INSERT query...^7') end
     local result, errorMsg = MySQL.insert.await(
         'INSERT INTO pet_companion(stable, citizenid, companionid, data, active) VALUES(?, ?, ?, ?, ?)',
         {
@@ -236,18 +236,20 @@ function Database.InsertCompanion(data)
     )
     
     if not result then
-        print('^1[DATABASE ERROR] MySQL insert failed!^7')
-        print('^1[DATABASE ERROR] Error message: ' .. tostring(errorMsg) .. '^7')
-        print('^1[DATABASE ERROR] Data attempted: stable=' .. tostring(data.stable) .. ', citizenid=' .. tostring(data.citizenid) .. ', companionid=' .. tostring(data.companionid) .. ', active=' .. tostring(activeValue) .. '^7')
+        if Config.Debug then
+            print('^1[DATABASE ERROR] MySQL insert failed!^7')
+            print('^1[DATABASE ERROR] Error message: ' .. tostring(errorMsg) .. '^7')
+            print('^1[DATABASE ERROR] Data attempted: stable=' .. tostring(data.stable) .. ', citizenid=' .. tostring(data.citizenid) .. ', companionid=' .. tostring(data.companionid) .. ', active=' .. tostring(activeValue) .. '^7')
+        end
         return false, tostring(errorMsg)
     end
     
     if result == 0 then
-        print('^1[DATABASE ERROR] Insert returned 0 (no rows affected)^7')
+        if Config.Debug then print('^1[DATABASE ERROR] Insert returned 0 (no rows affected)^7') end
         return false, "Insert returned no ID"
     end
     
-    print('^2[DATABASE] Companion inserted successfully. Insert ID: ' .. tostring(result) .. '^7')
+    if Config.Debug then print('^2[DATABASE] Companion inserted successfully. Insert ID: ' .. tostring(result) .. '^7') end
     
     return true, result
 end
@@ -389,14 +391,14 @@ end
 ---@return boolean success, number|nil insertId
 function Database.InsertGenealogy(data)
     if not data or not data.offspring_id or not data.parent_a_id or not data.parent_b_id then
-        print('^1[DATABASE ERROR] InsertGenealogy called with invalid data^7')
+        if Config.Debug then print('^1[DATABASE ERROR] InsertGenealogy called with invalid data^7') end
         return false, "Invalid data parameters"
     end
     local tableCheck = pcall(function()
         return MySQL.scalar.await('SELECT 1 FROM pet_genealogy LIMIT 1')
     end)
     if not tableCheck then
-        print('^1[DATABASE ERROR] Table pet_genealogy does not exist or is not accessible!^7')
+        if Config.Debug then print('^1[DATABASE ERROR] Table pet_genealogy does not exist or is not accessible!^7') end
         return false, "Table does not exist"
     end
     local result, errorMsg = MySQL.insert.await(
@@ -410,11 +412,13 @@ function Database.InsertGenealogy(data)
         }
     )
     if not result then
-        print('^1[DATABASE ERROR] MySQL insert genealogy failed!^7')
-        print('^1[DATABASE ERROR] Error message: ' .. tostring(errorMsg) .. '^7')
+        if Config.Debug then
+            print('^1[DATABASE ERROR] MySQL insert genealogy failed!^7')
+            print('^1[DATABASE ERROR] Error message: ' .. tostring(errorMsg) .. '^7')
+        end
         return false, tostring(errorMsg)
     end
-    print('^2[DATABASE] Genealogy inserted successfully. Insert ID: ' .. tostring(result) .. '^7')
+    if Config.Debug then print('^2[DATABASE] Genealogy inserted successfully. Insert ID: ' .. tostring(result) .. '^7') end
     return true, result
 end
 
@@ -458,7 +462,8 @@ function Database.GetOrCreateBreedingRecord(citizenid)
                 {citizenid, '[]', '[]', '[]', 0, 0})
         end)
         if insertSuccess and insertId then
-            return Database.GetOrCreateBreedingRecord(citizenid)
+            Database.GetOrCreateBreedingRecord(citizenid)
+            return
         end
     end
     return nil

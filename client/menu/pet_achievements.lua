@@ -106,7 +106,7 @@ end
 RegisterNetEvent('hdrp-pets:client:achievement')
 AddEventHandler('hdrp-pets:client:achievement', function(title, description)
     lib.notify({
-        title = '¡Logro desbloqueado!',
+        title = locale('cl_achievement_unlocked'),
         description = title .. '\n' .. description,
         type = 'success',
         duration = 8000

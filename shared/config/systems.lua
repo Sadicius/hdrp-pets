@@ -119,6 +119,8 @@ return {
         Enabled = true,
         WanderRadius = 10.0,
         WanderSpeed = 1.0,
+        IdleAnimDict = 'amb_creature_mammal@world_dog_idle@base',
+        IdleAnimName = 'base',
         CheckInterval = 10000,  -- in milliseconds
         MaxDistance = 50.0,
         MinDistance = 5.0,

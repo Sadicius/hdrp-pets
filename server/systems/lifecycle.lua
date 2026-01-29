@@ -22,6 +22,7 @@ end
 --================================
 -- LIFECYCLE HELPER FUNCTIONS
 -- Calcula días desde nacimiento hasta evento y desde evento hasta hoy
+-- Sin uso actualmente pero puede ser útil para futuras funciones
 local function calcEventDays(born, eventTs)
     if not born or not eventTs or eventTs <= 0 then return nil, nil end
     local daysAtEvent = math.floor((eventTs - born) / 86400)

@@ -1,24 +1,18 @@
---[[
-    HDRP-PETS CONFIGURATION - PET ATTRIBUTES
-    Configuración de atributos y características de mascotas
-    Versión: 5.7.0
-]]
 
 return {
-    InvWeight        = 16000, -- inventory weight
-    InvSlots         = 16,    -- pet inventory slots
-    CheckCycle       = 30,    -- pet check system (mins)
-    StarterPetDieAge = 7,     -- starter pet age in days till it dies (days)
-    PetDieAge        = 120,   -- pet age in days till it dies (days)
+    -- InvWeight        = 16000, -- inventory weight
+    -- InvSlots         = 16,    -- pet inventory slots
+    -- CheckCycle       = 30,    -- pet check system (mins)
+    -- StarterPetDieAge = 7,     -- starter pet age in days till it dies (days)
+    -- PetDieAge        = 120,   -- pet age in days till it dies (days)
 
-    SpawnOnRoadOnly  = true, -- always spawn on road
+    SpawnOnRoadOnly  = false, -- always spawn on road
     RaiseAnimal      = true,  -- If enabled, you have to feed your animal for it to gain XP and grow
     NoFear           = false, -- Set to true if using Bears/Wolves as pets so horses won't be in fear
     Invincible       = false,
     DefensiveMode    = true,  -- If true, pets become hostile to anything you are in combat with
-
     FollowDistance   = 3,     -- distance pet follows player
-    FollowSpeed      = 1,     -- pet follow speed
+    -- FollowSpeed      = 1,     -- pet follow speed
     SearchRadius     = 50.0,  -- How far the pet will search for a hunted animal
 
     Starting = {

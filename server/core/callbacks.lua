@@ -99,7 +99,7 @@ RSGCore.Functions.CreateCallback('hdrp-pets:server:getactivecompanions', functio
         return
     end
     
-    cb(result or {})
+    -- cb(result or {})
 end)
 
 -- Callback: obtener estado de reproducción de una mascota
@@ -108,17 +108,19 @@ lib.callback.register('hdrp-pets:server:getbreedingstatus', function(source, pet
 
     if not pet then return {status = 'error', message = 'Mascota no encontrada'} end
     local petData = type(pet.data) == 'string' and json.decode(pet.data)
+    local vet = petData.veterinary or {}
+    local stats = petData.stats or {}
     -- if not petData then goto continue end
-    if petData.veterinary.inbreed then
+    if (vet.inbreed) == true then
         return {status = 'pregnant', message = locale('cl_breed_pregnant')}
-    elseif petData.veterinary.breedingcooldown and petData.veterinary.breedingcooldown > os.time() then
-        local timeRemaining = petData.veterinary.breedingcooldown - os.time()
+    elseif (vet.breedingcooldown) > os.time() then
+        local timeRemaining = vet.breedingcooldown - os.time()
         return {status = 'cooldown', message = locale('cl_breed_cooldown'), timeRemaining = timeRemaining}
-    elseif petData.stats.age < Config.Reproduction.MinAgeForBreeding then
+    elseif (stats.age) < Config.Reproduction.MinAgeForBreeding then
         return {status = 'too_young', message = locale('cl_breed_not_young')}
-    elseif petData.stats.age > Config.Reproduction.MaxBreedingAge then
+    elseif (stats.age) > Config.Reproduction.MaxBreedingAge then
         return {status = 'too_old', message = locale('cl_breed_too_old')}
-    elseif petData.stats.health < Config.Reproduction.RequiredHealth then
+    elseif (stats.health) < Config.Reproduction.RequiredHealth then
         return {status = 'requirements_not_met', message = locale('cl_breed_not_heath')}
     else
         return {status = 'ready', message = locale('cl_breed_go')}
@@ -128,10 +130,11 @@ end)
 lib.callback.register('hdrp-pets:server:getpregnancyprogress', function(source, petId)
     local pet = Database.GetCompanionByCompanionId(petId)
     local petData = type(pet.data) == 'string' and json.decode(pet.data) or pet.data
-    if not pet or not petData.veterinary.inbreed or not petData.veterinary.gestationstart or not petData.veterinary.gestationperiod then return {isPregnant = false} end
-    local elapsed = os.time() - petData.veterinary.gestationstart
-    local progress = math.max(0, math.min(100, (elapsed / petData.veterinary.gestationperiod) * 100))
-    local timeRemaining = petData.veterinary.gestationperiod - elapsed
+    local vet = petData.veterinary or {}
+    if not pet or not vet.inbreed or not vet.gestationstart or not vet.gestationperiod then return {isPregnant = false} end
+    local elapsed = os.time() - vet.gestationstart
+    local progress = math.max(0, math.min(100, (elapsed / vet.gestationperiod) * 100))
+    local timeRemaining = vet.gestationperiod - elapsed
     return {isPregnant = true, progressPercent = progress, timeRemaining = timeRemaining}
 end)
 

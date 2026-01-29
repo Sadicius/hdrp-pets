@@ -19,7 +19,7 @@ function TogglePetSelection(petData)
         herdingStates.selectedPets[companionid] = nil
         lib.notify({ 
             title = locale('cl_pet_deselected'), 
-            description = string.format(locale('cl_pet_deselected_desc'), petData.name or GetPetDisplayName(petData.model)),
+            description = string.format(locale('cl_pet_deselected_desc'), (petData.data and petData.data.info and petData.data.info.name)),
             type = 'inform',
             duration = 3000
         })
@@ -41,7 +41,7 @@ function TogglePetSelection(petData)
         herdingStates.selectedPets[companionid] = petData
         lib.notify({ 
             title = locale('cl_pet_selected'), 
-            description = string.format(locale('cl_pet_selected_desc'), petData.name or GetPetDisplayName(petData.model)),
+            description = string.format(locale('cl_pet_selected_desc'), (petData.data and petData.data.info and petData.data.info.name) ),
             type = 'success',
             duration = 3000
         })
