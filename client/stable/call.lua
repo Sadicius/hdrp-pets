@@ -280,7 +280,7 @@ CreateThread(function()
             if petData and petData.spawned and isCall and DoesEntityExist(petData.ped) then
                 local xp = petData.xp or 0
                 local requiredXP = (Config.XP and Config.XP.Trick and Config.XP.Trick.Follow) or 75
-                local age = (petData.data and petData.data.stats and petData.data.stats.age) or petData.stats.age or 0
+                local age = (petData.data and petData.data.stats and petData.data.stats.age) or 0
                 local minFollowAge = 3
                 if xp >= requiredXP and age >= minFollowAge then
                     local petCoords = GetEntityCoords(petData.ped)

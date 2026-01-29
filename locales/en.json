@@ -655,6 +655,7 @@
 	"cl_action_water_all_desc": "Individually give water to each pet",
 	"cl_action_brush_all": "Brush All",
 	"cl_action_brush_all_desc": "Individually clean each pet",
+	"cl_action_store": "Store",
 	"cl_action_store_all": "Store All",
 	"cl_action_store_all_desc": "Store %d pets in the stable and deactivate them",
 	"cl_success_follow_all": "%d pets following you",

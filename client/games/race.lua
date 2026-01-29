@@ -212,6 +212,8 @@ local function StartSoloRace(locationIndex)
     local activePets = {}
     for companionid, petData in pairs(State.GetAllPets()) do
         if petData and petData.spawned and DoesEntityExist(petData.ped) and not IsEntityDead(petData.ped) then
+            -- Set isRace flag true
+            State.SetPetTrait(companionid, 'isRace', true)
             local stats = GetPetRacingStats(petData)
             table.insert(activePets, {
                 id = companionid,
@@ -366,6 +368,8 @@ local function StartSoloRace(locationIndex)
         local playerCoords = GetEntityCoords(cache.ped)
         for _, racer in ipairs(currentRace.racers) do
             if DoesEntityExist(racer.ped) then
+                -- Quitar flag isRace
+                State.SetPetTrait(racer.id, 'isRace', false)
                 ManageSpawn.moveCompanionToPlayer(racer.ped, cache.ped)
             end
         end
@@ -406,6 +410,8 @@ local function StartNPCRace(petId, locationIndex)
     isRacing = true
 
     -- Setup player's pet
+    -- Set isRace flag true para el pet jugador
+    State.SetPetTrait(petId, 'isRace', true)
     local playerStats = GetPetRacingStats(petData)
     local playerRacer = {
         id = petId,
@@ -571,6 +577,8 @@ local function StartNPCRace(petId, locationIndex)
         CleanupNPCs()
 
         if DoesEntityExist(playerRacer.ped) then
+            -- Quitar flag isRace
+            State.SetPetTrait(playerRacer.id, 'isRace', false)
             ManageSpawn.moveCompanionToPlayer(playerRacer.ped, cache.ped)
         end
 
@@ -669,6 +677,10 @@ AddEventHandler('hdrp-pets:client:startPvPRace', function(raceId, racers, locati
     local startCoords = location.Coords
 
     for i, racerData in ipairs(racers) do
+        -- Si es mi mascota, setear isRace true
+        if racerData.owner == myServerId then
+            State.SetPetTrait(racerData.petId, 'isRace', true)
+        end
         local racer = {
             owner = racerData.owner,
             ownerName = racerData.ownerName,
@@ -812,11 +824,14 @@ AddEventHandler('hdrp-pets:client:endPvPRace', function(raceId, results, prizes)
     CleanupCheckpointMarkers()
 
     -- Cleanup non-owned pets (NPCs representing other players)
+
     for _, racer in ipairs(currentPvPRace.racers) do
-        if not racer.isMyPet and racer.ped and DoesEntityExist(racer.ped) then
-            DeleteEntity(racer.ped)
-        elseif racer.isMyPet and racer.ped and DoesEntityExist(racer.ped) then
+        if racer.isMyPet and racer.ped and DoesEntityExist(racer.ped) then
+            -- Quitar flag isRace
+            State.SetPetTrait(racer.petId, 'isRace', false)
             ManageSpawn.moveCompanionToPlayer(racer.ped, cache.ped)
+        elseif not racer.isMyPet and racer.ped and DoesEntityExist(racer.ped) then
+            DeleteEntity(racer.ped)
         end
     end
 
