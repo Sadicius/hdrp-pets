@@ -24,20 +24,6 @@ local checkpointProps = {}
 -- UTILITY FUNCTIONS
 -- ============================================
 
--- Create race prompt
-local function CreateRacePrompt(name, key, holdDuration)
-    local prompt = PromptRegisterBegin()
-    PromptSetControlAction(prompt, RSGCore.Shared.Keybinds[key] or 0xF3830D8E)
-    PromptSetText(prompt, CreateVarString(10, 'LITERAL_STRING', name))
-    PromptSetEnabled(prompt, true)
-    PromptSetVisible(prompt, true)
-    PromptSetHoldMode(prompt, holdDuration or 1000)
-    local group = GetRandomIntInRange(0, 0xffffff)
-    PromptSetGroup(prompt, group)
-    PromptRegisterEnd(prompt)
-    return prompt, group
-end
-
 -- Get pet racing stats from data
 local function GetPetRacingStats(petData)
     local stats = petData.data and petData.data.stats or {}
@@ -200,6 +186,36 @@ end
 -- ============================================
 -- SOLO RACE MODE (Player's own pets compete)
 -- ============================================
+local waitingForRaceShot = false
+local startRaceAfterShot = nil
+local isTriggered = false
+
+-- Detectar disparo para iniciar la carrera y avisar al server
+CreateThread(function()
+    while true do
+        Wait(0)
+        -- Detectar si el jugador presiona la tecla de disparo (mouse izquierdo) mientras mantiene presionada la tecla Shift izquierda
+        if IsControlJustReleased(0, 0xD8F73058) and IsControlPressed(0, 0xF84FA74F) then
+            isTriggered = true
+        end
+        -- Si se ha activado y estamos esperando el disparo para iniciar la carrera
+        if isTriggered and waitingForRaceShot and IsPedShooting(PlayerPedId()) then
+            -- Notificar al server para sincronizar el inicio
+            TriggerServerEvent('hdrp-pets:server:startRaceShot')
+            waitingForRaceShot = false
+            isTriggered = false
+        end
+    end
+end)
+
+-- Recibir del server la orden de iniciar la carrera
+RegisterNetEvent('hdrp-pets:client:triggerRaceShot')
+AddEventHandler('hdrp-pets:client:triggerRaceShot', function()
+    if startRaceAfterShot then
+        startRaceAfterShot()
+        startRaceAfterShot = nil
+    end
+end)
 
 local function StartSoloRace(locationIndex)
     local location = RaceConfig.Location[locationIndex]
@@ -260,11 +276,31 @@ local function StartSoloRace(locationIndex)
         local offsetX = (i - 1) * 2 - (#activePets - 1)
         local startPos = vector3(startCoords.x + offsetX, startCoords.y - 5, startCoords.z)
 
+        FreezeEntityPosition(racer.ped, false)
+        ClearPedTasksImmediately(racer.ped)
         TaskGoToCoordAnyMeans(racer.ped, startPos.x, startPos.y, startPos.z, 2.0, 0, 0, 786603, 0xbf800000)
     end
 
-    -- Wait for pets to reach starting positions
-    Wait(3000)
+    -- Esperar a que todas las mascotas lleguen a su posición de salida (máx 5 segundos)
+    local allReady = false
+    local maxWait = 5000
+    local waited = 0
+    while not allReady and waited < maxWait do
+        allReady = true
+        for i, racer in ipairs(activePets) do
+            local offsetX = (i - 1) * 2 - (#activePets - 1)
+            local startPos = vector3(startCoords.x + offsetX, startCoords.y - 5, startCoords.z)
+            local pedCoords = GetEntityCoords(racer.ped)
+            if #(pedCoords - startPos) > 1.5 then
+                allReady = false
+                break
+            end
+        end
+        if not allReady then
+            Wait(200)
+            waited = waited + 200
+        end
+    end
 
     -- Freeze pets at start
     for _, racer in ipairs(activePets) do
@@ -289,93 +325,121 @@ local function StartSoloRace(locationIndex)
         type = 'success',
         duration = 2000
     })
-
-    currentRace.startTime = GetGameTimer()
+    
+    lib.notify({
+        title = locale('cl_race_wait_shot') or '¡Dispara al aire!',
+        description = locale('cl_race_wait_shot_desc') or 'Dispara al aire para iniciar la carrera',
+        type = 'inform',
+        duration = 5000
+    })
 
     -- Start all pets racing
-    for _, racer in ipairs(currentRace.racers) do
-        FreezeEntityPosition(racer.ped, false)
-        MovePetToCheckpoint(racer.ped, raceCheckpoints[1], racer.speed)
-    end
+    waitingForRaceShot = true
+    startRaceAfterShot = function()
+        currentRace.startTime = GetGameTimer()
 
-    -- Race loop
-    CreateThread(function()
-        local finishedCount = 0
-        local results = {}
+        for _, racer in ipairs(currentRace.racers) do
+            FreezeEntityPosition(racer.ped, false)
+            MovePetToCheckpoint(racer.ped, raceCheckpoints[1], racer.speed)
+        end
 
-        while isRacing and finishedCount < #currentRace.racers do
-            Wait(100)
+        -- Race loop
+        CreateThread(function()
+            local finishedCount = 0
+            local results = {}
 
-            -- Check timeout
-            if GetGameTimer() - currentRace.startTime > RaceConfig.MaxRaceTime * 1000 then
-                lib.notify({ title = locale('cl_race_timeout') or 'Timeout', type = 'error' })
-                break
-            end
+            while isRacing and finishedCount < #currentRace.racers do
+                Wait(100)
 
-            for _, racer in ipairs(currentRace.racers) do
-                if not racer.finished and DoesEntityExist(racer.ped) then
-                    local currentCp = racer.currentCheckpoint
+                -- Check timeout
+                if GetGameTimer() - currentRace.startTime > RaceConfig.MaxRaceTime * 1000 then
+                    lib.notify({ title = locale('cl_race_timeout') or 'Timeout', type = 'error' })
+                    break
+                end
 
-                    if HasReachedCheckpoint(racer.ped, raceCheckpoints[currentCp]) then
-                        racer.currentCheckpoint = currentCp + 1
+                for _, racer in ipairs(currentRace.racers) do
+                    if not racer.finished and DoesEntityExist(racer.ped) then
+                        local currentCp = racer.currentCheckpoint
 
-                        if racer.currentCheckpoint > #raceCheckpoints then
-                            -- Pet finished the race
-                            racer.finished = true
-                            racer.finishTime = GetGameTimer() - currentRace.startTime
-                            finishedCount = finishedCount + 1
-                            table.insert(results, racer)
+                        if HasReachedCheckpoint(racer.ped, raceCheckpoints[currentCp]) then
+                            racer.currentCheckpoint = currentCp + 1
 
-                            lib.notify({
-                                title = racer.name,
-                                description = string.format(locale('cl_race_finished_position') or 'Finished in position %d!', finishedCount),
-                                type = 'success'
-                            })
-                        else
-                            -- Move to next checkpoint
-                            MovePetToCheckpoint(racer.ped, raceCheckpoints[racer.currentCheckpoint], racer.speed)
+                            if racer.currentCheckpoint > #raceCheckpoints then
+                                -- Pet finished the race
+                                racer.finished = true
+                                racer.finishTime = GetGameTimer() - currentRace.startTime
+                                finishedCount = finishedCount + 1
+                                table.insert(results, racer)
+
+                                lib.notify({
+                                    title = racer.name,
+                                    description = string.format(locale('cl_race_finished_position') or 'Finished in position %d!', finishedCount),
+                                    type = 'success'
+                                })
+                            else
+                                -- Move to next checkpoint
+                                MovePetToCheckpoint(racer.ped, raceCheckpoints[racer.currentCheckpoint], racer.speed)
+                            end
                         end
                     end
                 end
             end
+
+            -- Race finished - show results
+            isRacing = false
+            currentRace.finished = true
+
+            if #results > 0 then
+                local winner = results[1]
+                lib.notify({
+                    title = locale('cl_race_winner') or 'Winner!',
+                    description = string.format(locale('cl_race_winner_announce') or '%s wins the race!', winner.name),
+                    type = 'success',
+                    duration = 7000
+                })
+
+                -- Award XP
+                TriggerServerEvent('hdrp-pets:server:raceFinished', 'solo', {
+                    winner = winner.id,
+                    participants = {}
+                })
+            end
+
+            -- Cleanup
+            Wait(5000)
+            CleanupCheckpointMarkers()
+
+            -- Return pets to player
+            local playerCoords = GetEntityCoords(cache.ped)
+            for _, racer in ipairs(currentRace.racers) do
+                if DoesEntityExist(racer.ped) then
+                    -- Quitar flag isRace
+                    State.SetPetTrait(racer.id, 'isRace', false)
+                    ManageSpawn.moveCompanionToPlayer(racer.ped, cache.ped)
+                end
+            end
+
+            currentRace = nil
+            recentlyRaced = RaceConfig.RaceCooldown
+        end)
+    end
+
+    -- Contador de 30 segundos para disparo al aire
+    CreateThread(function()
+        local shotWaited = 0
+        local shotTimeout = 30000 -- 30 segundos
+        while waitingForRaceShot and shotWaited < shotTimeout do
+            Wait(500)
+            shotWaited = shotWaited + 500
         end
-
-        -- Race finished - show results
-        isRacing = false
-        currentRace.finished = true
-
-        if #results > 0 then
-            local winner = results[1]
-            lib.notify({
-                title = locale('cl_race_winner') or 'Winner!',
-                description = string.format(locale('cl_race_winner_announce') or '%s wins the race!', winner.name),
-                type = 'success',
-                duration = 7000
-            })
-
-            -- Award XP
-            TriggerServerEvent('hdrp-pets:server:raceFinished', 'solo', {
-                winner = winner.id,
-                participants = {}
-            })
-        end
-
-        -- Cleanup
-        Wait(5000)
-        CleanupCheckpointMarkers()
-
-        -- Return pets to player
-        local playerCoords = GetEntityCoords(cache.ped)
-        for _, racer in ipairs(currentRace.racers) do
-            if DoesEntityExist(racer.ped) then
-                -- Quitar flag isRace
-                State.SetPetTrait(racer.id, 'isRace', false)
-                ManageSpawn.moveCompanionToPlayer(racer.ped, cache.ped)
+        if waitingForRaceShot then
+            waitingForRaceShot = false
+            lib.notify({ title = locale('cl_race_auto_start') or 'Inicio automático', description = locale('cl_race_auto_start_desc') or 'La carrera inicia automáticamente.', type = 'warning' })
+            if startRaceAfterShot then
+                startRaceAfterShot()
+                startRaceAfterShot = nil
             end
         end
-
-        currentRace = nil
-        recentlyRaced = RaceConfig.RaceCooldown
     end)
 end
 
@@ -467,6 +531,9 @@ local function StartNPCRace(petId, locationIndex)
 
     -- Move player's pet to start
     local playerStartPos = vector3(startCoords.x, startCoords.y - 5, startCoords.z)
+    
+    FreezeEntityPosition(playerRacer.ped, false)
+    ClearPedTasksImmediately(playerRacer.ped)
     TaskGoToCoordAnyMeans(playerRacer.ped, playerStartPos.x, playerStartPos.y, playerStartPos.z, 2.0, 0, 0, 786603, 0xbf800000)
 
     Wait(3000)
@@ -528,9 +595,13 @@ local function StartNPCRace(petId, locationIndex)
                             racer.position = finishedCount
                             table.insert(results, racer)
 
-                            local title = racer.isPlayer and locale('cl_race_your_pet') or racer.name
+                            -- Report finish to server
+                            if racer.isMyPet then
+                                TriggerServerEvent('hdrp-pets:server:pvpRacerFinished', raceId, racer.petId, finishedCount, racer.finishTime)
+                            end
+
                             lib.notify({
-                                title = title,
+                                title = racer.name,
                                 description = string.format(locale('cl_race_finished_position') or 'Finished %d!', finishedCount),
                                 type = racer.isPlayer and 'success' or 'inform'
                             })
@@ -702,6 +773,8 @@ AddEventHandler('hdrp-pets:client:startPvPRace', function(raceId, racers, locati
             local petData = State.GetPet(racerData.petId)
             if petData and petData.ped then
                 racer.ped = petData.ped
+                FreezeEntityPosition(racer.ped, false)
+                ClearPedTasksImmediately(racer.ped)
                 TaskGoToCoordAnyMeans(racer.ped, startPos.x, startPos.y, startPos.z, 2.0, 0, 0, 786603, 0xbf800000)
             end
         else
@@ -952,6 +1025,20 @@ end)
 local RacePrompts = {}
 local RacePromptGroups = {}
 local RaceBlips = {}
+
+-- Create race prompt
+local function CreateRacePrompt(name, key, holdDuration)
+    local prompt = PromptRegisterBegin()
+    PromptSetControlAction(prompt, RSGCore.Shared.Keybinds[key] or 0xF3830D8E)
+    PromptSetText(prompt, CreateVarString(10, 'LITERAL_STRING', name))
+    PromptSetEnabled(prompt, true)
+    PromptSetVisible(prompt, true)
+    PromptSetHoldMode(prompt, holdDuration or 1000)
+    local group = GetRandomIntInRange(0, 0xffffff)
+    PromptSetGroup(prompt, group)
+    PromptRegisterEnd(prompt)
+    return prompt, group
+end
 
 -- Create prompts and blips for race locations
 CreateThread(function()

@@ -28,6 +28,11 @@ local achievementsComp = {
 -- UTILITY FUNCTIONS
 -- ============================================
 
+RegisterNetEvent('hdrp-pets:server:startRaceShot', function()
+    -- Envía a todos los clientes la orden de iniciar la carrera
+    TriggerClientEvent('hdrp-pets:client:triggerRaceShot', -1)
+end)
+
 -- Get pet data flattened for racing
 local function getPetRacingData(petData, owner)
     if not petData then return nil end
