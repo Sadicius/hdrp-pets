@@ -117,14 +117,14 @@ function MakeDogsFight(ped1, ped2, dog1, dog2)
     Citizen.InvokeNative(0x5240864E847C691C, ped1, false)
     Citizen.InvokeNative(0x5240864E847C691C, ped2, false)
     
-    if dog1 and dog1.Health then
-        -- local health1 = dog1.Health + math.random(-20, 20)
-        -- SetEntityHealth(ped1, health1)
-        -- Citizen.InvokeNative(0x166E7CF68597D8B5, ped1, health1)
-        -- if Config.Debug then print("MakeDogsFight: Set ped1 health to " .. health1) end
+    if dog1 and dog1.Health and dog1.Owner ~= GetPlayerServerId(PlayerId()) then
+        local health1 = dog1.Health + math.random(-20, 20)
+        SetEntityHealth(ped1, health1)
+        Citizen.InvokeNative(0x166E7CF68597D8B5, ped1, health1)
+        if Config.Debug then print("MakeDogsFight: Set ped1 health to " .. health1) end
     end
 
-    if dog2 and dog2.Health then
+    if dog2 and dog2.Health and dog2.Owner ~= GetPlayerServerId(PlayerId()) then
         local health2 = dog2.Health + math.random(-10, 20)
         SetEntityHealth(ped2, health2)
         Citizen.InvokeNative(0x166E7CF68597D8B5, ped2, health2)

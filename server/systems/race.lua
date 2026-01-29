@@ -660,6 +660,7 @@ AddEventHandler('playerDropped', function()
             if queue.racers[i].owner == src then
                 -- Refund entry fee
                 local Player = RSGCore.Functions.GetPlayer(src)
+                if not Player then return end
                 if Player and queue.entryFee > 0 then
                     Player.Functions.AddMoney('cash', queue.entryFee)
                 end

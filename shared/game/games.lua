@@ -154,14 +154,14 @@ local Game_race = {
     MaxRaceTime = 120,          -- Maximum race duration (seconds)
 
     -- Checkpoint settings
-    CheckpointModel = `p_vmlflag01x`,  -- Flag model for checkpoints
+    CheckpointModel = `mp001_s_mp_racecheckflag01x`,  -- Flag model for checkpoints
     CheckpointBlipSprite = -1018164873, -- Blip sprite for checkpoints
     CheckpointRadius = 3.0,      -- Radius to trigger checkpoint
 
     -- Race track locations
     Location = {
         {
-            Coords = vector3(-2411.77, -2455.10, 60.17),
+            Coords = vector3(606.10, -221.13, 146.26),
             PromptName = locale('cl_race_start_prompt') or 'Start Race',
             PromptKey = "J",
             HoldDuration = 1000,
@@ -180,7 +180,7 @@ local Game_race = {
             }
         },
         {
-            Coords = vector3(-1795.0, -420.0, 158.0),
+            Coords = vector3(-1447.27, -1158.45, 74.10),
             PromptName = locale('cl_race_start_prompt') or 'Start Race',
             PromptKey = "J",
             HoldDuration = 1000,

@@ -126,17 +126,31 @@ end
 
 -- Spawn NPC dog for racing
 local function SpawnNPCRacer(npcData, coords, heading)
-    local model = GetHashKey(npcData.Model)
-    if not lib.requestModel(model, 5000) then
+    -- Usa el mismo método que spawnDog para asegurar visibilidad y setup correcto
+    if not lib.requestModel(npcData.Model, 5000) then
         return nil
     end
 
-    local ped = CreatePed(model, coords.x, coords.y, coords.z, heading, false, false, false, false)
-    if not ped or not DoesEntityExist(ped) then
+    local ped = ManageSpawn.spawnDog(npcData.Model, coords, heading, npcData.Health or 100)
+    -- local model = GetHashKey(npcData.Model)
+    -- RequestModel(model)
+    -- local timeout = 0
+    -- while not HasModelLoaded(model) and timeout < 30 do
+    --     Wait(100)
+    --     timeout = timeout + 1
+    -- end
+    -- if not HasModelLoaded(model) then return nil end
+
+    -- local ped = CreatePed(model, coords.x, coords.y, coords.z, heading, false, true, false, false)
+
+    ManageSpawn.PlacePedOnGroundProperly(ped)
+    if not DoesEntityExist(ped) then
+        SetModelAsNoLongerNeeded(npcData.Model)
         return nil
     end
-
-    PlacePedOnGroundProperly(ped)
+    Citizen.InvokeNative(0x283978A15512B2FE, ped, true)
+    
+    SetModelAsNoLongerNeeded(npcData.Model)
     SetBlockingOfNonTemporaryEvents(ped, true)
     SetPedCanBeTargetted(ped, false)
     FreezeEntityPosition(ped, true)
