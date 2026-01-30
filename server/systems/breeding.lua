@@ -262,14 +262,32 @@ local function loopGestation()
                         })
                     end
 
-                    -- Insertar genealogía en la nueva tabla
-                    if Database.InsertGenealogy then
-                        Database.InsertGenealogy({
-                            offspring_id = offspring.id,
-                            parent_a_id = (parentA.data and parentA.data.id) or parentA.companionid,
-                            parent_b_id = (parentB.data and parentB.data.id) or parentB.companionid,
-                            parent_a_data = snapshotParent(parentA),
-                            parent_b_data = snapshotParent(parentB)
+                    -- Guardar genealogía en pet_breeding (tabla unificada)
+                    if Database.AddOffspringGenealogy then
+                        local parentAData = {
+                            name = (parentA.data and parentA.data.info and parentA.data.info.name) or 'Unknown',
+                            breed = (parentA.data and parentA.data.info and parentA.data.info.type) or 'Unknown',
+                            gender = (parentA.data and parentA.data.info and parentA.data.info.gender) or 'unknown',
+                            level = (parentA.data and parentA.data.progression and parentA.data.progression.level) or 1,
+                            bond = (parentA.data and parentA.data.progression and parentA.data.progression.bonding) or 0,
+                            hasdisease = (parentA.data and parentA.data.veterinary and parentA.data.veterinary.hasdisease) or false
+                        }
+                        local parentBData = {
+                            name = (parentB.data and parentB.data.info and parentB.data.info.name) or 'Unknown',
+                            breed = (parentB.data and parentB.data.info and parentB.data.info.type) or 'Unknown',
+                            gender = (parentB.data and parentB.data.info and parentB.data.info.gender) or 'unknown',
+                            level = (parentB.data and parentB.data.progression and parentB.data.progression.level) or 1,
+                            bond = (parentB.data and parentB.data.progression and parentB.data.progression.bonding) or 0,
+                            hasdisease = (parentB.data and parentB.data.veterinary and parentB.data.veterinary.hasdisease) or false
+                        }
+                        Database.AddOffspringGenealogy(citizenid, {
+                            petid = offspring.id,
+                            companionid = offspring.id,
+                            parent_a = (parentA.data and parentA.data.id) or parentA.companionid,
+                            parent_b = (parentB.data and parentB.data.id) or parentB.companionid,
+                            parent_a_data = parentAData,
+                            parent_b_data = parentBData,
+                            date = os.time()
                         })
                     end
 

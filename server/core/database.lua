@@ -383,65 +383,67 @@ function Database.GetAllCompanionsForRanking()
 end
 
 -- ================================================
--- GENEALOGY QUERIES
+-- PET_BREEDING QUERIES (historial y genealogía por jugador)
 -- ================================================
 
----Insert genealogy record for offspring
----@param data table {offspring_id, parent_a_id, parent_b_id, parent_a_data, parent_b_data}
----@return boolean success, number|nil insertId
-function Database.InsertGenealogy(data)
-    if not data or not data.offspring_id or not data.parent_a_id or not data.parent_b_id then
-        if Config.Debug then print('^1[DATABASE ERROR] InsertGenealogy called with invalid data^7') end
-        return false, "Invalid data parameters"
-    end
-    local tableCheck = pcall(function()
-        return MySQL.scalar.await('SELECT 1 FROM pet_genealogy LIMIT 1')
-    end)
-    if not tableCheck then
-        if Config.Debug then print('^1[DATABASE ERROR] Table pet_genealogy does not exist or is not accessible!^7') end
-        return false, "Table does not exist"
-    end
-    local result, errorMsg = MySQL.insert.await(
-        'INSERT INTO pet_genealogy (offspring_id, parent_a_id, parent_b_id, parent_a_data, parent_b_data) VALUES (?, ?, ?, ?, ?)',
-        {
-            data.offspring_id,
-            data.parent_a_id,
-            data.parent_b_id,
-            data.parent_a_data,
-            data.parent_b_data
-        }
-    )
-    if not result then
-        if Config.Debug then
-            print('^1[DATABASE ERROR] MySQL insert genealogy failed!^7')
-            print('^1[DATABASE ERROR] Error message: ' .. tostring(errorMsg) .. '^7')
-        end
-        return false, tostring(errorMsg)
-    end
-    if Config.Debug then print('^2[DATABASE] Genealogy inserted successfully. Insert ID: ' .. tostring(result) .. '^7') end
-    return true, result
-end
-
----Get genealogy record for a given offspring_id
----@param offspring_id string
----@return table|nil genealogy
+---Get genealogy for a specific offspring from pet_breeding table
+---Busca en el campo 'offspring' del registro de breeding del dueño
+---@param offspring_id string - companionid de la mascota
+---@return table|nil genealogy {offspring_id, parent_a_id, parent_b_id, parent_a_data, parent_b_data}
 function Database.GetGenealogyByOffspringId(offspring_id)
     if not offspring_id then return nil end
-    local success, result = pcall(
-        MySQL.query.await,
-        'SELECT * FROM pet_genealogy WHERE offspring_id = ?',
-        {offspring_id}
-    )
-    if success and result and result[1] then
-        return result[1]
+
+    -- Obtener la mascota para saber su dueño
+    local companion = Database.GetCompanionByCompanionId(offspring_id)
+    if not companion then return nil end
+
+    local citizenid = companion.citizenid
+    local record = Database.GetOrCreateBreedingRecord(citizenid)
+    if not record then return nil end
+
+    local offspringList = record.offspring and json.decode(record.offspring) or {}
+
+    -- Buscar en la lista de offspring
+    for _, entry in ipairs(offspringList) do
+        if entry.petid == offspring_id or entry.companionid == offspring_id then
+            return {
+                offspring_id = offspring_id,
+                parent_a_id = entry.parent_a,
+                parent_b_id = entry.parent_b,
+                parent_a_data = entry.parent_a_data and json.encode(entry.parent_a_data) or nil,
+                parent_b_data = entry.parent_b_data and json.encode(entry.parent_b_data) or nil,
+                date = entry.date
+            }
+        end
     end
+
     return nil
 end
 
+---Add offspring with genealogy data to pet_breeding
+---@param citizenid string
+---@param offspringData table {petid/companionid, parent_a, parent_b, parent_a_data, parent_b_data, date}
+---@return boolean success
+function Database.AddOffspringGenealogy(citizenid, offspringData)
+    if not citizenid or not offspringData then return false end
 
--- ================================================
--- PET_BREEDING QUERIES (historial y genealogía por jugador)
--- ================================================
+    local record = Database.GetOrCreateBreedingRecord(citizenid)
+    if not record then return false end
+
+    local offspringList = record.offspring and json.decode(record.offspring) or {}
+    table.insert(offspringList, offspringData)
+
+    local success = pcall(function()
+        MySQL.update.await('UPDATE pet_breeding SET offspring = ? WHERE citizenid = ?',
+            {json.encode(offspringList), citizenid})
+    end)
+
+    if Config.Debug and success then
+        print('^2[DATABASE] Offspring genealogy added for ' .. (offspringData.petid or offspringData.companionid) .. '^7')
+    end
+
+    return success
+end
 
 ---Get or create breeding record for a player
 ---@param citizenid string
