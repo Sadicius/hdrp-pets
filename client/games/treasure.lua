@@ -151,7 +151,7 @@ local function validateTreasureRequirements(petId)
     if xp < requiredXP then
         local currentLevel = State.GetPetLevel(xp)
         local requiredLevel = State.GetPetLevel(requiredXP)
-        return false, string.format(locale('cl_error_xp_required') or 'Level %d required (Current: %d)', requiredLevel, currentLevel)
+        return false, string.format(locale('cl_error_xp_required') or 'Level %d required (Current: Level %d) - XP: %d/%d', requiredLevel, currentLevel, xp, requiredXP)
     end
 
     -- Check for shovel item
