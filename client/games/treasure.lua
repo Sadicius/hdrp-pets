@@ -524,9 +524,11 @@ end
 
 --================================
 -- TREASURE HUNT (unified system for 1+ pets)
+-- specificPetId: optional - if provided, only use this pet (from menu)
+--                          if nil, use all active pets (from command)
 --================================
 
-local function startTreasureHunt()
+local function startTreasureHunt(specificPetId)
     if isTreasureHuntActive then
         lib.notify({ title = locale('cl_game_treasure_hunt_in_progress'), type = 'error' })
         return
@@ -538,8 +540,22 @@ local function startTreasureHunt()
         return
     end
 
+    -- If specific pet requested, filter to only that pet
+    local petsToUse = {}
+    if specificPetId then
+        local petData = activePets[specificPetId]
+        if petData and petData.ped and DoesEntityExist(petData.ped) then
+            petsToUse[specificPetId] = petData
+        else
+            lib.notify({ title = locale('cl_error_pet_not_found'), type = 'error' })
+            return
+        end
+    else
+        petsToUse = activePets
+    end
+
     local petCount = 0
-    for _ in pairs(activePets) do petCount = petCount + 1 end
+    for _ in pairs(petsToUse) do petCount = petCount + 1 end
 
     -- Start the hunt
     isTreasureHuntActive = true
@@ -550,7 +566,7 @@ local function startTreasureHunt()
     -- Single pet mode: auto-select the pet to follow
     -- Multi-pet mode: player chooses by approaching a pet
     if petCount == 1 then
-        for id in pairs(activePets) do
+        for id in pairs(petsToUse) do
             selectedPetToFollow = id
             break
         end
@@ -562,14 +578,14 @@ local function startTreasureHunt()
 
     -- Build pet list and select winner
     local petIds = {}
-    for id in pairs(activePets) do table.insert(petIds, id) end
+    for id in pairs(petsToUse) do table.insert(petIds, id) end
     local winnerPetId = petIds[math.random(#petIds)]
 
     -- Assign outcomes to each pet
     -- Single pet: always treasure
     -- Multi-pet: one treasure, others hostile/bandit
     local outcomes = {}
-    for id in pairs(activePets) do
+    for id in pairs(petsToUse) do
         if petCount == 1 or id == winnerPetId then
             outcomes[id] = 'treasure'
         else
@@ -590,7 +606,7 @@ local function startTreasureHunt()
     -- Generate clue routes for each pet (using the same system as single pet)
     local usedStartDirections = {}
 
-    for petId, petData in pairs(activePets) do
+    for petId, petData in pairs(petsToUse) do
         local petPed = petData.ped
         if not petPed or not DoesEntityExist(petPed) then goto continue end
 
@@ -852,10 +868,10 @@ RegisterCommand('pet_treasure', function(source, args)
     startTreasureHunt()
 end, false)
 
--- Event from menu
+-- Event from menu (uses specific pet)
 RegisterNetEvent('hdrp-pets:client:startTreasureHunt')
 AddEventHandler('hdrp-pets:client:startTreasureHunt', function(petId)
-    startTreasureHunt()
+    startTreasureHunt(petId)  -- Pass petId to use only this pet
 end)
 
 -- Cleanup on resource stop
