@@ -2,7 +2,6 @@ local RSGCore = exports['rsg-core']:GetCoreObject()
 lib.locale()
 
 local State = exports['hdrp-pets']:GetState()
-
 local ManageSpawn = lib.load('client.stable.utils_spawn')
 -----------------------------------------
 -- ACTIONS FEED, ANIMATIONS
@@ -56,14 +55,12 @@ AddEventHandler('hdrp-pets:client:feed', function(itemName, companionid)
             local valueHealth = Citizen.InvokeNative(0x36731AC041289BB1, petData.ped, 0)
             if not tonumber(valueHealth) then valueHealth = 0 end
             local newHealth = Config.PetFeed[itemName]["health"]
-            if Config.Debug then print(valueHealth, newHealth) end
             Citizen.InvokeNative(0xC6258F41D86676E0, petData.ped, 0, newHealth)
 
             --[[ 
                 local valueStamina = Citizen.InvokeNative(0x36731AC041289BB1, petData.ped, 1)
                 if not tonumber(valueStamina) then valueStamina = 0 end
                 local newStamina = Config.PetFeed[itemName]["stamina"]
-                if Config.Debug then print(valueStamina, newStamina) end
                 Citizen.InvokeNative(0xC6258F41D86676E0, petData.ped, 1, newStamina)
             ]]
                 
@@ -106,8 +103,8 @@ AddEventHandler('hdrp-pets:client:feed', function(itemName, companionid)
             end
             State.ResetPlayerState()
             TaskTurnPedToFaceEntity(petData.ped, cache.ped, 1000)
-            ClearPedTasks(petData.ped)
-            FreezeEntityPosition(petData.ped, false)
+
+            State.petUnfreeze(petData.ped)
             local maxWaitTime = 10000
             local startTime = GetGameTimer()
             if itemName == 'raw_meat' or itemName == 'water' then
@@ -174,22 +171,23 @@ end)
 -- dirt check thread
 CreateThread(function()
     while true do
-        Wait(10)
-        for companionid, petData in pairs(State.GetAllPets()) do
-            if petData and petData.spawned and DoesEntityExist(petData.ped) then
-                local sleep = 5000
-                local petdirt = Citizen.InvokeNative(0x147149F2E909323C, petData.ped, 16, Citizen.ResultAsInteger())
-                -- Sincroniza dirt con el server y actualiza el State local si aplica
-                if companionid and petdirt then
-                    TriggerServerEvent('hdrp-pets:server:setdirt', companionid, petdirt)
-                    if petData.data and petData.data.stats then
-                        petData.data.stats.dirt = petdirt
+        if not State.HasActivePets() then
+            Wait(10000)
+        else
+            local sleep = 5000
+            for companionid, petData in pairs(State.GetAllPets()) do
+                if petData and petData.spawned and DoesEntityExist(petData.ped) then
+                    local petdirt = Citizen.InvokeNative(0x147149F2E909323C, petData.ped, 16, Citizen.ResultAsInteger())
+                    -- Sincroniza dirt con el server y actualiza el State local si aplica
+                    if companionid and petdirt then
+                        TriggerServerEvent('hdrp-pets:server:setdirt', companionid, petdirt)
+                        if petData.data and petData.data.stats then
+                            petData.data.stats.dirt = petdirt
+                        end
                     end
                 end
-                Wait(sleep)
-            else
-                Wait(10000)
             end
+            Wait(sleep)
         end
     end
 end)
@@ -283,46 +281,47 @@ end
 -- Health/Hunger/Death Check with Safety Timeout
 CreateThread(function()
     while true do
-        Wait(10)
-        for companionid, petData in pairs(State.GetAllPets()) do
-            if petData and petData.spawned and DoesEntityExist(petData.ped) then
-                local sleep = 5000
-                local stats = petData.data and petData.data.stats or {}
-                local vet = petData.data and petData.data.veterinary or {}
-                local pedDead = vet.dead or IsEntityDead(petData.ped)
-                local curHp = GetEntityHealth(petData.ped)
-                local hunger = tonumber(stats.hunger) or 100
-                local thirst = tonumber(stats.thirst) or 100
-                local happiness = tonumber(stats.happiness) or 100
-                local cleanliness = 100 - (tonumber(stats.dirt) or 0)
+        if not State.HasActivePets() then
+            Wait(10000)
+        else
+            local hasCriticalPet = false
+            for companionid, petData in pairs(State.GetAllPets()) do
+                if petData and petData.spawned and DoesEntityExist(petData.ped) then
+                    local sleep = 5000
+                    local stats = petData.data and petData.data.stats or {}
+                    local vet = petData.data and petData.data.veterinary or {}
+                    local pedDead = vet.dead or IsEntityDead(petData.ped)
+                    local curHp = GetEntityHealth(petData.ped)
+                    local hunger = tonumber(stats.hunger) or 100
+                    local thirst = tonumber(stats.thirst) or 100
+                    local happiness = tonumber(stats.happiness) or 100
+                    local cleanliness = 100 - (tonumber(stats.dirt) or 0)
 
-                if pedDead then
-                    -- Marcar como muerto y limpiar estado
-                    SetEntityHealth(petData.ped, 0)
-                    if not vet.dead then
-                        vet.dead = true
-                        TriggerServerEvent('hdrp-pets:server:setrip', companionid)
-                    end
-                    -- Blip y limpieza visual
-                    if blipfordead then blipfordead(petData.ped) end
-                    sleep = 1000
-                else
-                    -- Mascota viva: actualizar stats y vida
-                    if vet.dead then vet.dead = false end
-                    if hunger == 0 or thirst == 0 or happiness < 10 or cleanliness < 20 then
-                        if curHp > 0 then SetEntityHealth(petData.ped, curHp - 5) end
-                    elseif hunger < 30 or thirst < 30 or happiness < 20 or cleanliness < 40 then
-                        if curHp > 0 then SetEntityHealth(petData.ped, curHp - 1) end
+                    if pedDead then
+                        -- Marcar como muerto y limpiar estado
+                        SetEntityHealth(petData.ped, 0)
+                        if not vet.dead then
+                            vet.dead = true
+                            TriggerServerEvent('hdrp-pets:server:setrip', companionid)
+                        end
+                        -- Blip y limpieza visual
+                        if blipfordead then blipfordead(petData.ped) end
+                        hasCriticalPet = true
+                    else
+                        -- Mascota viva: actualizar stats y vida
+                        if vet.dead then vet.dead = false end
+                        if hunger == 0 or thirst == 0 or happiness < 10 or cleanliness < 20 then
+                            if curHp > 0 then SetEntityHealth(petData.ped, curHp - 5) end
+                        elseif hunger < 30 or thirst < 30 or happiness < 20 or cleanliness < 40 then
+                            if curHp > 0 then SetEntityHealth(petData.ped, curHp - 1) end
+                        end
                     end
                 end
-                Wait(sleep)
-            else
-                Wait(10000)
             end
+            Wait(hasCriticalPet and 1000 or 5000)
         end
     end
 end)
-
 
 -- Player revive companion
 RegisterNetEvent("hdrp-pets:client:revive")

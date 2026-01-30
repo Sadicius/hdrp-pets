@@ -88,9 +88,6 @@ local function RetrieveKill(petId, ClosestPed)
     TaskGoToCoordAnyMeans(petPed, coords.x, coords.y, coords.z, 2.0, 0, 0, 786603, 0xbf800000)
 
     isRetrieving = true
-    if Config.Debug then
-        print(locale('cl_print_retrieve'))
-    end
     
     while true do
         local petCoords = GetEntityCoords(petPed)
@@ -218,7 +215,6 @@ CreateThread(function()
             end
             -- Solo actuar si el modo principal es hunting y no está retrieving
             if not isRetrieving and (petData and petData.flag and petData.flag.isHunting) then
-                if Config.Debug then print("[HUNT DEBUG] Entrando en modo caza para mascota:", petId) end
                 local petXp = tonumber(petData and petData.progression and petData.progression.xp) or 0
                 if Config.PetAttributes.RaiseAnimal and petXp < Config.XP.Trick.Hunt then
                     goto next_pet
@@ -233,7 +229,6 @@ CreateThread(function()
                         local model = GetEntityModel(ClosestPed)
                         for k, v in pairs(Config.RetrievableAnimals) do
                             if model == k then
-                                if Config.Debug then print("[HUNT DEBUG] Mascota:", petId, "reclama animal:", ClosestPed) end
                                 ClaimedAnimals[ClosestPed] = petId
                                 RetrieveKill(petId, ClosestPed)
                                 sleep = 1000
@@ -245,7 +240,6 @@ CreateThread(function()
                             RetrievedEntities[petId] = {}
                         end
                         RetrievedEntities[petId][ClosestPed] = true
-                        if Config.Debug then print("[HUNT DEBUG] Mascota:", petId, "animal no matado por jugador, marcado como recuperado") end
                     end
                 end
             end

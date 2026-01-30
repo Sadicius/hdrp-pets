@@ -172,94 +172,73 @@ RegisterServerEvent('hdrp-pets:server:useitem', function(item, companionid)
     
     -- Process item usage
     local statsChanged = false
-    
-    if item == Config.Items.Drink then
-        Player.Functions.RemoveItem(Config.Items.Drink, 1)
-        TriggerClientEvent('rsg-inventory:client:ItemBox', src, RSGCore.Shared.Items[Config.Items.Drink], "remove", 1)
-        
-        currentData.stats.hunger = math.min(100, (currentData.stats.hunger or 0) + Config.Consumables.Hunger)
-        currentData.stats.thirst = math.min(100, (currentData.stats.thirst or 0) + Config.Consumables.Thirst)
-        currentData.stats.happiness = math.min(100, (currentData.stats.happiness or 0) + Config.Consumables.Happiness)
-        currentData.stats.strength = math.min(100, (currentData.stats.strength or 0) + Config.Consumables.Strength)
-        currentData.progression.xp = (currentData.progression.xp or 0) + Config.XP.Increase.PerDrink
-        statsChanged = true
-        
-    elseif item == Config.Items.Food then
-        Player.Functions.RemoveItem(Config.Items.Food, 1)
-        TriggerClientEvent('rsg-inventory:client:ItemBox', src, RSGCore.Shared.Items[Config.Items.Food], "remove", 1)
-        
-        currentData.stats.hunger = math.min(100, (currentData.stats.hunger or 0) + Config.Consumables.Hunger)
-        currentData.stats.thirst = math.min(100, (currentData.stats.thirst or 0) + Config.Consumables.Thirst)
-        currentData.stats.happiness = math.min(100, (currentData.stats.happiness or 0) + Config.Consumables.Happiness)
-        currentData.stats.strength = math.min(100, (currentData.stats.strength or 0) + Config.Consumables.Strength)
-        currentData.progression.xp = (currentData.progression.xp or 0) + Config.XP.Increase.PerFeed
-        statsChanged = true
-        
-    elseif item == Config.Items.Happy then
-        Player.Functions.RemoveItem(Config.Items.Happy, 1)
-        TriggerClientEvent('rsg-inventory:client:ItemBox', src, RSGCore.Shared.Items[Config.Items.Happy], "remove", 1)
-        
-        currentData.stats.hunger = math.min(100, (currentData.stats.hunger or 0) + Config.Consumables.Hunger)
-        currentData.stats.thirst = math.min(100, (currentData.stats.thirst or 0) + Config.Consumables.Thirst)
-        currentData.stats.happiness = math.min(100, (currentData.stats.happiness or 0) + Config.Consumables.Happiness)
-        currentData.stats.strength = math.min(100, (currentData.stats.strength or 0) + Config.Consumables.Strength)
-        currentData.progression.xp = (currentData.progression.xp or 0) + Config.XP.Increase.PerDrink
-        statsChanged = true
-        
-    elseif item == Config.Items.Stimulant then
-        Player.Functions.RemoveItem(Config.Items.Stimulant, 1)
-        TriggerClientEvent('rsg-inventory:client:ItemBox', src, RSGCore.Shared.Items[Config.Items.Stimulant], "remove", 1)
-        
-        currentData.stats.hunger = math.min(100, (currentData.stats.hunger or 0) + Config.Consumables.Hunger)
-        currentData.stats.thirst = math.min(100, (currentData.stats.thirst or 0) + Config.Consumables.Thirst)
-        currentData.stats.happiness = math.min(100, (currentData.stats.happiness or 0) + Config.Consumables.Happiness)
-        currentData.stats.strength = math.min(100, (currentData.stats.strength or 0) + Config.Consumables.Strength)
-        currentData.progression.xp = (currentData.progression.xp or 0) + Config.XP.Increase.PerStimulant
-        statsChanged = true
-        
-    elseif item == 'water' then
-        Player.Functions.RemoveItem("water", 1)
-        TriggerClientEvent('rsg-inventory:client:ItemBox', src, RSGCore.Shared.Items["water"], "remove", 1)
-        
-        currentData.stats.thirst = math.min(100, (currentData.stats.thirst or 0) + Config.Consumables.Thirst)
-        currentData.stats.happiness = math.min(100, (currentData.stats.happiness or 0) + Config.Consumables.Happiness)
-        currentData.progression.xp = (currentData.progression.xp or 0) + Config.XP.Increase.PerDrink
-        statsChanged = true
-        
-    elseif item == 'raw_meat' then
-        Player.Functions.RemoveItem('raw_meat', 1)
-        TriggerClientEvent('rsg-inventory:client:ItemBox', src, RSGCore.Shared.Items['raw_meat'], "remove", 1)
-        
-        currentData.stats.hunger = math.min(100, (currentData.stats.hunger or 0) + Config.Consumables.Hunger)
-        currentData.stats.happiness = math.min(100, (currentData.stats.happiness or 0) + Config.Consumables.Happiness)
-        currentData.progression.xp = (currentData.progression.xp or 0) + Config.XP.Increase.PerFeed
-        statsChanged = true
-        
-    elseif item == 'sugarcube' then
-        Player.Functions.RemoveItem('sugarcube', 1)
-        TriggerClientEvent('rsg-inventory:client:ItemBox', src, RSGCore.Shared.Items['sugarcube'], "remove", 1)
-        
-        currentData.stats.thirst = math.min(100, (currentData.stats.thirst or 0) + Config.Consumables.Thirst)
-        currentData.stats.hunger = math.min(100, (currentData.stats.hunger or 0) + Config.Consumables.Hunger)
-        currentData.stats.happiness = math.min(100, (currentData.stats.happiness or 0) + Config.Consumables.Happiness)
-        currentData.stats.strength = math.min(100, (currentData.stats.strength or 0) + Config.Consumables.Strength)
-        currentData.progression.xp = (currentData.progression.xp or 0) + Config.XP.Increase.PerDrink
-        statsChanged = true
-        
-    elseif item == Config.Items.Brush then
-        currentData.stats.happiness = math.min(100, (currentData.stats.happiness or 0) + Config.Consumables.Happiness)
-        currentData.stats.dirt = 0.0
-        currentData.progression.xp = (currentData.progression.xp or 0) + Config.XP.Increase.PerClean
-        statsChanged = true
-        
-    elseif item == Config.Items.Bone then
-        currentData.stats.happiness = math.min(100, (currentData.stats.happiness or 0) + Config.Consumables.Happiness)
-        currentData.progression.xp = (currentData.progression.xp or 0) + Config.XP.Increase.PerBone
-        statsChanged = true
-        
-    elseif item == 'no-item' then
-        currentData.progression.xp = (currentData.progression.xp or 0) + Config.XP.Increase.PerMove
-        statsChanged = true
+    local itemConfig = Config.PetFeed[item]
+    if itemConfig then
+        if item == Config.Items.Drink then
+            Player.Functions.RemoveItem(Config.Items.Drink, 1)
+            TriggerClientEvent('rsg-inventory:client:ItemBox', src, RSGCore.Shared.Items[Config.Items.Drink], "remove", 1)
+            currentData.stats.health = math.min(100, (currentData.stats.health or 0) + (itemConfig.health or 0))
+            currentData.stats.hunger = math.min(100, (currentData.stats.hunger or 0) + (itemConfig.hunger or 0))
+            currentData.stats.thirst = math.min(100, (currentData.stats.thirst or 0) + (itemConfig.thirst or 0))
+            currentData.stats.happiness = math.min(100, (currentData.stats.happiness or 0) + (itemConfig.happiness or 0))
+            currentData.stats.strength = math.min(100, (currentData.stats.strength or 0) + (itemConfig.strength or 0))
+            statsChanged = true
+            currentData.progression.xp = (currentData.progression.xp or 0) + Config.XP.Increase.PerDrink
+        elseif item == Config.Items.Food then
+            Player.Functions.RemoveItem(Config.Items.Food, 1)
+            TriggerClientEvent('rsg-inventory:client:ItemBox', src, RSGCore.Shared.Items[Config.Items.Food], "remove", 1)
+            currentData.stats.health = math.min(100, (currentData.stats.health or 0) + (itemConfig.health or 0))
+            currentData.stats.hunger = math.min(100, (currentData.stats.hunger or 0) + (itemConfig.hunger or 0))
+            currentData.stats.thirst = math.min(100, (currentData.stats.thirst or 0) + (itemConfig.thirst or 0))
+            currentData.stats.happiness = math.min(100, (currentData.stats.happiness or 0) + (itemConfig.happiness or 0))
+            currentData.stats.strength = math.min(100, (currentData.stats.strength or 0) + (itemConfig.strength or 0))
+            statsChanged = true
+            currentData.progression.xp = (currentData.progression.xp or 0) + Config.XP.Increase.PerFeed
+        elseif item == Config.Items.Happy then
+            Player.Functions.RemoveItem(Config.Items.Happy, 1)
+            TriggerClientEvent('rsg-inventory:client:ItemBox', src, RSGCore.Shared.Items[Config.Items.Happy], "remove", 1)
+            currentData.stats.health = math.min(100, (currentData.stats.health or 0) + (itemConfig.health or 0))
+            currentData.stats.hunger = math.min(100, (currentData.stats.hunger or 0) + (itemConfig.hunger or 0))
+            currentData.stats.thirst = math.min(100, (currentData.stats.thirst or 0) + (itemConfig.thirst or 0))
+            currentData.stats.happiness = math.min(100, (currentData.stats.happiness or 0) + (itemConfig.happiness or 0))
+            currentData.stats.strength = math.min(100, (currentData.stats.strength or 0) + (itemConfig.strength or 0))
+            statsChanged = true
+            currentData.progression.xp = (currentData.progression.xp or 0) + Config.XP.Increase.PerDrink
+        elseif item == Config.Items.Stimulant then
+            Player.Functions.RemoveItem(Config.Items.Stimulant, 1)
+            TriggerClientEvent('rsg-inventory:client:ItemBox', src, RSGCore.Shared.Items[Config.Items.Stimulant], "remove", 1)
+            currentData.stats.health = math.min(100, (currentData.stats.health or 0) + (itemConfig.health or 0))
+            currentData.stats.hunger = math.min(100, (currentData.stats.hunger or 0) + (itemConfig.hunger or 0))
+            currentData.stats.thirst = math.min(100, (currentData.stats.thirst or 0) + (itemConfig.thirst or 0))
+            currentData.stats.happiness = math.min(100, (currentData.stats.happiness or 0) + (itemConfig.happiness or 0))
+            currentData.stats.strength = math.min(100, (currentData.stats.strength or 0) + (itemConfig.strength or 0))
+            statsChanged = true
+            currentData.progression.xp = (currentData.progression.xp or 0) + Config.XP.Increase.PerStimulant
+        elseif item == 'water' or item == 'raw_meat' or item == 'sugarcube' then
+            Player.Functions.RemoveItem(item, 1)
+            TriggerClientEvent('rsg-inventory:client:ItemBox', src, RSGCore.Shared.Items[item], "remove", 1)
+            currentData.stats.health = math.min(100, (currentData.stats.health or 0) + (itemConfig.health or 0))
+            currentData.stats.hunger = math.min(100, (currentData.stats.hunger or 0) + (itemConfig.hunger or 0))
+            currentData.stats.thirst = math.min(100, (currentData.stats.thirst or 0) + (itemConfig.thirst or 0))
+            currentData.stats.happiness = math.min(100, (currentData.stats.happiness or 0) + (itemConfig.happiness or 0))
+            currentData.stats.strength = math.min(100, (currentData.stats.strength or 0) + (itemConfig.strength or 0))
+            statsChanged = true
+            currentData.progression.xp = (currentData.progression.xp or 0) + Config.XP.Increase.PerFeed
+        elseif item == Config.Items.Brush then
+            currentData.stats.health = math.min(100, (currentData.stats.health or 0) + (itemConfig.health or 0))
+            currentData.stats.happiness = math.min(100, (currentData.stats.happiness or 0) + (itemConfig.happiness or 0))
+            currentData.stats.dirt = 0.0
+            statsChanged = true
+            currentData.progression.xp = (currentData.progression.xp or 0) + Config.XP.Increase.PerClean
+        elseif item == Config.Items.Bone then
+            currentData.stats.health = math.min(100, (currentData.stats.health or 0) + (itemConfig.health or 0))
+            currentData.stats.happiness = math.min(100, (currentData.stats.happiness or 0) + (itemConfig.happiness or 0))
+            statsChanged = true
+            currentData.progression.xp = (currentData.progression.xp or 0) + Config.XP.Increase.PerBone
+        elseif item == 'no-item' then
+            currentData.progression.xp = (currentData.progression.xp or 0) + Config.XP.Increase.PerMove
+            statsChanged = true
+        end
     end
     
     -- Update companion data if stats changed

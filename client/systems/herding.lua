@@ -202,9 +202,6 @@ function GetNearbyCompanions()
                     position = petPos,
                     distance = distance
                 })
-                if Config.Debug then
-                    print("^2[HERDING]^7 " .. string.format(locale('debug_herding_found_pet_fmt'), companionid, distance))
-                end
             end
         end
     end
@@ -228,7 +225,6 @@ function GetPetDisplayName(model)
     end)
 end
 
-
 ---------------------------------
 -- CLEANUP
 ---------------------------------
@@ -246,7 +242,3 @@ AddEventHandler('playerDropped', function()
     end
     herdingStates.selectedPets = {}
 end)
-
-if Config.Debug then
-    print("^2[HDRP-PETS]^7 " .. locale('debug_herding_system_loaded'))
-end

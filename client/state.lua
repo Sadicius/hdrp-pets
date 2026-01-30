@@ -4,11 +4,76 @@
 State = {} -- Estados globales
 
 State.Pets      = {} -- Mascotas activas
+State.Threads   = {} -- Control de threads activos por mascota
+State.GlobalThreads = { active = true } -- Control de threads globales
 State.Games     = {
     bandits = {},   -- Entidades bandido activas
     hostiles = {},  -- Entidades hostiles activas
     fights = {},    -- Peleas activas (dogfights)
 } -- Estado de minijuegos
+
+------------------------------------------
+-- THREAD CONTROL SYSTEM (Previene memory leaks)
+------------------------------------------
+
+---Verifica si un thread de mascota debe continuar ejecutándose
+---@param companionid string
+---@return boolean shouldContinue
+function State.ShouldThreadContinue(companionid)
+    if not companionid then return false end
+    local pet = State.Pets[companionid]
+    return pet ~= nil and pet.spawned == true and pet.ped ~= nil and DoesEntityExist(pet.ped)
+end
+
+---Verifica si los threads globales deben continuar (hay mascotas activas)
+---@return boolean shouldContinue
+function State.HasActivePets()
+    for _, pet in pairs(State.Pets) do
+        if pet and pet.spawned and pet.ped and DoesEntityExist(pet.ped) then
+            return true
+        end
+    end
+    return false
+end
+
+---Registra un thread asociado a una mascota específica
+---@param companionid string
+---@param threadName string identificador único del thread
+function State.RegisterThread(companionid, threadName)
+    if not companionid then return end
+    State.Threads[companionid] = State.Threads[companionid] or {}
+    State.Threads[companionid][threadName] = true
+end
+
+---Cancela todos los threads de una mascota
+---@param companionid string
+function State.CancelPetThreads(companionid)
+    if not companionid then return end
+    if State.Threads[companionid] then
+        for threadName, _ in pairs(State.Threads[companionid]) do
+            State.Threads[companionid][threadName] = false
+        end
+    end
+end
+
+---Verifica si un thread específico debe continuar
+---@param companionid string
+---@param threadName string
+---@return boolean shouldContinue
+function State.IsThreadActive(companionid, threadName)
+    if not companionid or not threadName then return false end
+    if not State.Threads[companionid] then return false end
+    return State.Threads[companionid][threadName] == true and State.ShouldThreadContinue(companionid)
+end
+
+---Limpia los registros de threads de una mascota
+---@param companionid string
+function State.CleanupPetThreads(companionid)
+    if companionid then
+        State.Threads[companionid] = nil
+    end
+end
+
 ------------------------------------------
 -- HOSTILES & BANDITS HELPERS
 ------------------------------------------
@@ -195,21 +260,17 @@ function State.DismissPet(companionid)
         return
     end
 
+    -- Esto previene memory leaks cuando la mascota se despawnea
+    State.CancelPetThreads(companionid)
+
+    pet.spawned = false
+
     -- Detener wandering si aplica
     if (Config.Wandering and Config.Wandering.Enabled) then
         pcall(function()
             -- exports['hdrp-pets']:StopPetWandering(tostring(companionid))
             StopPetWandering(tostring(companionid))
         end)
-    end
-
-    -- Eliminar entidad y blip
-    if pet.ped and DoesEntityExist(pet.ped) then
-        SetEntityAsNoLongerNeeded(pet.ped)
-        DeleteEntity(pet.ped)
-    end
-    if pet.blip and DoesBlipExist(pet.blip) then
-        RemoveBlip(pet.blip)
     end
 
     -- Limpiar prompts y otros subcampos si aplica
@@ -225,7 +286,17 @@ function State.DismissPet(companionid)
         pet.timers[k] = nil
     end
 
+    -- Eliminar entidad y blip
+    if pet.ped and DoesEntityExist(pet.ped) then
+        SetEntityAsNoLongerNeeded(pet.ped)
+        DeleteEntity(pet.ped)
+    end
+    if pet.blip and DoesBlipExist(pet.blip) then
+        RemoveBlip(pet.blip)
+    end
+
     State.CleanupPetPrompts(companionid)
+    State.CleanupPetThreads(companionid)
     -- ...otros helpers de limpieza individual...
 
     State.Pets[companionid] = nil
@@ -426,8 +497,8 @@ end
 function State.ClearPetAnimation(companionid)
     local pet = State.GetPet(companionid)
     if not pet or not pet.ped then return end
-    ClearPedTasks(pet.ped)
     FreezeEntityPosition(pet.ped, false)
+    ClearPedTasks(pet.ped)
     State.SetPetTrait(companionid, 'isFrozen', false)
     pet.visualState = {}
 end
@@ -438,10 +509,10 @@ end
 -- Freeze player
 ---@param unfreeze boolean
 function State.ResetPlayerState(unfreeze)
-    ClearPedTasks(cache.ped)
     if unfreeze then
         FreezeEntityPosition(cache.ped, false)
     end
+    ClearPedTasks(cache.ped)
 end
 
 ---Unfreeze pet entity
@@ -479,7 +550,7 @@ local function SetFlagGroup(companionid, groupName, activeMode)
     if not petData or not petData.flag then return end
     
     local group = ModeGroups[groupName]
-    if not group then return print("Error: Grupo de modos no existe: " .. groupName) end
+    if not group then return end
 
     -- 1. Desactivar todas las flags de ESTE grupo específico
     for _, flagName in ipairs(group) do
@@ -541,9 +612,6 @@ CreateThread(function()
     while true do
         Wait(300000) -- 5 min
         State.CleanupAllPetPrompts()
-        if Config.Debug then
-            print('^2[HDRP-PETS]^7 ' .. locale('debug_cleanup_prompts'))
-        end
     end
 end)
 ------------------------------------------

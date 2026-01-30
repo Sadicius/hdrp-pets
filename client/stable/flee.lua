@@ -69,12 +69,6 @@ RegisterCommand('pet_store', function()
         return
     end
 
-    -- Debug prints para trazabilidad
-    if Config.Debug then
-        print('[DEBUG][FLEE] pet_store: selectedId=', selectedId)
-        print('[DEBUG][FLEE] State.Pets[selectedId]=', State.Pets[selectedId] and 'exists' or 'nil')
-        print('[DEBUG][FLEE] petData.ped=', petData.ped, 'DoesEntityExist(ped)=', petData.ped and DoesEntityExist(petData.ped) or 'nil')
-    end
     -- Desactivar en base de datos
     TriggerServerEvent('hdrp-pets:server:store', selectedId)
 
@@ -130,12 +124,6 @@ local function FleePets()
         return
     end
     
-    -- Debug prints para trazabilidad
-    if Config.Debug then
-        print('[DEBUG][FLEE] FleePets: selectedId=', selectedId)
-        print('[DEBUG][FLEE] State.Pets[selectedId]=', State.Pets[selectedId] and 'exists' or 'nil')
-        print('[DEBUG][FLEE] petData.ped=', petDataMap[selectedId].ped, 'DoesEntityExist(ped)=', petDataMap[selectedId].ped and DoesEntityExist(petDataMap[selectedId].ped) or 'nil')
-    end
     -- Eliminar del cliente si está invocada
     Flee(petDataMap[selectedId].ped)
 

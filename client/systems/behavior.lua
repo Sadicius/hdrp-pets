@@ -217,9 +217,6 @@ function TrackTarget(data)
     end)
     
     lib.notify({ title = locale('cl_track_action'), description = locale('cl_track_action_des'), type = 'info', duration = 7000 })
-    if Config.Debug then
-        print(locale('cl_print_track_action'))
-    end
 end
 
 ---Command a pet to hunt an animal

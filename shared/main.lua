@@ -8,6 +8,8 @@ Config.EnablePrompts = true      -- enable prompts
 Config.EnableBuyPetMenu = true   -- enable buy pet option in stable menu (alternative to target system)
 
 -- STABLE SETTINGS
+Config.PetStables = lib.load('shared.stable.stables') -- Load pet stables configuration
+Config.PetShopPrice = lib.load('shared.stable.shop_prices') -- Load pet shop prices configuration
 Config.KeyBind = 'J'             -- keybind to open stable menu if prompts are enabled
 Config.DistanceSpawn = 20.0      -- distance to spawn/despawn NPCs
 Config.FadeIn = true             -- fade in/out NPCs on spawn/despawn
@@ -15,9 +17,19 @@ Config.MovePetBasePrice = 50.0  -- base price to move pet between stables
 Config.MoveFeePerMeter = 0.1    -- additional fee per meter to move pet
 Config.priceDepreciation = 50    -- Price sell 0 - 100 (100%)
 Config.MaxActivePets = 10
-Config.MaxCallDistance = 50.0     -- Max distance to "move" vs "spawn"
-    
+Config.MaxCallDistance = 100.0     -- Max distance to "move" vs "spawn"
+Config.DistanceFeed = 5.0,  
+
+-- PET SETTINGS 
+local Attributes = lib.load('shared.config.attributes')
+Config.Animations = lib.load('shared.game.animations') -- Load animations configuration
+Config.XP = lib.load('shared.game.xp') -- Load XP system configuration
+Config.PetAttributes = Attributes -- Load pet attributes configuration
+Config.AutoDecay = Attributes.AutomaticDecay
+Config.Lifecycle = Attributes.Lifecycle
+
 -- ITEMS
+Config.PetFeed = lib.load('shared.config.consumables')
 Config.Items = {
     Bone        = 'pet_bone',
     Brush       = 'pet_brush',
@@ -55,8 +67,11 @@ Config.WebhookTitle = 'Pet System Logs'
 Config.WebhookColour = 'orange'
 
 -- ADDITIONAL CONFIGURATIONS WIP
+Config.PetShopComp = lib.load('shared.stable.shop_comp') -- Load pet shop components configuration
+Config.PetShopProps = lib.load('shared.stable.shop_props') -- Load pet shop props configuration
 Config.EnablePetCustom = false  -- enable pet customization system (WIP)
 Config.EnablePetProps  = true    -- enable pet props system
+
 Config.PriceComponent  = {
     -- clothes
     neckwear = 5,
@@ -79,28 +94,11 @@ Config.PriceComponent  = {
 -- ================================================
 -- LOAD MODULAR CONFIGURATIONS
 -- ================================================
-Config.PetStables = lib.load('shared.stable.stables') -- Load pet stables configuration
-Config.PetShopPrice = lib.load('shared.stable.shop_prices') -- Load pet shop prices configuration
-Config.PetShopComp = lib.load('shared.stable.shop_comp') -- Load pet shop components configuration
-Config.PetShopProps = lib.load('shared.stable.shop_props') -- Load pet shop props configuration
-
+Config.Blip = lib.load('shared.config.blips') -- Load blip configuration
 Config.WaterTypes = lib.load('shared.game.water_types') -- Load water types configuration
 Config.Games = lib.load('shared.game.games') -- Load games configuration
-Config.RetrievableAnimals = lib.load('shared.game.retrievable_animals') -- Load retrievable animals configuration
 Config.TablesTrack = lib.load('shared.game.tracking') -- Load tracking configuration
-Config.Animations = lib.load('shared.game.animations') -- Load animations configuration
-Config.XP = lib.load('shared.game.xp') -- Load XP system configuration
-
-local Attributes = lib.load('shared.config.attributes')
-Config.PetAttributes = Attributes -- Load pet attributes configuration
-Config.AutoDecay = Attributes.AutomaticDecay
-Config.Lifecycle = Attributes.Lifecycle
-Config.Blip = lib.load('shared.config.blips') -- Load blip configuration
-
-local Consumables = lib.load('shared.config.consumables')
-Config.PetFeed = Consumables.Items
-Config.DistanceFeed = Consumables.DistanceFeed
-Config.Consumables = Consumables.DefaultValues
+Config.RetrievableAnimals = lib.load('shared.game.retrievable_animals') -- Load retrievable animals configuration
 
 local Systems = lib.load('shared.config.systems') -- Load systems configuration
 Config.Ambient = Systems.Ambient

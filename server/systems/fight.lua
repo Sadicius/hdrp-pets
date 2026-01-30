@@ -234,7 +234,6 @@ AddEventHandler('hdrp-pets:server:registerPetForNpcFight', function(petData, out
     if #petFightQueue > 0 then
         local entry = table.remove(petFightQueue, 1)
         local npcDog = DogFightConfig.Dogs[math.random(#DogFightConfig.Dogs)]
-        print("[DEBUG][SERVER] pet_vs_npc: npcDog.Name:", npcDog.Name, "npcDog.Model:", npcDog.Model)
         local playerPed = GetPlayerPed(entry.src)
         local playerCoords = GetEntityCoords(playerPed)
  

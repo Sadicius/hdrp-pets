@@ -75,7 +75,7 @@ local function CleanBoneAnimation(prop, player, petPed)
     for k, v in ipairs(itemProps) do
         if v.boneitem == prop then
             if DoesEntityExist(v.boneitem) then
-                SetEntityAsNoLongerNeeded(v.boneitem)  -- FIX v5.8.56: Memory leak prevention
+                SetEntityAsNoLongerNeeded(v.boneitem)
                 DeleteEntity(v.boneitem)
             end
             itemProps[k] = nil
@@ -130,8 +130,7 @@ local function RetrieveBone(ClosestBone, targetPetId)
     -- Freeze and clear tasks for all competing pets, set flags
     for _, pet in ipairs(competingPets) do
         local companionid = pet.id
-        FreezeEntityPosition(pet.ped, false)
-        ClearPedTasks(pet.ped)
+        State.petUnfreeze(pet.ped)
         Wait(50)
     end
 
@@ -369,7 +368,7 @@ local function PlayerBoneAnimation(targetPetId)
         Wait(gameBonesConfig.AutoDelete)
         if boneitem and DoesEntityExist(boneitem) then
             if not retrievedEntities[boneitem] then
-                SetEntityAsNoLongerNeeded(boneitem)  -- FIX v5.8.56: Memory leak prevention
+                SetEntityAsNoLongerNeeded(boneitem)
                 DeleteEntity(boneitem)
                 for k, v in pairs(itemProps) do
                     if v.boneitem == boneitem then

@@ -118,16 +118,6 @@ local function SpawnNPCRacer(npcData, coords, heading)
     end
 
     local ped = ManageSpawn.spawnDog(npcData.Model, coords, heading, npcData.Health or 100)
-    -- local model = GetHashKey(npcData.Model)
-    -- RequestModel(model)
-    -- local timeout = 0
-    -- while not HasModelLoaded(model) and timeout < 30 do
-    --     Wait(100)
-    --     timeout = timeout + 1
-    -- end
-    -- if not HasModelLoaded(model) then return nil end
-
-    -- local ped = CreatePed(model, coords.x, coords.y, coords.z, heading, false, true, false, false)
 
     ManageSpawn.PlacePedOnGroundProperly(ped)
     if not DoesEntityExist(ped) then
@@ -135,7 +125,7 @@ local function SpawnNPCRacer(npcData, coords, heading)
         return nil
     end
     Citizen.InvokeNative(0x283978A15512B2FE, ped, true)
-    
+
     SetModelAsNoLongerNeeded(npcData.Model)
     SetBlockingOfNonTemporaryEvents(ped, true)
     SetPedCanBeTargetted(ped, false)
@@ -144,7 +134,7 @@ local function SpawnNPCRacer(npcData, coords, heading)
     -- Create blip for NPC
     local blip = Citizen.InvokeNative(0x23F74C2FDA6E7C61, -1230993421, ped)
     SetBlipSprite(blip, 1966442364, true)
-    SetBlipScale(blip, 0.8)
+    SetBlipScale(blip, 0.2)
     Citizen.InvokeNative(0x9CB1A1623062F402, blip, npcData.Name)
 
     local npcRacer = {
@@ -163,23 +153,18 @@ end
 -- Move pet/NPC to next checkpoint
 local function MovePetToCheckpoint(ped, targetCoords, speed)
     if not DoesEntityExist(ped) then return end
-
-    FreezeEntityPosition(ped, false)
-    ClearPedTasks(ped)
+    State.petUnfreeze(ped)
 
     -- Use run speed based on pet's Speed stat
     local moveSpeed = 1.5 + (speed / 100) * 1.5  -- Range: 1.5 to 3.0
-
     TaskGoToCoordAnyMeans(ped, targetCoords.x, targetCoords.y, targetCoords.z, moveSpeed, 0, 0, 786603, 0xbf800000)
 end
 
 -- Check if pet reached checkpoint
 local function HasReachedCheckpoint(ped, checkpointCoords)
     if not DoesEntityExist(ped) then return false end
-
     local pedCoords = GetEntityCoords(ped)
     local dist = #(pedCoords - checkpointCoords)
-
     return dist <= RaceConfig.CheckpointRadius
 end
 
@@ -275,9 +260,7 @@ local function StartSoloRace(locationIndex)
     for i, racer in ipairs(activePets) do
         local offsetX = (i - 1) * 2 - (#activePets - 1)
         local startPos = vector3(startCoords.x + offsetX, startCoords.y - 5, startCoords.z)
-
-        FreezeEntityPosition(racer.ped, false)
-        ClearPedTasksImmediately(racer.ped)
+        State.petUnfreeze(racer.ped)
         TaskGoToCoordAnyMeans(racer.ped, startPos.x, startPos.y, startPos.z, 2.0, 0, 0, 786603, 0xbf800000)
     end
 
@@ -339,7 +322,7 @@ local function StartSoloRace(locationIndex)
         currentRace.startTime = GetGameTimer()
 
         for _, racer in ipairs(currentRace.racers) do
-            FreezeEntityPosition(racer.ped, false)
+            State.petUnfreeze(racer.ped)
             MovePetToCheckpoint(racer.ped, raceCheckpoints[1], racer.speed)
         end
 
@@ -531,9 +514,7 @@ local function StartNPCRace(petId, locationIndex)
 
     -- Move player's pet to start
     local playerStartPos = vector3(startCoords.x, startCoords.y - 5, startCoords.z)
-    
-    FreezeEntityPosition(playerRacer.ped, false)
-    ClearPedTasksImmediately(playerRacer.ped)
+    State.petUnfreeze(playerRacer.ped)
     TaskGoToCoordAnyMeans(playerRacer.ped, playerStartPos.x, playerStartPos.y, playerStartPos.z, 2.0, 0, 0, 786603, 0xbf800000)
 
     Wait(3000)
@@ -565,7 +546,7 @@ local function StartNPCRace(petId, locationIndex)
 
     -- Start all racers
     for _, racer in ipairs(currentRace.racers) do
-        FreezeEntityPosition(racer.ped, false)
+        State.petUnfreeze(racer.ped)
         MovePetToCheckpoint(racer.ped, raceCheckpoints[1], racer.speed)
     end
 
@@ -773,8 +754,7 @@ AddEventHandler('hdrp-pets:client:startPvPRace', function(raceId, racers, locati
             local petData = State.GetPet(racerData.petId)
             if petData and petData.ped then
                 racer.ped = petData.ped
-                FreezeEntityPosition(racer.ped, false)
-                ClearPedTasksImmediately(racer.ped)
+                State.petUnfreeze(racer.ped)
                 TaskGoToCoordAnyMeans(racer.ped, startPos.x, startPos.y, startPos.z, 2.0, 0, 0, 786603, 0xbf800000)
             end
         else
@@ -820,7 +800,7 @@ AddEventHandler('hdrp-pets:client:startPvPRace', function(raceId, racers, locati
     -- Start all racers
     for _, racer in ipairs(currentPvPRace.racers) do
         if racer.ped and DoesEntityExist(racer.ped) then
-            FreezeEntityPosition(racer.ped, false)
+            State.petUnfreeze(racer.ped)
             MovePetToCheckpoint(racer.ped, raceCheckpoints[1], racer.speed)
         end
     end

@@ -298,15 +298,10 @@ local function IsThrottled(eventName)
         throttleTimestamps[key] = currentTime
         return false  -- NOT throttled, proceed
     end
-    
-    if Config.Debug then
-        print(string.format('^3[THROTTLE]^7 ' .. locale('cl_info_throttle_event_throttled'), eventName, (throttleDelay - (currentTime - lastTime))))
-    end
     return true  -- Throttled, skip
 end
 
 -- Reset player state
-
 RegisterNetEvent('hdrp-pets:client:MenuDel', function(data)
     local companions = lib.callback.await('hdrp-pets:server:getcompanion', false, data.stableid)
     if not companions or #companions == 0 then

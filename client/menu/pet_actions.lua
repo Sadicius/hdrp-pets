@@ -178,7 +178,6 @@ function Actions.ShowTab(companionid)
         options[#options + 1] = {
             title = '👋 ' .. locale('cl_action_dismiss'),
             onSelect = function()
-                -- print("[pet_actions:DISMISS] companionid:", companionid, "State.Pets:", json.encode(State.Pets))
                 if pet and pet.ped then
                     Flee(pet.ped)
                 end
@@ -191,7 +190,6 @@ function Actions.ShowTab(companionid)
         options[#options + 1] = {
             title = '💤 ' .. locale('cl_action_store'),
             onSelect = function()
-                -- print("[pet_actions:STORE] companionid:", companionid, "State.Pets:", json.encode(State.Pets))
                 TriggerServerEvent('hdrp-pets:server:store', companionid)
                 if pet and pet.ped then
                     Flee(pet.ped)

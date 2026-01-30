@@ -17,7 +17,6 @@ RSGCore.Functions.CreateCallback('hdrp-pets:server:getallcompanions', function(s
     end)
     
     if not success then
-        if Config.Debug then print('^1[CALLBACK ERROR]^7 GetAllCompanions failed for ' .. source) end
         cb(nil)
         return
     end
@@ -31,7 +30,6 @@ RSGCore.Functions.CreateCallback('hdrp-pets:server:getcompanionbyid', function(s
     if not Player then cb(nil) return end
     
     if not companionId then
-        if Config.Debug then print('^1[CALLBACK ERROR]^7 GetCompanionById called without companionId') end
         cb(nil)
         return
     end
@@ -41,7 +39,6 @@ RSGCore.Functions.CreateCallback('hdrp-pets:server:getcompanionbyid', function(s
     end)
     
     if not success then
-        if Config.Debug then print('^1[CALLBACK ERROR]^7 GetCompanionById failed for ' .. source .. ' (ID: ' .. tostring(companionId) .. ')') end
         cb(nil)
         return
     end
@@ -94,7 +91,6 @@ RSGCore.Functions.CreateCallback('hdrp-pets:server:getactivecompanions', functio
     end)
     
     if not success then
-        if Config.Debug then print('^1[CALLBACK ERROR]^7 GetActiveCompanions failed for ' .. source) end
         cb({})
         return
     end

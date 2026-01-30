@@ -323,7 +323,6 @@ function ShowPetDashboard(companionid)
         onSelect = function()
             if Config.Reproduction.GenealogyEnabled then
                 local Breeding = lib.load('client.menu.pet_breed')
-                print('Showing genealogy for companion ID:', companionid)
                 Breeding.openGenealogyMenu(companionid)
             end
         end,
@@ -403,8 +402,6 @@ function ShowPetDashboard(companionid)
         -- icon = 'fa-solid fa-box',
         arrow = true,
         onSelect = function()
-            -- FIX Funciona pero parece que se comparte la mochila entre mascotas, acabo de probarlo
-            -- REVISAR
             TriggerEvent('hdrp-pets:client:inventoryCompanion', companionid)
         end
     }

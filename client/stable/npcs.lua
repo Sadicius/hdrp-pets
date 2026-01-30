@@ -130,11 +130,7 @@ AddEventHandler("onResourceStop", function(resourceName)
         end
         spawnedPeds[k] = nil
     end
-
     if petStablesBlip then
         RemoveBlip(petStablesBlip)
     end
-    -- print('^3[HDRP-Advanced Pets]^7 Cleaned up vendor resources')
 end)
-
--- print('^2[HDRP-Advanced Pets]^7 Vendor client loaded!')

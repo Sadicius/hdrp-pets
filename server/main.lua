@@ -187,24 +187,20 @@ RegisterServerEvent('hdrp-pets:server:setactive', function(id)
     local src = source
     local Player = RSGCore.Functions.GetPlayer(src)
     if not Player then return end
-    print('^3[SERVER] Activating companion with ID: ' .. tostring(id) .. '^7')
     -- Buscar el registro por companionid para obtener el id numérico
     local companion = Database.GetCompanionByCompanionId(id)
     if not companion or not companion.id then
         TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_error_pet_not_found'), type = 'error', duration = 5000 })
         return
     end
-    print('^3[SERVER] Found companion record: ' .. json.encode(companion) .. '^7')
     local breedcompanion = MySQL.scalar.await('SELECT id FROM pet_companion WHERE citizenid = ? AND data LIKE ?', {Player.PlayerData.citizenid, '%"inbreed":true%'})
     if breedcompanion then
         TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_error_breed_duplicate'), type = 'error', duration = 5000 })
         return
     end
-    print('^3[SERVER] Proceeding to activate companion ID: ' .. tostring(id) .. '^7')
     -- SISTEMA MULTI-MASCOTA
     local maxPets = Config.MaxActivePets or 1
     local success, error = Database.ActivateCompanionAtomic(id, Player.PlayerData.citizenid, maxPets)
-    print('^3[SERVER] Activation result - Success: ' .. tostring(success) .. ', Error: ' .. tostring(error) .. '^7')
     if not success then
         if error == "Max pets limit reached" then
             local activeCount = Database.CountActiveCompanions(Player.PlayerData.citizenid)

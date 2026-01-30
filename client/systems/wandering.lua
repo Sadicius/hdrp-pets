@@ -28,7 +28,6 @@ local function StartPetWander(companionid, pet)
     pet.stateChangeTime = GetGameTimer()
     local wanderSpeed = Config.Wandering.WanderSpeed or 1.0
     TaskGoToCoordAnyMeans(entity, targetX, targetY, targetZ, wanderSpeed, 0, false, 786603, 0xbf800000)
-    if Config.Debug then print('^2[WANDERING]^7 ' .. locale('wander_debug_moving', companionid, distance, wanderRadius)) end
 end
 
 local function TransitionToIdle(companionid, wanderState)
@@ -42,7 +41,6 @@ local function TransitionToIdle(companionid, wanderState)
     wanderState.state = 'idle'
     wanderState.targetPosition = nil
     wanderState.stateChangeTime = GetGameTimer()
-    if Config.Debug then print('^2[WANDERING]^7 ' .. locale('wander_debug_transition_idle', companionid)) end
 end
 
 local function ReturnPetToHome(companionid, wanderState)
@@ -53,7 +51,6 @@ local function ReturnPetToHome(companionid, wanderState)
     wanderState.stateChangeTime = GetGameTimer()
     local returnSpeed = (Config.Wandering.WanderSpeed * 1.5)
     TaskGoToCoordAnyMeans(entity, homePos.x, homePos.y, homePos.z, returnSpeed, 0, false, 786603, 0xbf800000)
-    if Config.Debug then print('^1[WANDERING]^7 ' .. locale('wander_debug_too_far', companionid, wanderState.distanceFromHome)) end
 end
 ---------------------------------
 -- STATE PROCESSORS
@@ -141,7 +138,6 @@ end
 function SetupPetWandering(companionid, entity, spawnPos)
     if not Config.Wandering.Enabled then return end
     if not DoesEntityExist(entity) then
-        if Config.Debug then print('^1[WANDERING]^7 ' .. locale('wander_error_entity_not_exist', companionid)) end
         return
     end
     companionid = tostring(companionid)
@@ -158,7 +154,6 @@ function SetupPetWandering(companionid, entity, spawnPos)
         distanceFromHome = 0
     }
     WanderBehaviorThread(companionid)
-    if Config.Debug then print('^2[WANDERING]^7 ' .. locale('wander_debug_setup_pet', companionid)) end
 end
 
 function StopPetWandering(companionid)
@@ -168,7 +163,6 @@ function StopPetWandering(companionid)
     local entity = wanderState.entity
     if DoesEntityExist(entity) then ClearPedTasks(entity) end
     wanderStates[companionid] = nil
-    if Config.Debug then print('^3[WANDERING]^7 ' .. locale('wander_debug_stop_pet', companionid)) end
 end
 
 function PausePetWandering(companionid)
@@ -179,7 +173,6 @@ function PausePetWandering(companionid)
     if DoesEntityExist(entity) then ClearPedTasks(entity) end
     wanderState.state = 'paused'
     wanderState.stateChangeTime = GetGameTimer()
-    if Config.Debug then print('^3[WANDERING]^7 ' .. locale('wander_debug_pause_pet', companionid)) end
 end
 
 function ResumePetWandering(companionid)
@@ -194,7 +187,6 @@ function ResumePetWandering(companionid)
     if pet and pet.flag then
         pet.flag.isWandering = true
     end
-    if Config.Debug then print('^2[WANDERING]^7 ' .. locale('wander_debug_resume_pet', companionid)) end
 end
 -- antiguo wandering_behavior.lua
 -- antiguo wandering_utilities.lua
@@ -223,7 +215,6 @@ local function CleanupAllWandering()
         StopPetWandering(petId)
     end
     wanderStates = {}
-    if Config.Debug then print('^3[WANDERING]^7 ' .. locale('wander_debug_system_cleanup')) end
 end
 
 if Config.Debug then
@@ -251,11 +242,10 @@ local initialized = false
 ---------------------------------------------
 function InitializeWanderingSystem()
     if initialized then
-        if Config.Debug then print('^3[WANDERING]^7 ' .. locale('wander_error_already_initialized')) end
         return
     end
     local cfg = Config.Wandering
-    if not cfg then print('^1[WANDERING ERROR]^7 ' .. locale('wander_error_config_missing')); return end
+    if not cfg then return end
     cfg.CheckInterval = cfg.CheckInterval or 2000
     cfg.WanderRadius = cfg.WanderRadius or cfg.MinDistance or 10.0
     cfg.MaxDistance = cfg.MaxDistance or 50.0
@@ -264,12 +254,6 @@ function InitializeWanderingSystem()
     if cfg.CheckInterval <= 0 then print('^1[WANDERING ERROR]^7 ' .. locale('wander_error_checkinterval_invalid')); cfg.CheckInterval = 2000 end
     if cfg.MaxDistance <= cfg.WanderRadius then print('^3[WANDERING WARNING]^7 ' .. locale('wander_warning_maxdistance_gt_wanderradius')); cfg.MaxDistance = cfg.WanderRadius + 10.0 end
     initialized = true
-    if Config.Debug then
-        print('^2[WANDERING]^7 ' .. locale('wander_debug_system_initialized'))
-        print('^2[WANDERING]^7 ' .. string.format(locale('wander_debug_enabled_fmt'), tostring(Config.Wandering.Enabled)))
-        print('^2[WANDERING]^7 ' .. string.format(locale('wander_debug_radius_fmt'), tostring(Config.Wandering.WanderRadius)))
-        print('^2[WANDERING]^7 ' .. string.format(locale('wander_debug_interval_fmt'), tostring(Config.Wandering.CheckInterval)))
-    end
 end
 
 ---------------------------------------------

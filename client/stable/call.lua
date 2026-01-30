@@ -154,9 +154,6 @@ function SpawnPetBase(companionid, companionData, components, xp, spawnCoords, s
         lib.notify({title = locale('cl_error_pet_dead'), type = 'error', duration = 5000})
     end
 
-    if Config.Debug then print(string.format('^2[SPAWN BASE]^7 ' .. locale('cl_info_spawn_base_scale_fmt'), petName, scale, petAge)) end
-    if Config.Debug then print(string.format('^2[SPAWN BASE]^7 ' .. locale('cl_info_spawn_base_spawned_success_fmt'), petName, newPed)) end
-    
     return newPed, blip
 end
 
@@ -212,7 +209,6 @@ local function SpawnMultiPet(dbPetData, delay)
     end
     State.RegisterPet(companionid, newPed, blip, companionData)
 
-    if Config.Debug then print(string.format('^2[SPAWN MULTI]^7 ' .. locale('cl_info_spawn_multi_success_fmt'), tostring(companionid), tostring((companionData.info and companionData.info.name) or 'Unknown'))) end
     return true
 end
 
@@ -345,11 +341,9 @@ CreateThread(function()
                         elseif not herdingState then
                             SetupPetHerding(companionid, petData.ped, {})
                         end
-                        if Config.Debug then print('^2[FOLLOW]^7 Mascota '..tostring(companionid)..' retoma herding tras seguir al jugador') end
                     else
                         State.SetPetTrait(companionid, 'isWandering', true)
                         SetupPetWandering(companionid, petData.ped, GetEntityCoords(petData.ped))
-                        if Config.Debug then print('^2[FOLLOW]^7 Mascota '..tostring(companionid)..' deja de seguir y vuelve a su aire (wandering)') end
                     end
                     -- Limpiar el flag temporal
                     if petData.flag then petData.flag.prevMovement = nil end

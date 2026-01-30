@@ -173,8 +173,7 @@ local function showSkillCheckShovel(entity, petId)
     local treasureObject = CreateObject(treasureModel, objectX, objectY, objectZ, true, true, false)
     table.insert(itemProps, { treasure = treasureObject })
 
-    FreezeEntityPosition(cache.ped, false)
-    ClearPedTasks(cache.ped)
+    State.ResetPlayerState(true)
 
     handleTreasureFound(petId)
 

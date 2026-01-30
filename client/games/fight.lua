@@ -78,7 +78,6 @@ end
 -- Make Dogs Fight
 function MakeDogsFight(ped1, ped2, dog1, dog2)
     if not DoesEntityExist(ped1) or not DoesEntityExist(ped2) then
-        if Config.Debug then print("MakeDogsFight: One or both peds do not exist") end
         return
     end
     
@@ -121,14 +120,12 @@ function MakeDogsFight(ped1, ped2, dog1, dog2)
         local health1 = dog1.Health + math.random(-20, 20)
         SetEntityHealth(ped1, health1)
         Citizen.InvokeNative(0x166E7CF68597D8B5, ped1, health1)
-        if Config.Debug then print("MakeDogsFight: Set ped1 health to " .. health1) end
     end
 
     if dog2 and dog2.Health and dog2.Owner ~= GetPlayerServerId(PlayerId()) then
         local health2 = dog2.Health + math.random(-10, 20)
         SetEntityHealth(ped2, health2)
         Citizen.InvokeNative(0x166E7CF68597D8B5, ped2, health2)
-        if Config.Debug then print("MakeDogsFight: Set ped2 health to " .. health2) end
     end
 
     SetEntityInvincible(ped1, false)
@@ -192,9 +189,6 @@ function MakeDogsFight(ped1, ped2, dog1, dog2)
                                 SetEntityCoords(ped1, midpoint.x - 0.75, midpoint.y, midpoint.z, false, false, false, false)
                                 SetEntityCoords(ped2, midpoint.x + 0.75, midpoint.y, midpoint.z, false, false, false, false)
                                 
-                                if Config.Debug then print("ped1 health: " .. GetEntityHealth(ped1)) end
-                                if Config.Debug then print("ped2 health: " .. GetEntityHealth(ped2)) end
-                                if Config.Debug then print("MakeDogsFight: Dogs teleported closer after separation") end
                                 distanceChecks = 0
                             else
                                 
@@ -207,7 +201,6 @@ function MakeDogsFight(ped1, ped2, dog1, dog2)
                         TaskCombatPed(ped1, ped2, 0, 16)
                         TaskCombatPed(ped2, ped1, 0, 16)
                         
-                        if Config.Debug then print("MakeDogsFight: Forced combat reset. Distance: " .. distance) end
                         noAttackTime = 0
                     end
                 else
@@ -354,11 +347,6 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
                             lib.notify({ title = locale('cl_restriction'), description = string.format(locale('cl_restriction_desc'), Config.XP.Trick.pet_vs_npc), type = 'error' })
                             return
                         end
-                        print("[DEBUG] Inscribiendo mascota para pelea contra NPC:")
-                        print("[DEBUG] PetId:", data.companionid)
-                        print("[DEBUG] PetName:", (data.pet.data and data.pet.data.info and data.pet.data.info.name) or 'Unknown')
-                        print("[DEBUG] PetModel:", (data.pet.data and data.pet.data.info and data.pet.data.info.model) or '')
-                        print("[DEBUG] Owner (client):", GetPlayerServerId(PlayerId()))
                         RSGCore.Functions.TriggerCallback('hud:server:getoutlawstatus', function(result)
                             if Config.LawAlertActive then
                                 local random = math.random(100)
@@ -369,7 +357,6 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
                             end
 
                             outlawstatus = result[1].outlawstatus
-                            print("[DEBUG] Enviando evento registerPetForNpcFight al servidor con outlawstatus:", outlawstatus)
                             TriggerServerEvent('hdrp-pets:server:registerPetForNpcFight', data.pet,  outlawstatus)
 
                         end)
@@ -654,34 +641,22 @@ AddEventHandler('hdrp-pets:client:startFightForAll', function(fightId, dog1, dog
     local x, y, z = table.unpack(coords)
     local _, groundZ = GetGroundZAndNormalFor_3dCoord(x, y, z + 10)
 
-    print("[DEBUG] startFightForAll fired! fightId:", fightId)
-    print("[DEBUG] dog1.Owner:", dog1.Owner, "dog1.PetId:", dog1.PetId, "dog1.Name:", dog1.Name)
-    print("[DEBUG] dog2.Owner:", dog2.Owner, "dog2.PetId:", dog2.PetId, "dog2.Name:", dog2.Name)
-    print("[DEBUG] My server id:", GetPlayerServerId(PlayerId()))
-
     local ped1, ped2
     if dog1.Owner == GetPlayerServerId(PlayerId()) and dog1.PetId then
         local myPet = State.GetPet(dog1.PetId)
-        print("[DEBUG] dog1 is my pet. myPet:", myPet, myPet and myPet.ped)
         ped1 = myPet and myPet.ped
     else
         ped1 = ManageSpawn.spawnDog(dog1.Model, vector3(x - 0.75, y, groundZ), 90.0, dog1.Health)
-        print("[DEBUG] dog1 is NPC or not mine. ped1 spawned:", ped1)
     end
 
     if dog2.Owner == GetPlayerServerId(PlayerId()) and dog2.PetId then
         local myPet = State.GetPet(dog2.PetId)
-        print("[DEBUG] dog2 is my pet. myPet:", myPet, myPet and myPet.ped)
         ped2 = myPet and myPet.ped
     else
-        print("[DEBUG] dog2.Model before spawn:", dog2.Model)
         ped2 = ManageSpawn.spawnDog(dog2.Model, vector3(x + 0.75, y, groundZ), 270.0, dog2.Health)
-        print("[DEBUG] dog2 is NPC or not mine. ped2 spawned:", ped2)
     end
 
     if not ped1 or not ped2 then
-        print("[DEBUG] startFightForAll: Failed to spawn one or both dogs", ped1, ped2)
-        if Config.Debug then print("startFightForAll: Failed to spawn one or both dogs") end
         return
     end
 
@@ -692,7 +667,6 @@ AddEventHandler('hdrp-pets:client:startFightForAll', function(fightId, dog1, dog
         ped2 = ped2
     })
 
-    print("[DEBUG] MakeDogsFight called with peds:", ped1, ped2)
     MakeDogsFight(ped1, ped2, dog1, dog2)
 
     local playerPed = PlayerPedId()
@@ -839,14 +813,7 @@ AddEventHandler('hdrp-pets:client:updateCombatAchievements', function(petId, ach
             type = 'success'
         })
     end
-    
-    if Config.Debug then
-        print(string.format('[FIGHT] Updated achievements for %s: Wins=%d, Fights=%d', 
-            petId, 
-            achievements.fight and achievements.fight.victories or 0,
-            achievements.fight and achievements.fight.fights or 0
-        ))
-    end
+
 end)
 
 RegisterCommand('pet_fight', function()

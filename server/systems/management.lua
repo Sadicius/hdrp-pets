@@ -116,10 +116,6 @@ RegisterServerEvent('hdrp-pets:server:giverandom', function()
                 print('^1[MANAGEMENT ERROR]^7 Failed to add item ' .. item .. ' to player ' .. src .. ': ' .. tostring(itemErr))
             end
         end
-    else
-        if Config.Debug then
-            print('^3[MANAGEMENT WARNING]^7 No valid reward found for player ' .. src)
-        end
     end
     
     -- Log to Discord
@@ -214,10 +210,6 @@ RegisterServerEvent('hdrp-pets:server:givetreasure', function(petId)
         end)
         if not itemSuccess and Config.Debug then
             print('^1[MANAGEMENT ERROR]^7 Failed to add treasure item ' .. item .. ' to player ' .. src .. ': ' .. tostring(itemErr))
-        end
-    else
-        if Config.Debug then
-            print('^3[MANAGEMENT WARNING]^7 No valid treasure reward found for player ' .. src)
         end
     end
 

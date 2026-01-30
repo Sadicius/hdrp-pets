@@ -190,13 +190,10 @@ AddEventHandler("onResourceStop", function(resourceName)
     for k, v in pairs(spawnedPaidPeds) do
         exports.ox_target:removeEntity(v.petped, 'npc_pet_input_buy')
         if v.petped and DoesEntityExist(v.petped) then
-            SetEntityAsNoLongerNeeded(v.petped)  -- FIX v5.8.56: Memory leak prevention
+            SetEntityAsNoLongerNeeded(v.petped)
             DeleteEntity(v.petped)
         end
         spawnedPaidPeds[k] = nil
     end
     spawnedPaidPeds = {}
-    -- print('^3[HDRP-AdvancedPets]^7 Cleaned up vendor resources')
 end)
-
--- print('^2[HDRP-AdvancedPets]^7 Vendor client loaded!')
