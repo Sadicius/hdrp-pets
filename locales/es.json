@@ -1001,7 +1001,9 @@
 	"cl_pvp_lost_amount": "Perdiste $%d",
 	"cl_pvp_spectator_won": "¡Apuesta de Espectador Ganada!",
 	"cl_pvp_spectator_lost": "Apuesta de Espectador Perdida",
-	"cl_fight_xp_gained": "XP de Combate"
+	"cl_fight_xp_gained": "XP de Combate",
+	"cl_action_treasure_hunt_multi": "Caza de Tesoro Multi-Mascota",
+	"cl_valid_pets": "Mascotas Válidas"
 }
 
 

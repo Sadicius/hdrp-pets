@@ -996,5 +996,7 @@
 	"cl_pvp_lost_amount": "You lost $%d",
 	"cl_pvp_spectator_won": "Spectator Bet Won!",
 	"cl_pvp_spectator_lost": "Spectator Bet Lost",
-	"cl_fight_xp_gained": "Combat XP"
+	"cl_fight_xp_gained": "Combat XP",
+	"cl_action_treasure_hunt_multi": "Multi-Pet Treasure Hunt",
+	"cl_valid_pets": "Valid Pets"
 }

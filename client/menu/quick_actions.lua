@@ -128,9 +128,38 @@ function QuickActions.ShowMenu()
                     lib.notify({  title = locale('cl_info_hunt_disabled'),  description = dismissedCount .. ' pet(s)', type = 'success',  duration = 5000  })
                 end
             end
-        } 
+        }
 
-        -- CONTROL 4: DISMISS ALL
+        -- CONTROL 4: MULTI-PET TREASURE HUNT
+        local validTreasurePets = 0
+        local hasShovel = RSGCore.Functions.HasItem(Config.Items.Treasure)
+        for companionid, petData in pairs(spawnedPets) do
+            local xp = (petData.data and petData.data.progression and petData.data.progression.xp) or 0
+            if xp >= Config.XP.Trick.TreasureHunt and hasShovel then
+                validTreasurePets = validTreasurePets + 1
+            end
+        end
+
+        if validTreasurePets >= 2 then
+            options[#options + 1] = {
+                title = '💎 ' .. locale('cl_action_treasure_hunt_multi'),
+                metadata = {
+                    {label = locale('cl_valid_pets'), value = validTreasurePets},
+                    {label = locale('cl_xp_required'), value = Config.XP.Trick.TreasureHunt},
+                    {label = locale('cl_item_required'), value = 'shovel ' .. (hasShovel and '✅' or '❌')},
+                },
+                onSelect = function()
+                    if not hasShovel then
+                        lib.notify({ title = locale('cl_error_treasure_hunt_requirement'), type = 'error' })
+                        return
+                    end
+                    -- Execute multi-pet treasure hunt command
+                    ExecuteCommand('pet_treasure')
+                end
+            }
+        end 
+
+        -- CONTROL 5: DISMISS ALL
         options[#options + 1] = {
             title = '👋 ' .. locale('cl_pet_menu_dismiss_all'),
             onSelect = function()
@@ -145,8 +174,8 @@ function QuickActions.ShowMenu()
                 lib.notify({  title = locale('cl_success_title'),  description = dismissedCount .. ' pet(s) dismissed', type = 'success',  duration = 5000  })
             end
         }
-        
-        -- CARE 5: STORE ALL
+
+        -- CARE 6: STORE ALL
         options[#options + 1] = {
             title = '💤 ' .. locale('cl_action_store_all'),
             onSelect = function()
