@@ -99,7 +99,8 @@ local function handleTreasureFound(petId)
         if petId then
             TriggerServerEvent('hdrp-pets:server:givexp', Config.XP.Increase.PerTreasure, petId)
         end
-        TriggerServerEvent('hdrp-pets:server:givetreasure')
+        -- FIX: Pasar petId al servidor para actualizar achievements de tesoro
+        TriggerServerEvent('hdrp-pets:server:givetreasure', petId)
         lib.notify({ title = locale('cl_reward'), description = locale('cl_game_treasure_hunt_give_desc'), type = 'success' })
     else
         lib.notify({ title = locale('cl_game_treasure_hunt_empty'), type = 'info' })

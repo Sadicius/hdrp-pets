@@ -56,6 +56,30 @@ RegisterServerEvent('hdrp-pets:server:givexp', function(amount, companionid)
             newLevel = newLevel,
             companionid = companionid
         })
+
+        -- FIX: Verificar logros de nivel cuando sube de nivel
+        local achievements = activeCompanion.achievements and json.decode(activeCompanion.achievements) or {}
+        achievements.unlocked = achievements.unlocked or {}
+        local xpBonus = 0
+
+        for key, ach in pairs(Config.XP.Achievements.List) do
+            if ach.requirement and ach.requirement.type == 'level' then
+                if newLevel >= ach.requirement.value then
+                    if not achievements.unlocked[key] then
+                        achievements.unlocked[key] = true
+                        xpBonus = xpBonus + (ach.xpBonus or 0)
+                        TriggerClientEvent('hdrp-pets:client:achievement', src, ach.name, ach.description .. ' +' .. tostring(ach.xpBonus or 0) .. ' XP')
+                    end
+                end
+            end
+        end
+
+        if xpBonus > 0 then
+            currentData.progression.xp = (currentData.progression.xp or 0) + xpBonus
+            Database.UpdateCompanionData(companionid, currentData)
+        end
+
+        Database.UpdateCompanionAchievements(companionid, achievements)
     end
 
 end)

@@ -51,8 +51,12 @@ function Achievements.ShowTab(companionid)
         local level = State.GetPetLevel and State.GetPetLevel(xp) or math.floor(xp / 100) + 1
 
         -- Usar la estructura robusta: achievements.fight, achievements.unlocked, etc.
-        local achievements = petData.achievements or {}
+        -- FIX: Parsear achievements como JSON si viene como string de la BD
+        local achievements = type(petData.achievements) == 'string' and json.decode(petData.achievements) or petData.achievements or {}
         local unlocked = achievements.unlocked or {}
+
+        -- FIX: Añadir el nivel calculado a la estructura de achievements para que getAchievementProgress lo pueda usar
+        achievements.level = level
 
         local options = {}
         local unlockedCount = 0
