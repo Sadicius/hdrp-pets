@@ -13,7 +13,6 @@
 - **Medical Checkups**: Disease Diagnosis
 - **Vaccination**: 30-Day Protection
 - **Diseases**: Anemia, Arthritis, Colic, Pneumonia, etc.
-
 - **Surgeries**: Sterilization and Treatments
 - **Revival**: Resuscitates Deceased Pets
 
