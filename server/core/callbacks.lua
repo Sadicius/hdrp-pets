@@ -3,7 +3,6 @@ local RSGCore = exports['rsg-core']:GetCoreObject()
 lib.locale()
 
 -- LOAD CORE MODULES
-local Validation = lib.load('server.core.validation')
 local Database = lib.load('server.core.database')
 
 -- CALLBACKS

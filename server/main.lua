@@ -1,32 +1,43 @@
 local RSGCore = exports['rsg-core']:GetCoreObject()
 lib.locale()
 
------------------
--- LOAD CORE MODULES
------------------
-local Validation = lib.load('server.core.validation')
 local Database = lib.load('server.core.database')
 local PetShopPrice = Config.PetShopPrice
-
------------------
--- SQL (Handled by callbacks.lua now)
------------------
--- Table initialization moved to server/core/callbacks.lua
 
 ----------------------------------
 -- Buy & active
 ----------------------------------
+-- PET NAME VALIDATION --Validate pet name (prevent injection and exploits)
+---@param name string
+---@return boolean isValid
+---@return string|nil sanitizedName or errorMessage
+local function PetName(name)
+    if not name or type(name) ~= "string" then
+        return false, locale('sv_validation_name_type')
+    end
+    
+    -- Remove special characters (allow alphanumeric, spaces, hyphens, underscores)
+    local sanitized = string.gsub(name, "[^%w%s%-_]", "")
+    if #sanitized < 1 then
+        return false, locale('sv_validation_name_short')
+    end
+    
+    if #sanitized > 50 then
+        return false, locale('sv_validation_name_long')
+    end
+    
+    return true, sanitized
+end
+
 -- Callbacks moved to server/core/callbacks.lua
 -- Using Database module for queries
-
--- BUY
 RegisterServerEvent('hdrp-pets:server:buy', function(price, model, stable, companionname, gender, category)
     local src = source
     local Player = RSGCore.Functions.GetPlayer(src)
     if not Player then return end
 
     -- SECURITY: Validate pet name using Validation module
-    local isValid, sanitizedName = Validation.PetName(companionname)
+    local isValid, sanitizedName = PetName(companionname)
     if not isValid then
         TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_error_invalid_name'), description = sanitizedName or locale('sv_error_invalid_name'), type = 'error', duration = 5000 })
         return
@@ -51,16 +62,19 @@ RegisterServerEvent('hdrp-pets:server:buy', function(price, model, stable, compa
 
     local generatedId = Database.GenerateCompanionId()
     if not generatedId then
-        TriggerClientEvent('ox_lib:notify', src, {
-            title = locale('sv_error_internal'),
-            description = 'No se pudo generar un ID único para la mascota. Intenta de nuevo más tarde.',
-            type = 'error',
-            duration = 5000
-        })
         return
     end
     local companionid = tostring(os.time()) .. generatedId
-    local skin = math.floor(math.random(0, 2)) -- Asignar skin aleatorio entre 0 y 2 // se puede ampliar según modelos
+
+    -- Buscar el array de skins correcto según el modelo
+    local skin = 0
+    for _, pet in ipairs(PetShopPrice) do
+        if pet.npcpetmodel == model and pet.skins and #pet.skins > 0 then
+            skin = pet.skins[math.random(#pet.skins)]
+            break
+        end
+    end
+
     local breedable = {true, false}
     local randomIndex1 = math.random(1, #breedable)
 
@@ -178,7 +192,6 @@ RegisterServerEvent('hdrp-pets:server:buy', function(price, model, stable, compa
     )
     
     TriggerEvent('rsg-log:server:CreateLog', Config.WebhookName, Config.WebhookTitle, Config.WebhookColour, discordMessage, false)
-
     TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_success_pet_owned'), type = 'success', duration = 5000 })
 end)
 
@@ -198,6 +211,7 @@ RegisterServerEvent('hdrp-pets:server:setactive', function(id)
         TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_error_breed_duplicate'), type = 'error', duration = 5000 })
         return
     end
+
     -- SISTEMA MULTI-MASCOTA
     local maxPets = Config.MaxActivePets or 1
     local success, error = Database.ActivateCompanionAtomic(id, Player.PlayerData.citizenid, maxPets)
@@ -217,9 +231,7 @@ RegisterServerEvent('hdrp-pets:server:store', function(companionId, stableid)
     local src = source
     local Player = RSGCore.Functions.GetPlayer(src)
     if not Player then return end
-    
     if companionId then
-
         local success = Database.DeactivateCompanion(companionId, Player.PlayerData.citizenid, stableid)
         if success then
             TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_success_pet_storing'), type = 'success', duration = 5000 })
@@ -235,12 +247,9 @@ RegisterServerEvent('hdrp-pets:server:movepet', function(petId, newStableId)
     local src = source
     local Player = RSGCore.Functions.GetPlayer(src)
     if not Player then return end
-
     local citizenid = Player.PlayerData.citizenid
 
-    -- verify ownership
     local pet = MySQL.query.await('SELECT * FROM pet_companion WHERE companionid = ? AND citizenid = ?', {petId, citizenid})
-    
     if not pet or not pet[1] then
         TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_error_not_own_pet'), type = 'error', duration = 5000 })
         return
@@ -279,9 +288,7 @@ RegisterServerEvent('hdrp-pets:server:movepet', function(petId, newStableId)
         distance = #(currentStable.coords - newStable.coords)
     end
     
-    local moveFee = math.ceil(baseFee + (distance * feePerMeter))
-
-    -- Attempt to deduct fee
+    local moveFee = math.ceil(baseFee + (distance * feePerMeter))    -- Attempt to deduct fee
     if not Player.Functions.RemoveMoney('cash', moveFee) then
         TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_error_insufficient_funds'), description = string.format('Cost: $%d', moveFee), type = 'error', duration = 5000 })
         return
@@ -289,7 +296,6 @@ RegisterServerEvent('hdrp-pets:server:movepet', function(petId, newStableId)
 
     -- Move pet to new stable
     MySQL.update('UPDATE pet_companion SET stable = ? WHERE companionid = ?', {newStableId, petId})
-
     TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_success_pet_moved'), description = string.format(locale('sv_success_pet_moved_desc'), pet[1].data.info.name, newStableId, moveFee), type = 'success', duration = 5000 })
 end)
 
@@ -305,7 +311,6 @@ RegisterServerEvent('hdrp-pets:server:setdirt', function(companionid, dirt)
     local currentData = json.decode(result[1].data)
     currentData.stats.dirt = tonumber(dirt) or 0
     Database.UpdateCompanionData(companionid, currentData)
-    -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
 end)
 
 -- Rename Companion
@@ -313,8 +318,7 @@ RegisterServerEvent('hdrp-pets:server:rename', function(companionid, name)
     local src = source
     local Player = RSGCore.Functions.GetPlayer(src)
     if not Player then return end
-    
-    -- Validate companionid parameter
+
     if not companionid or not name then
         TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_error_name_change'), type = 'error', duration = 5000})
         return
@@ -329,9 +333,6 @@ RegisterServerEvent('hdrp-pets:server:rename', function(companionid, name)
     currentData.info.name = name
 
     Database.UpdateCompanionData(companionid, currentData)
-    TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
-
-    TriggerClientEvent('ox_lib:notify', src, {title = oldName .. ' → ' .. name, description = locale('sv_success_name_change'), type = 'success', duration = 5000 })
     
     local discordMessage = string.format(
         locale('sv_log_user')..":** %s \n**"
@@ -348,6 +349,7 @@ RegisterServerEvent('hdrp-pets:server:rename', function(companionid, name)
         oldName,
         name
     )
+    TriggerClientEvent('ox_lib:notify', src, {title = oldName .. ' → ' .. name, description = locale('sv_success_name_change'), type = 'success', duration = 5000 })
     TriggerEvent('rsg-log:server:CreateLog', Config.WebhookName, Config.WebhookTitle, Config.WebhookColour, discordMessage, false)
 end)
 
@@ -376,7 +378,6 @@ AddEventHandler('hdrp-pets:server:setrip', function(companionid) -- healt
     if not success or not result or not result[1] then return end
 
     local currentData = json.decode(result[1].data)
-    
     currentData.veterinary.dead = true
 
     if currentData.veterinary.dead == true then
@@ -389,7 +390,6 @@ AddEventHandler('hdrp-pets:server:setrip', function(companionid) -- healt
     end
 
     Database.UpdateCompanionData(companionid, currentData)
-    -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
 
     local discordMessage = string.format(
         locale('sv_log_user')..":** %s \n**"
@@ -403,18 +403,3 @@ AddEventHandler('hdrp-pets:server:setrip', function(companionid) -- healt
     )
     TriggerEvent('rsg-log:server:CreateLog', Config.WebhookName, Config.WebhookTitle, Config.WebhookColour, discordMessage, false)
 end)
-
--- UPDATE CLIENT PET DATA
---[[
-RegisterServerEvent('hdrp-pets:server:updatepetdata', function(companionid, newdata)
-    local src = source
-    local Player = RSGCore.Functions.GetPlayer(src)
-    if not Player then return end
-
-    if newdata and newdata.stats and newdata.stats.dirt then
-        newdata.stats.dirt = tonumber(newdata.stats.dirt) or 0
-    end
-    Database.UpdateCompanionData(companionid, newdata)
-    TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, newdata)
-end)
-]]

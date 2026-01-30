@@ -2,7 +2,6 @@ local RSGCore = exports['rsg-core']:GetCoreObject()
 lib.locale()
 
 -- Load core modules
-local Validation = lib.load('server.core.validation')
 local Database = lib.load('server.core.database')
 
 --================================
@@ -20,31 +19,19 @@ AddEventHandler('hdrp-pets:server:InitiateTrade', function(targetId, companionid
     
     local Target = RSGCore.Functions.GetPlayer(targetId)
     if not Target then
-        TriggerClientEvent('ox_lib:notify', src, {
-            title = locale('sv_error_player_not_found'),
-            type = 'error',
-            duration = 5000
-        })
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_error_player_not_found'), type = 'error', duration = 5000 })
         return
     end
     
     -- Verify ownership using Validation module
-    if not Validation.PetOwnership(Player.PlayerData.citizenid, companionid) then
-        TriggerClientEvent('ox_lib:notify', src, {
-            title = locale('sv_error_not_owner'),
-            type = 'error',
-            duration = 5000
-        })
+    if not Database.PetOwnership(Player.PlayerData.citizenid, companionid) then
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_error_not_owner'), type = 'error', duration = 5000 })
         return
     end
     
     -- Check if target already has a pending trade
     if tradeRequests[targetId] then
-        TriggerClientEvent('ox_lib:notify', src, {
-            title = locale('sv_error_trade_pending'),
-            type = 'error',
-            duration = 5000
-        })
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_error_trade_pending'), type = 'error', duration = 5000 })
         return
     end
     
@@ -57,24 +44,10 @@ AddEventHandler('hdrp-pets:server:InitiateTrade', function(targetId, companionid
     }
     
     -- Notify both players
-    TriggerClientEvent('ox_lib:notify', src, {
-        title = locale('sv_trade_request_sent'),
-        description = string.format(locale('sv_trade_sent_to'), Target.PlayerData.charinfo.firstname, Target.PlayerData.charinfo.lastname),
-        type = 'inform',
-        duration = 7000
-    })
+    TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_trade_request_sent'), description = string.format(locale('sv_trade_sent_to'), Target.PlayerData.charinfo.firstname, Target.PlayerData.charinfo.lastname), type = 'inform', duration = 7000 })
+    TriggerClientEvent('ox_lib:notify', targetId, { title = locale('sv_trade_request_received'), description = string.format(locale('sv_trade_from'), Player.PlayerData.charinfo.firstname, Player.PlayerData.charinfo.lastname), type = 'inform', duration = 10000 })
     
-    TriggerClientEvent('ox_lib:notify', targetId, {
-        title = locale('sv_trade_request_received'),
-        description = string.format(locale('sv_trade_from'), Player.PlayerData.charinfo.firstname, Player.PlayerData.charinfo.lastname),
-        type = 'inform',
-        duration = 10000
-    })
-    
-    if Config.Debug then
-        print(string.format("^3[TRADING]^7 %s initiated trade with %s for pet %s", 
-            Player.PlayerData.citizenid, Target.PlayerData.citizenid, companionid))
-    end
+    if Config.Debug then print(string.format("^3[TRADING]^7 %s initiated trade with %s for pet %s", Player.PlayerData.citizenid, Target.PlayerData.citizenid, companionid)) end
 end)
 
 ---Accept trade
@@ -84,22 +57,14 @@ AddEventHandler('hdrp-pets:server:AcceptTrade', function()
     local trade = tradeRequests[src]
     
     if not trade then
-        TriggerClientEvent('ox_lib:notify', src, {
-            title = locale('sv_error_no_trade_request'),
-            type = 'error',
-            duration = 5000
-        })
+        TriggerClientEvent('ox_lib:notify', src, {  title = locale('sv_error_no_trade_request'), type = 'error', duration = 5000 })
         return
     end
     
     -- Check if trade expired (5 minutes)
     if os.time() - trade.timestamp > 300 then
         tradeRequests[src] = nil
-        TriggerClientEvent('ox_lib:notify', src, {
-            title = locale('sv_error_trade_expired'),
-            type = 'error',
-            duration = 5000
-        })
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_error_trade_expired'), type = 'error', duration = 5000 })
         return
     end
     
@@ -112,27 +77,15 @@ AddEventHandler('hdrp-pets:server:AcceptTrade', function()
     local Trader = RSGCore.Functions.GetPlayer(trade.from)
     if not Trader then
         tradeRequests[src] = nil
-        TriggerClientEvent('ox_lib:notify', src, {
-            title = locale('sv_error_trader_offline'),
-            type = 'error',
-            duration = 5000
-        })
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_error_trader_offline'), type = 'error', duration = 5000 })
         return
     end
     
     -- Double-check ownership using Validation module
-    if not Validation.PetOwnership(trade.fromCitizenId, trade.companionid) then
+    if not Database.PetOwnership(trade.fromCitizenId, trade.companionid) then
         tradeRequests[src] = nil
-        TriggerClientEvent('ox_lib:notify', src, {
-            title = locale('sv_error_trade_invalid'),
-            type = 'error',
-            duration = 5000
-        })
-        TriggerClientEvent('ox_lib:notify', trade.from, {
-            title = locale('sv_error_trade_invalid'),
-            type = 'error',
-            duration = 5000
-        })
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_error_trade_invalid'), type = 'error', duration = 5000 })
+        TriggerClientEvent('ox_lib:notify', trade.from, { title = locale('sv_error_trade_invalid'), type = 'error', duration = 5000 })
         return
     end
     
@@ -144,19 +97,8 @@ AddEventHandler('hdrp-pets:server:AcceptTrade', function()
     
     if success then
         -- Notify both players
-        TriggerClientEvent('ox_lib:notify', src, {
-            title = locale('sv_trade_accepted'),
-            description = locale('sv_trade_received_pet'),
-            type = 'success',
-            duration = 7000
-        })
-        
-        TriggerClientEvent('ox_lib:notify', trade.from, {
-            title = locale('sv_trade_completed'),
-            description = locale('sv_trade_transferred_pet'),
-            type = 'success',
-            duration = 7000
-        })
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_trade_accepted'), description = locale('sv_trade_received_pet'), type = 'success', duration = 7000 })
+        TriggerClientEvent('ox_lib:notify', trade.from, { title = locale('sv_trade_completed'), description = locale('sv_trade_transferred_pet'), type = 'success', duration = 7000 })
         
         -- Trigger client events to update pet lists
         TriggerClientEvent('hdrp-pets:client:tradeCompleted', src)
@@ -175,27 +117,11 @@ AddEventHandler('hdrp-pets:server:AcceptTrade', function()
             os.date('%Y-%m-%d %H:%M:%S')
         )
         TriggerEvent('rsg-log:server:CreateLog', Config.WebhookName, 'Pet Trade', 'blue', discordMessage, false)
-        
-        if Config.Debug then
-            print(string.format("^2[TRADING]^7 Trade completed: %s -> %s (Pet: %s)", 
-                trade.fromCitizenId, Player.PlayerData.citizenid, trade.companionid))
-        end
+        if Config.Debug then print(string.format("^2[TRADING]^7 Trade completed: %s -> %s (Pet: %s)", trade.fromCitizenId, Player.PlayerData.citizenid, trade.companionid)) end
     else
-        TriggerClientEvent('ox_lib:notify', src, {
-            title = locale('sv_error_trade_failed'),
-            type = 'error',
-            duration = 5000
-        })
-        
-        TriggerClientEvent('ox_lib:notify', trade.from, {
-            title = locale('sv_error_trade_failed'),
-            type = 'error',
-            duration = 5000
-        })
-        
-        if Config.Debug then
-            print(string.format("^1[TRADING]^7 Trade failed: Database error for pet %s", trade.companionid))
-        end
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_error_trade_failed'), type = 'error', duration = 5000 })
+        TriggerClientEvent('ox_lib:notify', trade.from, { title = locale('sv_error_trade_failed'), type = 'error', duration = 5000 })
+        if Config.Debug then print(string.format("^1[TRADING]^7 Trade failed: Database error for pet %s", trade.companionid)) end
     end
     
     tradeRequests[src] = nil
@@ -221,22 +147,9 @@ AddEventHandler('hdrp-pets:server:DeclineTrade', function()
         return
     end
     
-    TriggerClientEvent('ox_lib:notify', trade.from, {
-        title = locale('sv_trade_declined'),
-        description = string.format(locale('sv_trade_declined_by'), Player.PlayerData.charinfo.firstname, Player.PlayerData.charinfo.lastname),
-        type = 'error',
-        duration = 7000
-    })
-    
-    TriggerClientEvent('ox_lib:notify', src, {
-        title = locale('sv_trade_declined_sent'),
-        type = 'inform',
-        duration = 5000
-    })
-    
-    if Config.Debug then
-        print(string.format("^3[TRADING]^7 Trade declined by %s", Player.PlayerData.citizenid))
-    end
+    TriggerClientEvent('ox_lib:notify', trade.from, { title = locale('sv_trade_declined'), description = string.format(locale('sv_trade_declined_by'), Player.PlayerData.charinfo.firstname, Player.PlayerData.charinfo.lastname), type = 'error', duration = 7000})
+    TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_trade_declined_sent'), type = 'inform', duration = 5000 })
+    if Config.Debug then print(string.format("^3[TRADING]^7 Trade declined by %s", Player.PlayerData.citizenid)) end
     
     tradeRequests[src] = nil
 end)
@@ -255,11 +168,7 @@ AddEventHandler('hdrp-pets:server:CancelTrade', function()
             return
         end
         
-        TriggerClientEvent('ox_lib:notify', trade.from, {
-            title = locale('sv_trade_cancelled'),
-            type = 'inform',
-            duration = 5000
-        })
+        TriggerClientEvent('ox_lib:notify', trade.from, { title = locale('sv_trade_cancelled'), type = 'inform', duration = 5000 })
         
         tradeRequests[src] = nil
     end
@@ -267,11 +176,7 @@ AddEventHandler('hdrp-pets:server:CancelTrade', function()
     -- Check if player has outgoing trade
     for playerId, trade in pairs(tradeRequests) do
         if trade.from == src then
-            TriggerClientEvent('ox_lib:notify', playerId, {
-                title = locale('sv_trade_cancelled'),
-                type = 'inform',
-                duration = 5000
-            })
+            TriggerClientEvent('ox_lib:notify', playerId, { title = locale('sv_trade_cancelled'), type = 'inform', duration = 5000 })
             tradeRequests[playerId] = nil
             break
         end
@@ -293,20 +198,14 @@ CreateThread(function()
                     tradeRequests[playerId] = nil
                     expiredCount = expiredCount + 1
                 else
-                    TriggerClientEvent('ox_lib:notify', playerId, {
-                        title = locale('sv_error_trade_expired'),
-                        type = 'error',
-                        duration = 5000
-                    })
+                    TriggerClientEvent('ox_lib:notify', playerId, { title = locale('sv_error_trade_expired'), type = 'error', duration = 5000 })
                     tradeRequests[playerId] = nil
                     expiredCount = expiredCount + 1
                 end
             end
         end
         
-        if Config.Debug and expiredCount > 0 then
-            print(string.format("^3[TRADING]^7 Cleaned %d expired trade requests", expiredCount))
-        end
+        if Config.Debug and expiredCount > 0 then print(string.format("^3[TRADING]^7 Cleaned %d expired trade requests", expiredCount)) end
     end
 end)
 
@@ -321,12 +220,7 @@ RSGCore.Commands.Add('tradepet', locale('cmd_tradepet'), {
     local companionid = args[2]
     
     if not targetId or not companionid then
-        TriggerClientEvent('ox_lib:notify', src, {
-            title = locale('sv_error_invalid_arguments'),
-            description = locale('sv_error_usage_tradepet'),
-            type = 'error',
-            duration = 5000
-        })
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_error_invalid_arguments'), description = locale('sv_error_usage_tradepet'), type = 'error', duration = 5000 })
         return
     end
     

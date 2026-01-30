@@ -1,4 +1,6 @@
 return {
+    -- MH_L_Elbow
+    
     -- Ejemplos añadidos desde rms-nativeaccessories config.lua
     Accessories = {
         {
@@ -6,7 +8,7 @@ return {
             alwaysAttached = false,
             category = "native",
             model = "s_cranefeathertrinket01x",
-            bone = "HairScale_B",
+            bone = "HairScale_B", 
             offset = { x = -0.06, y = 0.03, z = 0.10, pitch = 18.0, roll = 3.0, yaw = 84.0 },
         },
         {
@@ -317,6 +319,21 @@ return {
                 pitch = 10.0,
                 roll = 0.0,
                 yaw = 0.0,
+            },
+        },
+        {
+            hashid = "bags_5",
+            alwaysAttached = false,
+            category = "bags",
+            model = 'mp009_s_mp_pickup_jewelrybag01x',
+            bone = 'SKEL_SPINED',
+            offset = {
+                x = 0.14,
+                y = 0.14,
+                z = 0.04,
+                pitch = -2.0,
+                roll = -8.0,
+                yaw = -44.0,
             },
         },
     },

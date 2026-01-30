@@ -29,11 +29,7 @@ function QuickActions.ShowMenu()
         end
         local petCount = State.GetActivePetCount()
         if petCount == 0 then
-            lib.notify({ 
-                title = locale('cl_error_pet_no_active'), 
-                type = 'error', 
-                duration = 5000 
-            })
+            lib.notify({ title = locale('cl_error_pet_no_active'), type = 'error', duration = 5000 })
             return
         end
         local options = {}
@@ -76,25 +72,11 @@ function QuickActions.ShowMenu()
                         end
                         local offset = offsets[petIndex] or {x = -4.0, y = 0.0}
                         Wait(100)
-                        TaskFollowToOffsetOfEntity(
-                            petData.ped,
-                            cache.ped,
-                            offset.x,
-                            offset.y,
-                            0.0,
-                            1.5,
-                            -1,
-                            3.0,
-                            0
-                        )
+                        TaskFollowToOffsetOfEntity( petData.ped, cache.ped, offset.x, offset.y, 0.0, 1.5, -1, 3.0, 0 )
                         successCount = successCount + 1
                     end
                 end
-                lib.notify({ 
-                    title = locale('cl_success_follow_all'):format(successCount), 
-                    type = 'success', 
-                    duration = 3000 
-                })
+                lib.notify({ title = locale('cl_success_follow_all'):format(successCount), type = 'success', duration = 5000 })
             end
         }
 
@@ -106,17 +88,12 @@ function QuickActions.ShowMenu()
                 for companionid, petData in pairs(spawnedPets) do
                     if DoesEntityExist(petData.ped) then
                         ClearPedTasksImmediately(petData.ped)
-                        
                         State.PlayPetAnimation(companionid, "amb_creature_mammal@world_dog_sitting@base", "base", true, -1)
                         successCount = successCount + 1
                         Wait(50)
                     end
                 end
-                lib.notify({ 
-                    title = locale('cl_success_stay_all'):format(successCount), 
-                    type = 'success', 
-                    duration = 3000 
-                })
+                lib.notify({ title = locale('cl_success_stay_all'):format(successCount),  type = 'success',  duration = 5000 })
             end
         }
 
@@ -124,6 +101,8 @@ function QuickActions.ShowMenu()
         options[#options + 1] = {
             title = '🦅 ' .. locale('cl_action_hunt'),
             onSelect = function()
+                local dismissedCount = 0
+                local successCount = 0
                 for companionid, petData in pairs(spawnedPets) do
                     local xp = (petData.progression and petData.progression.xp) or 0
                     local isHunting = (petData and petData.flag and petData.flag.isHunting) or false
@@ -133,13 +112,20 @@ function QuickActions.ShowMenu()
                     end
                     if petData.ped and DoesEntityExist(petData.ped) and not IsEntityDead(petData.ped) and companionid then
                         if not isHunting then
-                            lib.notify({ title = locale('cl_info_retrieve'), type = 'info', duration = 7000 })
                             State.SetPetTrait(companionid, 'isHunting', true)
+                            dismissedCount = dismissedCount + 1
+                            Wait(100)
                         else
                             State.SetPetTrait(companionid, 'isHunting', false)
-                            lib.notify({ title = locale('cl_info_hunt_disabled'), type = 'info', duration = 7000 })
+                            successCount = successCount + 1
+                            Wait(100)
                         end
                     end
+                end
+                if not isHunting then
+                    lib.notify({  title = locale('cl_info_retrieve'),  description = dismissedCount .. ' pet(s)', type = 'success',  duration = 5000  })
+                else
+                    lib.notify({  title = locale('cl_info_hunt_disabled'),  description = dismissedCount .. ' pet(s)', type = 'success',  duration = 5000  })
                 end
             end
         } 
@@ -156,12 +142,7 @@ function QuickActions.ShowMenu()
                         Wait(100)
                     end
                 end
-                lib.notify({ 
-                    title = locale('cl_success_title'), 
-                    description = dismissedCount .. ' pet(s) dismissed',
-                    type = 'success', 
-                    duration = 3000 
-                })
+                lib.notify({  title = locale('cl_success_title'),  description = dismissedCount .. ' pet(s) dismissed', type = 'success',  duration = 5000  })
             end
         }
         
@@ -178,11 +159,7 @@ function QuickActions.ShowMenu()
                         Wait(100)
                     end
                 end
-                lib.notify({ 
-                    title = locale('cl_success_store_all'):format(successCount), 
-                    type = 'success', 
-                    duration = 3000 
-                })
+                lib.notify({ title = locale('cl_success_store_all'):format(successCount),  type = 'success', duration = 5000 })
             end
         }  
 

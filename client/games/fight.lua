@@ -9,11 +9,13 @@ lib.locale()
 local State = exports['hdrp-pets']:GetState()
 local GameConfig = lib.load('shared.game.games')
 local ManageSpawn = lib.load('client.stable.utils_spawn')
-
 local DogFightConfig = GameConfig.Gdogfight
--- Estado migrado a State.Games.fights y helpers de state_helpers.lua
--- Tabla local para peleas activas
 local currentFights = {}
+local DogFightPrompts = {}
+local PromptGroups = {}
+local SpawnedBlips = {}
+local activePvPFights = {}
+local pendingChallenge = nil
 local recentlyFought = 0
 local isFighting = false
 
@@ -53,26 +55,6 @@ local function CreateDogFightPrompt(name, key, holdDuration)
     PromptSetGroup(prompt, group)
     PromptRegisterEnd(prompt)
     return prompt, group
-end
-
--- Apply Effective Dog Damage
-function ApplyForcedDamage(ped1, ped2, dog1, dog2)
-    
-    local damage1 = ManageSpawn.CalculateDogDamage(dog2, dog1) * 0.5 
-    local damage2 = ManageSpawn.CalculateDogDamage(dog1, dog2) * 0.5
-    
-    ApplyEffectiveDogDamage(ped1, ped2, damage1)
-    ApplyEffectiveDogDamage(ped2, ped1, damage2)
-    
-    
-    local animDict = "creatures@dog@move"
-    if IsPedInMeleeCombat(ped1) and not IsEntityPlayingAnim(ped1, animDict, "attack", 3) then
-        Citizen.InvokeNative(0xEF0D582CBF2D9B0F, ped1, 1, GetPedBoneCoords(ped1, 0, 0.0, 0.0, 0.0), 0.0, 0.0)
-    end
-    
-    if IsPedInMeleeCombat(ped2) and not IsEntityPlayingAnim(ped2, animDict, "attack", 3) then
-        Citizen.InvokeNative(0xEF0D582CBF2D9B0F, ped2, 1, GetPedBoneCoords(ped2, 0, 0.0, 0.0, 0.0), 0.0, 0.0)
-    end
 end
 
 -- Make Dogs Fight
@@ -426,20 +408,6 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
         end
     }
 
-    -- Opción: DESAFÍO PVP DIRECTO - Desafiar a un jugador específico
-    if DogFightConfig.PvP and DogFightConfig.PvP.Enabled then
-        options[#options + 1] = {
-            title = locale('cl_pvp_challenge_player'),
-            metadata = {
-                { label = 'Info', value = locale('cl_pvp_challenge_player_desc')},
-            },
-            icon = 'fa-solid fa-crosshairs',
-            onSelect = function()
-                OpenPvPChallengeMenu()
-            end
-        }
-    end
-
     -- Opción: pelea entre dos mascotas propias
     options[#options + 1] = {
         title = locale('cl_fight_two_pets'),
@@ -500,7 +468,7 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
         onSelect = function()
             local petList = {}
             for id, pet in pairs(State.GetAllPets()) do
-                if pet.stableid then
+                if pet.stable then
                     local petName = (pet.data and pet.data.info and pet.data.info.name) or 'Unknown'
                     local petHealth = (pet.data and pet.data.stats and pet.data.stats.health) or 100
                     local petStrength = (pet.data and pet.data.stats and pet.data.stats.strength) or 50
@@ -510,9 +478,8 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
                             { label = locale('cl_stat_health'), value = petHealth .. '%'},
                             { label = locale('cl_stat_strength'), value = petStrength .. '%'},
                         },
-                        args = { stableid = pet.stableid },
                         onSelect = function(data)
-                            TriggerEvent('hdrp-pets:client:MenuDel', { stableid = data.stableid })
+                            TriggerEvent('hdrp-pets:client:MenuDel', { pet.stable })
                         end
                     }
                 end
@@ -552,30 +519,15 @@ AddEventHandler('hdrp-pets:client:startFight', function(dog1, dog2)
     local ped1 = ManageSpawn.spawnDog(dog1.Model, vector3(x - 0.75, y, groundZ), 90.0, dog1.Health)
     local ped2 = ManageSpawn.spawnDog(dog2.Model, vector3(x + 0.75, y, groundZ), 270.0, dog2.Health)
     if not ped1 or not ped2 then
-        lib.notify({
-            title = locale('cl_fight_failed'),
-            description = locale('cl_fight_failed_desc'),
-            type = 'error',
-            duration = 5000
-        })
+        lib.notify({ title = locale('cl_fight_failed'), description = locale('cl_fight_failed_desc'), type = 'error', duration = 5000 })
         isFighting = false
         return
     end
-    AddFight('local', {
-        dog1 = dog1,
-        dog2 = dog2,
-        ped1 = ped1,
-        ped2 = ped2
-    })
 
+    AddFight('local', { dog1 = dog1, dog2 = dog2, ped1 = ped1, ped2 = ped2})
     MakeDogsFight(ped1, ped2, dog1, dog2)
 
-    lib.notify({
-        title = locale('cl_fight_started'),
-        description = dog1.Name .. ' vs ' .. dog2.Name .. '! ' .. locale('cl_fight_instructions'),
-        type = 'inform',
-        duration = 7000
-    })
+    lib.notify({ title = locale('cl_fight_started'), description = dog1.Name .. ' vs ' .. dog2.Name .. '! ' .. locale('cl_fight_instructions'), type = 'inform',  duration = 7000 })
 
     Citizen.CreateThread(function()
         Citizen.Wait(60000)
@@ -619,12 +571,7 @@ end)
 RegisterNetEvent('hdrp-pets:client:showBetResult')
 AddEventHandler('hdrp-pets:client:showBetResult', function(winner, payout)
     local description = payout > 0 and (string.format(locale('cl_bet_won'), payout, winner)) or (string.format(locale('cl_bet_winner'), winner))
-    lib.notify({
-        title = locale('cl_bet_result'),
-        description = description,
-        type = payout > 0 and 'success' or 'inform',
-        duration = 7000
-    })
+    lib.notify({ title = locale('cl_bet_result'), description = description, type = payout > 0 and 'success' or 'inform', duration = 7000 })
 end)
 
 -- Request active fights on load
@@ -660,24 +607,13 @@ AddEventHandler('hdrp-pets:client:startFightForAll', function(fightId, dog1, dog
         return
     end
 
-    AddFight(fightId, {
-        dog1 = dog1,
-        dog2 = dog2,
-        ped1 = ped1,
-        ped2 = ped2
-    })
-
+    AddFight(fightId, { dog1 = dog1, dog2 = dog2, ped1 = ped1, ped2 = ped2 })
     MakeDogsFight(ped1, ped2, dog1, dog2)
 
     local playerPed = PlayerPedId()
     local playerCoords = GetEntityCoords(playerPed)
     if #(playerCoords - coords) < 50.0 then
-        lib.notify({
-            title = locale('cl_fight_started'),
-            description = dog1.Name .. ' vs ' .. dog2.Name .. '! ' .. locale('cl_fight_watch'),
-            type = 'inform',
-            duration = 5000
-        })
+        lib.notify({ title = locale('cl_fight_started'), description = dog1.Name .. ' vs ' .. dog2.Name .. '! ' .. locale('cl_fight_watch'), type = 'inform', duration = 5000 })
     end
 end)
 
@@ -715,12 +651,7 @@ AddEventHandler('hdrp-pets:client:endFightForAll', function(fightId, winner)
     local playerPed = PlayerPedId()
     local fightCoords = GetEntityCoords(fight.ped1)
     if #(GetEntityCoords(playerPed) - fightCoords) < 50.0 then
-        lib.notify({
-            title = locale('cl_fight_result'),
-            description = string.format(locale('cl_fight_result_desc'), winner),
-            type = 'inform',
-            duration = 5000
-        })
+        lib.notify({ title = locale('cl_fight_result'), description = string.format(locale('cl_fight_result_desc'), winner), type = 'inform', duration = 5000 })
     end
     Citizen.SetTimeout(5000, function()
         if isPetVsNpc then
@@ -737,10 +668,6 @@ AddEventHandler('hdrp-pets:client:endFightForAll', function(fightId, winner)
         end
     end)
 end)
-
-local DogFightPrompts = {}
-local PromptGroups = {}
-local SpawnedBlips = {}
 
 -- Prompt Handling Thread
 CreateThread(function()
@@ -807,11 +734,7 @@ AddEventHandler('hdrp-pets:client:updateCombatAchievements', function(petId, ach
     
     -- Notificar XP ganado
     if xpBonus and xpBonus > 0 then
-        lib.notify({
-            title = locale('cl_fight_xp_gained') or 'Combat XP',
-            description = '+' .. xpBonus .. ' XP',
-            type = 'success'
-        })
+        lib.notify({ title = locale('cl_fight_xp_gained') or 'Combat XP', description = '+' .. xpBonus .. ' XP', type = 'success' })
     end
 
 end)
@@ -842,19 +765,11 @@ end)
 -- ============================================
 -- PVP DIRECT CHALLENGE SYSTEM - CLIENT
 -- ============================================
-
-local pendingChallenge = nil
-local activePvPFights = {}
-
 -- Open menu to select a player to challenge
 function OpenPvPChallengeMenu()
     RSGCore.Functions.TriggerCallback('hdrp-pets:server:getNearbyPlayers', function(players)
         if not players or #players == 0 then
-            lib.notify({
-                title = locale('cl_pvp_no_players'),
-                description = locale('cl_pvp_no_players_desc'),
-                type = 'error'
-            })
+            lib.notify({ title = locale('cl_pvp_no_players'), description = locale('cl_pvp_no_players_desc'), type = 'error' })
             return
         end
 
@@ -973,12 +888,7 @@ AddEventHandler('hdrp-pets:client:receivePvPChallenge', function(challengerSrc, 
 
     -- Show challenge notification
     local betText = betAmount > 0 and string.format(' ($%d)', betAmount) or ''
-    lib.notify({
-        title = locale('cl_pvp_challenge_received'),
-        description = string.format(locale('cl_pvp_challenge_received_desc'), challengerName, challengerPet.Name, betText),
-        type = 'inform',
-        duration = timeout * 1000
-    })
+    lib.notify({ title = locale('cl_pvp_challenge_received'), description = string.format(locale('cl_pvp_challenge_received_desc'), challengerName, challengerPet.Name, betText), type = 'inform', duration = timeout * 1000 })
 
     -- Open accept/decline menu
     OpenChallengeResponseMenu()
@@ -1088,11 +998,7 @@ end
 RegisterNetEvent('hdrp-pets:client:challengeExpired')
 AddEventHandler('hdrp-pets:client:challengeExpired', function()
     if pendingChallenge then
-        lib.notify({
-            title = locale('cl_pvp_challenge_expired'),
-            description = locale('cl_pvp_challenge_expired_desc'),
-            type = 'error'
-        })
+        lib.notify({ title = locale('cl_pvp_challenge_expired'), description = locale('cl_pvp_challenge_expired_desc'), type = 'error' })
         pendingChallenge = nil
     end
 end)
@@ -1130,12 +1036,7 @@ AddEventHandler('hdrp-pets:client:startPvPFightForAll', function(fightId, pet1, 
     -- Notify player
     local playerCoords = GetEntityCoords(cache.ped)
     if #(playerCoords - coords) < 50.0 then
-        lib.notify({
-            title = locale('cl_pvp_fight_started'),
-            description = string.format('%s vs %s!', pet1.Name, pet2.Name),
-            type = 'inform',
-            duration = 7000
-        })
+        lib.notify({ title = locale('cl_pvp_fight_started'), description = string.format('%s vs %s!', pet1.Name, pet2.Name), type = 'inform', duration = 7000 })
     end
 end)
 
@@ -1162,12 +1063,7 @@ AddEventHandler('hdrp-pets:client:endPvPFightForAll', function(fightId, winnerNa
     local playerCoords = GetEntityCoords(cache.ped)
     if #(playerCoords - fight.coords) < 50.0 then
         local koText = isKO and ' (KO!)' or ''
-        lib.notify({
-            title = locale('cl_pvp_fight_ended'),
-            description = string.format(locale('cl_pvp_winner_announcement'), winnerName, loserName) .. koText,
-            type = 'success',
-            duration = 7000
-        })
+        lib.notify({ title = locale('cl_pvp_fight_ended'), description = string.format(locale('cl_pvp_winner_announcement'), winnerName, loserName) .. koText, type = 'success', duration = 7000 })
     end
 
     -- Cleanup after delay
@@ -1188,16 +1084,9 @@ end)
 RegisterNetEvent('hdrp-pets:client:pvpFightNearby')
 AddEventHandler('hdrp-pets:client:pvpFightNearby', function(fightId, pet1, pet2, owner1Name, owner2Name, coords)
     local myId = GetPlayerServerId(PlayerId())
+    if activePvPFights[fightId] then return end    -- Don't notify the participants
 
-    -- Don't notify the participants
-    if activePvPFights[fightId] then return end
-
-    lib.notify({
-        title = locale('cl_pvp_fight_nearby'),
-        description = string.format(locale('cl_pvp_fight_nearby_desc'), pet1.Name, owner1Name, pet2.Name, owner2Name),
-        type = 'inform',
-        duration = 10000
-    })
+    lib.notify({ title = locale('cl_pvp_fight_nearby'), description = string.format(locale('cl_pvp_fight_nearby_desc'), pet1.Name, owner1Name, pet2.Name, owner2Name), type = 'inform', duration = 10000 })
 
     -- Offer to place spectator bet
     if DogFightConfig.PvP and DogFightConfig.PvP.SpectatorBets and DogFightConfig.PvP.SpectatorBets.Enabled then
@@ -1279,11 +1168,7 @@ end
 -- Betting closed notification
 RegisterNetEvent('hdrp-pets:client:bettingClosed')
 AddEventHandler('hdrp-pets:client:bettingClosed', function(fightId)
-    lib.notify({
-        title = locale('cl_pvp_betting_closed'),
-        description = locale('cl_pvp_betting_closed_desc'),
-        type = 'inform'
-    })
+    lib.notify({ title = locale('cl_pvp_betting_closed'), description = locale('cl_pvp_betting_closed_desc'), type = 'inform' })
 end)
 
 -- Command to open PvP challenge menu directly

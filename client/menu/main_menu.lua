@@ -70,10 +70,6 @@ local function ShowPetMainMenu()
         title = '📋 ' .. locale('cl_menu_my_pets'),
         metadata = {
             {label = locale('cl_pet_menu_total_pets'), value = spawnedCount},
-            -- {label = locale('cl_pet_menu_breed_count'), value = breedCount},
-            -- {label = locale('cl_pet_menu_avg_happiness'), value = avgHappiness .. '%'},
-            -- {label = locale('cl_pet_menu_last_activity'), value = lastActivity},
-            -- {label = locale('cl_pet_menu_favorite_pet'), value = favoritePet or locale('cl_none')},
         },
         arrow = true,
         onSelect = function()
@@ -104,12 +100,7 @@ local function ShowPetMainMenu()
                         local itemName = v
                         local hasItem = RSGCore.Functions.HasItem(itemName, 1)
                         if not hasItem then
-                            lib.notify({ 
-                                title = locale('cl_error_missing_tool'), 
-                                description = string.format(locale('cl_error_need_tool')), -- , RSGCore.SharedItems[itemName].label),
-                                type = 'error',
-                                duration = 5000 
-                            })
+                            lib.notify({ title = locale('cl_error_missing_tool'), description = string.format(locale('cl_error_need_tool')), type = 'error', duration = 5000  })
                             return
                         end
                     end

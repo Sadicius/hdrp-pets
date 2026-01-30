@@ -10,11 +10,6 @@ local ManageSpawn = lib.load('client.stable.utils_spawn')
 ]]
 
 local Actions = {}
-
---[[
-    WANDERING SETTINGS MENU
-    Sub-menú de configuración de wandering
-]]
     
 local function ShowWanderingSettingsMenu(companionid)
     local pet = State.GetPet(companionid)
@@ -26,8 +21,6 @@ local function ShowWanderingSettingsMenu(companionid)
     options[#options + 1] = {
         title = '📊 ' .. locale('cl_wandering_status_title'),
         description = locale('cl_wandering_status_desc'),
-        -- icon = 'fa-solid fa-info-circle',
-        -- disabled = true
     }
     
     -- TOGGLE ENABLED
@@ -45,7 +38,6 @@ local function ShowWanderingSettingsMenu(companionid)
     options[#options + 1] = {
         title = '📏 ' .. locale('cl_wandering_distance'),
         description = locale('cl_wandering_distance_desc'):format(currentDistance),
-        -- icon = 'fa-solid fa-ruler',
         metadata = {
             {label = locale('cl_current_distance'), value = currentDistance .. 'm'}
         },
@@ -94,12 +86,6 @@ function Actions.ShowTab(companionid)
         if canHunt then
             options[#options + 1] = {
                 title = '🦅 ' .. locale('cl_action_hunt'),
-                -- disabled = not canHunt,
-                -- metadata = canHunt and {
-                --     {label = 'XP Reward', value = '+' .. Config.XP.Increase.PerCombat .. ' XP'}
-                -- } or {
-                --     {label = locale('cl_xp_required'), value = Config.XP.Trick.Hunt .. ' ❌'}
-                -- },
                 onSelect = function()
                     if xp < Config.XP.Trick.Hunt then
                         lib.notify({ title = locale('cl_error_xp_needed'):format(Config.XP.Trick.Hunt), type = 'error' })
@@ -120,7 +106,6 @@ function Actions.ShowTab(companionid)
         if canStay then
             options[#options + 1] = {
                 title = '🛑 ' .. locale('cl_action_stay'),
-                -- disabled = not canStay,
                 onSelect = function()
                     if xp < Config.XP.Trick.Stay then
                         lib.notify({ title = locale('cl_error_xp_needed'):format(Config.XP.Trick.Stay), type = 'error' })
@@ -140,7 +125,6 @@ function Actions.ShowTab(companionid)
         if canLay then
             options[#options + 1] = {
                 title = '🦴 ' .. locale('cl_action_lay'),
-                -- disabled = not canLay,
                 onSelect = function()
                     if xp < Config.XP.Trick.Lay then
                         lib.notify({ title = locale('cl_error_xp_needed'):format(Config.XP.Trick.Lay), type = 'error' })
@@ -259,7 +243,6 @@ function Actions.ShowAnimationsMenu(companionid)
     -- Header with progress
     options[#options + 1] = {
         title = '📊 ' .. locale('cl_unlocked') .. ': ' .. unlockedCount .. '/' .. totalCount,
-        -- icon = 'fa-solid fa-info-circle',
         disabled = true
     }
 
@@ -274,9 +257,6 @@ function Actions.ShowAnimationsMenu(companionid)
                         {label = locale('cl_buy_pet_type'), value = anim.label},
                         {label = locale('cl_in'), value = xpNeeded .. ' XP'}
                     },
-                    -- description = anim.label .. ' ' .. locale('cl_in') .. ' ' .. xpNeeded .. ' XP',
-                    -- icon = 'fa-solid fa-arrow-right',
-                    -- disabled = true
                 }
                 break
             end
@@ -285,7 +265,6 @@ function Actions.ShowAnimationsMenu(companionid)
     -- STOP ANIMATION
     options[#options + 1] = {
         title = '✋🏻 ' .. locale('cl_action_anim_stop'),
-        -- icon = 'fa-solid fa-pause',
         onSelect = function()
             State.ClearPetAnimation(companionid)
             lib.showContext('animations_menu')
@@ -300,12 +279,9 @@ function Actions.ShowAnimationsMenu(companionid)
 
         options[#options + 1] = {
             title = icon .. ' ' .. anim.label,
-            -- description = isUnlocked and (locale('cl_xp_required') .. ': ' .. anim.experience .. ' (Need ' .. xpNeeded .. ' more XP)'),
-            -- icon = anim.icon or 'fa-solid fa-box',
             metadata = {
                {label = locale('cl_xp_required'), value = anim.experience .. ' '..icon}
             },
-            -- disabled = not isUnlocked,
             onSelect = function()
                 State.PlayPetAnimation(companionid, anim.dict, anim.dictname, true)
                 lib.showContext('animations_menu')

@@ -224,12 +224,8 @@ AddEventHandler('hdrp-pets:server:registerPetForNpcFight', function(petData, out
         }
     end
     table.insert(petFightQueue, {pet = flatPet, src = src})
-    TriggerClientEvent('ox_lib:notify', src, {
-        title = locale('cl_fight_registed'),
-        description = locale('cl_fight_registed_desc'),
-        type = 'success',
-        duration = 5000
-    })
+    TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_fight_registed'), description = locale('cl_fight_registed_desc'), type = 'success', duration = 5000 })
+
     -- Intentar emparejar si hay alguien en la cola
     if #petFightQueue > 0 then
         local entry = table.remove(petFightQueue, 1)
@@ -252,12 +248,7 @@ RegisterNetEvent('hdrp-pets:server:registerPetForPlayerFight')
 AddEventHandler('hdrp-pets:server:registerPetForPlayerFight', function(petData, outlawstatus)
     local src = source
     table.insert(playerVsPlayerQueue, {pet = petData, src = src})
-    TriggerClientEvent('ox_lib:notify', src, {
-        title = locale('cl_fight_registed'),
-        description = locale('cl_fight_registed_desc'),
-        type = 'success',
-        duration = 5000
-    })
+    TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_fight_registed'), description = locale('cl_fight_registed_desc'), type = 'success', duration = 5000 })
     -- Intentar emparejar si hay dos en la cola
     if #playerVsPlayerQueue >= 2 then
         local entry1 = table.remove(playerVsPlayerQueue, 1)
@@ -292,22 +283,12 @@ AddEventHandler('hdrp-pets:server:placeBet', function(dogName, amount, outlawsta
     if not Player then return end
     
     if amount < DogFightConfig.MinBet or amount > DogFightConfig.MaxBet then
-        TriggerClientEvent('ox_lib:notify', src, {
-            title = locale('cl_bet_invalid'),
-            description = string.format(locale('cl_bet_invalid_desc'), DogFightConfig.MinBet, DogFightConfig.MaxBet),
-            type = 'error',
-            duration = 5000
-        })
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_bet_invalid'), description = string.format(locale('cl_bet_invalid_desc'), DogFightConfig.MinBet, DogFightConfig.MaxBet), type = 'error', duration = 5000 })
         return
     end
     
     if Player.PlayerData.money.cash < amount then
-        TriggerClientEvent('ox_lib:notify', src, {
-            title = locale('cl_bet_insufficient_funds'),
-            description = locale('cl_bet_insufficient_funds_desc'),
-            type = 'error',
-            duration = 5000
-        })
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_bet_insufficient_funds'), description = locale('cl_bet_insufficient_funds_desc'), type = 'error', duration = 5000 })
         return
     end
     
@@ -340,12 +321,7 @@ AddEventHandler('hdrp-pets:server:placeBet', function(dogName, amount, outlawsta
         fightDogs = {dog1 = dog1.Name, dog2 = dog2.Name}
     }
     
-    TriggerClientEvent('ox_lib:notify', src, {
-        title = locale('cl_bet_placed'),
-        description = string.format(locale('cl_bet_placed_desc'), amount, dogName),
-        type = 'success',
-        duration = 5000
-    })
+    TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_bet_placed'), description = string.format(locale('cl_bet_placed_desc'), amount, dogName), type = 'success', duration = 5000 })
     
     local playerPed = GetPlayerPed(src)
     local playerCoords = GetEntityCoords(playerPed)
@@ -531,11 +507,7 @@ AddEventHandler('hdrp-pets:server:sendPvPChallenge', function(targetId, petData,
     -- Validate bet amount if betting is enabled
     if pvpConfig.OwnerBets.Enabled and betAmount > 0 then
         if betAmount < pvpConfig.OwnerBets.MinBet or betAmount > pvpConfig.OwnerBets.MaxBet then
-            TriggerClientEvent('ox_lib:notify', src, {
-                title = locale('cl_bet_invalid'),
-                description = string.format(locale('cl_bet_invalid_desc'), pvpConfig.OwnerBets.MinBet, pvpConfig.OwnerBets.MaxBet),
-                type = 'error'
-            })
+            TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_bet_invalid'), description = string.format(locale('cl_bet_invalid_desc'), pvpConfig.OwnerBets.MinBet, pvpConfig.OwnerBets.MaxBet), type = 'error' })
             return
         end
 
@@ -567,12 +539,7 @@ AddEventHandler('hdrp-pets:server:sendPvPChallenge', function(targetId, petData,
 
     -- Notify the challenger
     local targetName = TargetPlayer.PlayerData.charinfo.firstname .. ' ' .. TargetPlayer.PlayerData.charinfo.lastname
-    TriggerClientEvent('ox_lib:notify', src, {
-        title = locale('cl_pvp_challenge_sent'),
-        description = string.format(locale('cl_pvp_challenge_sent_desc'), targetName),
-        type = 'success',
-        duration = 5000
-    })
+    TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_pvp_challenge_sent'), description = string.format(locale('cl_pvp_challenge_sent_desc'), targetName), type = 'success', duration = 5000 })
 
     -- Auto-expire challenge after timeout
     SetTimeout(pvpConfig.ChallengeTimeout * 1000, function()
@@ -610,11 +577,7 @@ AddEventHandler('hdrp-pets:server:acceptPvPChallenge', function(challengerSrc, d
     -- Validate bet money for defender
     if pvpConfig.OwnerBets.Enabled and betAmount > 0 then
         if Player.PlayerData.money.cash < betAmount then
-            TriggerClientEvent('ox_lib:notify', src, {
-                title = locale('cl_bet_insufficient_funds'),
-                description = string.format(locale('cl_pvp_need_money'), betAmount),
-                type = 'error'
-            })
+            TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_bet_insufficient_funds'), description = string.format(locale('cl_pvp_need_money'), betAmount), type = 'error' })
             return
         end
 
@@ -649,17 +612,9 @@ AddEventHandler('hdrp-pets:server:acceptPvPChallenge', function(challengerSrc, d
     local challengerName = ChallengerPlayer.PlayerData.charinfo.firstname
     local defenderName = Player.PlayerData.charinfo.firstname
 
-    TriggerClientEvent('ox_lib:notify', challengerSrc, {
-        title = locale('cl_pvp_challenge_accepted'),
-        description = string.format(locale('cl_pvp_fight_starting'), defenderName),
-        type = 'success'
-    })
+    TriggerClientEvent('ox_lib:notify', challengerSrc, { title = locale('cl_pvp_challenge_accepted'), description = string.format(locale('cl_pvp_fight_starting'), defenderName), type = 'success' })
 
-    TriggerClientEvent('ox_lib:notify', src, {
-        title = locale('cl_pvp_challenge_accepted'),
-        description = string.format(locale('cl_pvp_fight_starting'), challengerName),
-        type = 'success'
-    })
+    TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_pvp_challenge_accepted'), description = string.format(locale('cl_pvp_fight_starting'), challengerName), type = 'success' })
 
     -- Notify nearby players about the fight
     notifyNearbyPlayersOfFight(fightId, fightCoords, challenge.challengerPet, defenderPetData, challengerName, defenderName)
@@ -706,17 +661,9 @@ AddEventHandler('hdrp-pets:server:declinePvPChallenge', function(challengerSrc)
     local Player = RSGCore.Functions.GetPlayer(src)
     local defenderName = Player and (Player.PlayerData.charinfo.firstname .. ' ' .. Player.PlayerData.charinfo.lastname) or "Unknown"
 
-    TriggerClientEvent('ox_lib:notify', challengerSrc, {
-        title = locale('cl_pvp_challenge_declined'),
-        description = string.format(locale('cl_pvp_declined_by'), defenderName),
-        type = 'error'
-    })
+    TriggerClientEvent('ox_lib:notify', challengerSrc, { title = locale('cl_pvp_challenge_declined'), description = string.format(locale('cl_pvp_declined_by'), defenderName), type = 'error' })
 
-    TriggerClientEvent('ox_lib:notify', src, {
-        title = locale('cl_pvp_challenge_declined'),
-        description = locale('cl_pvp_you_declined'),
-        type = 'inform'
-    })
+    TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_pvp_challenge_declined'), description = locale('cl_pvp_you_declined'), type = 'inform' })
 end)
 
 -- Notify nearby players of a fight
@@ -766,11 +713,7 @@ AddEventHandler('hdrp-pets:server:placeSpectatorBet', function(fightId, betOnOwn
 
     -- Validate amount
     if amount < pvpConfig.SpectatorBets.MinBet or amount > pvpConfig.SpectatorBets.MaxBet then
-        TriggerClientEvent('ox_lib:notify', src, {
-            title = locale('cl_bet_invalid'),
-            description = string.format(locale('cl_bet_invalid_desc'), pvpConfig.SpectatorBets.MinBet, pvpConfig.SpectatorBets.MaxBet),
-            type = 'error'
-        })
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_bet_invalid'), description = string.format(locale('cl_bet_invalid_desc'), pvpConfig.SpectatorBets.MinBet, pvpConfig.SpectatorBets.MaxBet), type = 'error' })
         return
     end
 
@@ -797,11 +740,7 @@ AddEventHandler('hdrp-pets:server:placeSpectatorBet', function(fightId, betOnOwn
     }
 
     local betOnName = betOnOwner == 'challenger' and fight.challengerPet.Name or fight.defenderPet.Name
-    TriggerClientEvent('ox_lib:notify', src, {
-        title = locale('cl_bet_placed'),
-        description = string.format(locale('cl_pvp_spectator_bet_placed'), amount, betOnName),
-        type = 'success'
-    })
+    TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_bet_placed'), description = string.format(locale('cl_pvp_spectator_bet_placed'), amount, betOnName), type = 'success' })
 end)
 
 -- Resolve PvP fight and distribute rewards
@@ -842,18 +781,10 @@ function resolvePvPFight(fightId)
         if WinnerPlayer then
             local winnings = math.floor(fight.betAmount * 2 * pvpConfig.OwnerBets.WinMultiplier)
             WinnerPlayer.Functions.AddMoney('cash', winnings)
-            TriggerClientEvent('ox_lib:notify', winnerSrc, {
-                title = locale('cl_pvp_bet_won'),
-                description = string.format(locale('cl_pvp_won_amount'), winnings),
-                type = 'success'
-            })
+            TriggerClientEvent('ox_lib:notify', winnerSrc, { title = locale('cl_pvp_bet_won'), description = string.format(locale('cl_pvp_won_amount'), winnings), type = 'success' })
         end
 
-        TriggerClientEvent('ox_lib:notify', loserSrc, {
-            title = locale('cl_pvp_bet_lost'),
-            description = string.format(locale('cl_pvp_lost_amount'), fight.betAmount),
-            type = 'error'
-        })
+        TriggerClientEvent('ox_lib:notify', loserSrc, { title = locale('cl_pvp_bet_lost'), description = string.format(locale('cl_pvp_lost_amount'), fight.betAmount), type = 'error' })
     end
 
     -- Distribute spectator bets
@@ -866,17 +797,9 @@ function resolvePvPFight(fightId)
                     if bet.betOnOwner == winnerOwner then
                         local winnings = math.floor(bet.amount * pvpConfig.SpectatorBets.WinMultiplier)
                         SpectatorPlayer.Functions.AddMoney('cash', winnings)
-                        TriggerClientEvent('ox_lib:notify', spectatorSrc, {
-                            title = locale('cl_pvp_spectator_won'),
-                            description = string.format(locale('cl_pvp_won_amount'), winnings),
-                            type = 'success'
-                        })
+                        TriggerClientEvent('ox_lib:notify', spectatorSrc, { title = locale('cl_pvp_spectator_won'), description = string.format(locale('cl_pvp_won_amount'), winnings), type = 'success' })
                     else
-                        TriggerClientEvent('ox_lib:notify', spectatorSrc, {
-                            title = locale('cl_pvp_spectator_lost'),
-                            description = string.format(locale('cl_pvp_lost_amount'), bet.amount),
-                            type = 'error'
-                        })
+                        TriggerClientEvent('ox_lib:notify', spectatorSrc, { title = locale('cl_pvp_spectator_lost'), description = string.format(locale('cl_pvp_lost_amount'), bet.amount), type = 'error' })
                     end
                 end
                 bets[fightId] = nil

@@ -532,4 +532,29 @@ function Database.GetBreedingParents(citizenid)
     return record.parents and json.decode(record.parents) or {}
 end
 
+-- OWNERSHIP VALIDATION --Verify pet ownership
+---@param citizenid string
+---@param companionid string
+---@return boolean isOwner
+function Database.PetOwnership(citizenid, companionid)
+    if not citizenid or not companionid then
+        return false
+    end
+    
+    local result = MySQL.scalar.await(
+        'SELECT COUNT(*) FROM pet_companion WHERE citizenid = ? AND companionid = ?',
+        {citizenid, companionid}
+    )
+    
+    return result and tonumber(result) > 0
+end
+
+-- PRICE VALIDATION --Validate price (prevent negative/exploits)
+---@param price number
+---@return boolean isValid
+function Database.Price(price)
+    return type(price) == "number" and price >= 0 and price <= 999999
+end
+
+
 return Database

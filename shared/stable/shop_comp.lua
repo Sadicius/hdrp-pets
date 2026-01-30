@@ -2,6 +2,7 @@
 lib.locale()
 
 return {
+
     blankets = {
         { hashid = 1, category = "blankets", category_hash = 0x17CEB41A, hash = 0x0FAE487F, label = "Manta Marrón" },
         { hashid = 2, category = "blankets", category_hash = 0x17CEB41A, hash = 0x2286EE30, label = "Manta Azul" },
@@ -31,6 +32,7 @@ return {
         { hashid = 3, category = "stirrups", category_hash = 0xDA6DADCA, hash = 0x75178DD2, label = "Estribo Metálico" },
     },
     neckwear = {
+        --{ hashid = 1, category = "neckwear", category_hash = 0x5FC29285, hash = 0x0FB916B5, label = "Collar" }, -- Default mp_dogcatahoulacur_01_collar_001 
         { hashid = 1, category = "neckwear", category_hash = 0x5FC29285, hash = 0x528685E0, label = "Pañuelo Rojo" },
         { hashid = 2, category = "neckwear", category_hash = 0x5FC29285, hash = 0x602C2127, label = "Pañuelo Azul" },
         { hashid = 3, category = "neckwear", category_hash = 0x5FC29285, hash = 0xA3F217FC, label = "Collar Marrón" },

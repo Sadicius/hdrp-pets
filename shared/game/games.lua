@@ -113,6 +113,41 @@ local Game_race = {
                 { offset = vector3(25, -10, 0) },
                 { offset = vector3(0, 0, 0) },
             }
+        },
+        {
+            Coords = vector3(884.84, -1100.31, 59.35),
+            PromptName = locale('cl_race_start_prompt') or 'Start Race',
+            HoldDuration = 1000,
+            PromptDistance = 3.0,
+            Track = {
+                { offset = vector3(0, 40, 0) },
+                { offset = vector3(30, 60, 0) },
+                { offset = vector3(60, 40, 0) },
+                { offset = vector3(60, 0, 0) },
+                { offset = vector3(30, -20, 0) },
+                { offset = vector3(0, 0, 0) }, -- Vuelta al inicio
+            }
+        },
+        {
+            Coords = vector3(49.92, 900.09, 210.98),
+            PromptName = locale('cl_race_start_prompt') or 'Start Race',
+            HoldDuration = 1000,
+            PromptDistance = 3.0,
+            Track = {
+                { offset = vector3(0, 30, 0) },
+                { offset = vector3(20, 50, 0) },
+                { offset = vector3(40, 30, 0) },
+                { offset = vector3(20, 0, 0) },
+                { offset = vector3(40, -30, 0) },
+                { offset = vector3(20, -50, 0) },
+                { offset = vector3(0, -30, 0) },
+                { offset = vector3(-20, -50, 0) },
+                { offset = vector3(-40, -30, 0) },
+                { offset = vector3(-20, 0, 0) },
+                { offset = vector3(-40, 30, 0) },
+                { offset = vector3(-20, 50, 0) },
+                { offset = vector3(0, 0, 0) },
+            }
         }
     },
 

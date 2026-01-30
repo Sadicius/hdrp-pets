@@ -1,11 +1,7 @@
 local RSGCore = exports['rsg-core']:GetCoreObject()
 lib.locale()
 
--- Load modules
 local Database = lib.load('server.core.database')
-local Validation = lib.load('server.core.validation')
-
--- Load configs
 local PetShopPrice = Config.PetShopPrice
 local gameDigRandomConfig = Config.Games.Gdigrandom
 local gameTreasureConfig = Config.Games.Gtreasure
@@ -19,8 +15,8 @@ RegisterServerEvent('hdrp-pets:server:delete', function(data)
     
     local companionid = data.companionid
     
-    -- Verify ownership using Validation module
-    if not Validation.PetOwnership(Player.PlayerData.citizenid, companionid) then
+    -- Verify ownership using Database module
+    if not Database.PetOwnership(Player.PlayerData.citizenid, companionid) then
         TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_error_not_owner'), type = 'error', duration = 5000 })
         return
     end

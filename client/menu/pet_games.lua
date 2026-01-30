@@ -1,9 +1,4 @@
 --[[
-    HDRP-PETS - PET GAMES TAB
-    Tab de juegos y actividades
-    Versión: 6.0.0
-    
-    Juegos incluídos:
     - Bone Game (XP >= 50 + bone)
     - Bury Bone (XP >= 100 + bone + no buried)
     - Find Buried Bone (XP >= 100 + buried exists)
@@ -26,8 +21,6 @@ function ShowPetGamesTab(companionid)
     if not isPetAlive then
         options[#options + 1] = {
             title = '❌ ' .. locale('cl_error_pet_dead'),
-            -- description = locale('cl_error_pet_dead_desc'),
-            -- icon = 'fa-solid fa-skull',
             disabled = true
         }
     else
@@ -38,9 +31,6 @@ function ShowPetGamesTab(companionid)
         if hunger < 30 or thirst < 30 or happiness < 20 then
             options[#options + 1] = {
                 title = '⚠️ ' .. locale('cl_warning_needs'),
-                -- description = locale('cl_warning_needs_desc'),
-                -- icon = 'fa-solid fa-exclamation-triangle',
-                -- disabled = true,
                 metadata = {
                     {label = locale('cl_stat_hunger'), value = hunger .. '%'},
                     {label = locale('cl_stat_thirst'), value = thirst .. '%'},
@@ -48,19 +38,14 @@ function ShowPetGamesTab(companionid)
                 }
             }
         end
-        
-        -- ========================================
+
         -- GAME 1: BONE GAME (XP >= 50 + bone)
-        -- ========================================
         local canPlayBone = xp >= Config.XP.Trick.Bone
         local hasBone = RSGCore.Functions.HasItem(Config.Items.Bone)
         
         if canPlayBone then
             options[#options + 1] = {
                 title = '🦴 ' .. locale('cl_game_bone'),
-                -- description = canPlayBone and (hasBone and (locale('cl_game_bone_desc') .. ' | +' .. Config.XP.Increase.PerBone .. ' XP') or locale('cl_error_bone_need_item')) or (locale('cl_xp_required') .. ': ' .. Config.XP.Trick.Bone),
-                -- icon = 'fa-solid fa-bone',
-                -- disabled = not (canPlayBone and hasBone),
                 metadata = {
                     {label = locale('cl_xp_required'), value = Config.XP.Trick.Bone .. (canPlayBone and ' ✅' or ' ❌')},
                     {label = locale('cl_item_required'), value = 'bone ' .. (hasBone and '✅' or '❌')},
@@ -75,18 +60,14 @@ function ShowPetGamesTab(companionid)
                 end
             }
         end
-        
-        -- ========================================
+
         -- GAME 2: BURY BONE (XP >= 100 + bone + no buried)
-        -- ========================================
         local canBuryBone = xp >= Config.XP.Trick.BuriedBone
         local isBuriedBone = exports['hdrp-pets']:BuriedBoneCoords()
         
         if canBuryBone then
             options[#options + 1] = {
                 title = '🕳️ ' .. locale('cl_game_buried_bone'),
-                -- description = canBuryBone and (not isBuriedBone and (hasBone and (locale('cl_game_buried_bone_desc') .. ' | +' .. Config.XP.Increase.PerFindBuried .. ' XP') or locale('cl_error_bone_need_item')) or locale('cl_error_bone_already_buried')) or (locale('cl_xp_required') .. ': ' .. Config.XP.Trick.BuriedBone),
-                -- icon = 'fa-solid fa-shovel',
                 disabled = not (canBuryBone and hasBone and not isBuriedBone),
                 metadata = {
                     {label = locale('cl_xp_required'), value = Config.XP.Trick.BuriedBone .. (canBuryBone and ' ✅' or ' ❌')},
@@ -105,14 +86,10 @@ function ShowPetGamesTab(companionid)
                     TriggerEvent('hdrp-pets:client:buryBone')
                 end
             }
-        
-        -- ========================================
+
         -- GAME 3: FIND BURIED BONE (XP >= 100 + buried exists)
-        -- ========================================
             options[#options + 1] = {
                 title = '🔍 ' .. locale('cl_game_find_buried'),
-                -- description = canBuryBone and (isBuriedBone and (locale('cl_game_find_buried_desc') .. ' | +' .. Config.XP.Increase.PerFindBuried .. ' XP') or locale('cl_error_no_buried_bone')) or (locale('cl_xp_required') .. ': ' .. Config.XP.Trick.BuriedBone),
-                -- icon = 'fa-solid fa-search',
                 disabled = not (canBuryBone and isBuriedBone),
                 metadata = {
                     {label = locale('cl_xp_required'), value = Config.XP.Trick.BuriedBone .. (canBuryBone and ' ✅' or ' ❌')},
@@ -127,17 +104,12 @@ function ShowPetGamesTab(companionid)
                 end
             }
         end
-        
-        -- ========================================
+
         -- GAME 4: DIG RANDOM (XP >= 150)
-        -- ========================================
         local canDigRandom = xp >= Config.XP.Trick.digRandom
         if canDigRandom then
             options[#options + 1] = {
                 title = '🎲 ' .. locale('cl_game_dig_random'),
-                -- description = canDigRandom and (locale('cl_game_dig_random_desc') .. ' | +' .. Config.XP.Increase.PerDigRandom .. ' XP') or (locale('cl_xp_required') .. ': ' .. Config.XP.Trick.digRandom),
-                -- icon = 'fa-solid fa-dice',
-                -- disabled = not canDigRandom,
                 metadata = {
                     {label = locale('cl_xp_required'), value = Config.XP.Trick.digRandom .. (canDigRandom and ' ✅' or ' ❌')},
                     {label = 'XP Reward', value = '+' .. Config.XP.Increase.PerDigRandom .. ' XP'},
@@ -149,18 +121,13 @@ function ShowPetGamesTab(companionid)
                 end
             }
         end
-        
-        -- ========================================
+
         -- GAME 5: TREASURE HUNT (XP >= 200 + treasure_map)
-        -- ========================================
         local canTreasureHunt = xp >= Config.XP.Trick.TreasureHunt
         local hasTreasureMap = RSGCore.Functions.HasItem(Config.Items.Treasure)
         if canTreasureHunt then 
             options[#options + 1] = {
                 title = '💎 ' .. locale('cl_game_treasure_hunt'),
-                -- description = canTreasureHunt and (hasTreasureMap and (locale('cl_game_treasure_hunt_desc') .. ' | +' .. Config.XP.Increase.PerTreasure .. ' XP') or locale('cl_error_treasure_hunt_requirement')) or (locale('cl_xp_required') .. ': ' .. Config.XP.Trick.TreasureHunt),
-                -- icon = 'fa-solid fa-gem',
-                -- disabled = not (canTreasureHunt and hasTreasureMap),
                 metadata = {
                     {label = locale('cl_xp_required'), value = Config.XP.Trick.TreasureHunt .. (canTreasureHunt and ' ✅' or ' ❌')},
                     {label = locale('cl_item_required'), value = 'treasure_map ' .. (hasTreasureMap and '✅' or '❌')},

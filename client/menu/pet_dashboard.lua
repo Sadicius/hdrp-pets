@@ -12,10 +12,8 @@ local RSGCore = exports['rsg-core']:GetCoreObject()
 lib.locale()
 
 local State = exports['hdrp-pets']:GetState()
---[[
-    PET DASHBOARD LIST
-    Lista de todas las mascotas activas con metadata
-]]
+
+--[[ PET DASHBOARD LIST ]]
 function ShowPetDashboardList()
     RSGCore.Functions.TriggerCallback('hdrp-pets:server:getactivecompanions', function(activePetsData)
         if not activePetsData or #activePetsData == 0 then
@@ -73,7 +71,6 @@ function ShowPetDashboardList()
             options[#options + 1] = {
                 title = '❌ ' .. locale('cl_error_pet_no_active'),
                 description = locale('cl_error_pet_no_active_desc'),
-                -- icon = 'fa-solid fa-exclamation-circle',
                 disabled = true
             }
         end
@@ -90,36 +87,28 @@ function ShowPetDashboardList()
     end)
 end
 
---[[
-    TRACK MENU
-    Sub-menú de rastreo
-]]
-
+--[[ TRACK MENU ]]
 local function ShowTrackMenu(companionid)
     local pet = State.GetPet(companionid)
     local petPed = pet and pet.ped or nil
     local options = {}
-    
+
     -- TRACK PLAYER
     options[#options + 1] = {
         title = '👤 ' .. locale('cl_track_location'),
-        -- description = locale('cl_track_location_desc'),
-        -- icon = 'fa-solid fa-user',
         onSelect = function()
             TriggerEvent('hdrp-pets:client:showTableSelectionMenu')
         end
     }
-    
+
     -- TRACK ANIMAL
     options[#options + 1] = {
         title = '🦌 ' .. locale('cl_track_animal'),
-        -- description = locale('cl_track_animal_desc'),
-        -- icon = 'fa-solid fa-paw',
         onSelect = function()
             TriggerEvent('hdrp-pets:client:trackClosestAnimal')
         end
     }
-    
+
     lib.registerContext({
         id = 'track_menu',
         title = locale('cl_menu_track'),
@@ -127,14 +116,11 @@ local function ShowTrackMenu(companionid)
         onBack = function() end,
         options = options
     })
-    
+
     lib.showContext('track_menu')
 end
 
---[[
-    PET DASHBOARD
-    Vista consolidada de una mascota específica con 5 tabs
-]]
+--[[ PET DASHBOARD ]]
 function ShowPetDashboard(companionid)
     local pet = State.GetPet(companionid)
     local companionData = pet.data or {}
@@ -244,11 +230,6 @@ function ShowPetDashboard(companionid)
         table.insert(headerMetadata, {label = locale('cl_stat_happiness'), value = happiness .. '%', progress = happiness, colorScheme = happiness < 30 and '#F44336' or '#ffe066'})
         table.insert(headerMetadata, {label = locale('cl_stat_cleanliness'), value = cleanliness .. '%', progress = cleanliness, colorScheme = cleanliness < 30 and '#F44336' or '#b3e6b3'})
         table.insert(headerMetadata, {label = locale('cl_stat_strength'), value = strength .. '%', progress = strength, colorScheme = strength < 30 and '#F44336' or '#b3e6b3'})
-
-        -- table.insert(headerMetadata, {label = locale('cl_last_activity'), value = companionData.lastActivity or 'N/A'})
-        -- table.insert(headerMetadata, {label = locale('cl_last_vet_visit'), value = companionData.lastVetVisit or 'N/A'})
-        
-        -- if companionData.color then table.insert(headerMetadata, {label = locale('cl_stat_color'), value = companionData.color}) end
         table.insert(headerMetadata, {label = '📋 Veterinario', value = ''})
         table.insert(headerMetadata, {label = locale('cl_past_diseases'), value = companionData.pastDiseases and table.concat(companionData.pastDiseases, ', ') or locale('cl_none')})
         local vetStatus = (companionData.hasDisease and 'Enfermo') or (companionData.isVaccinated and 'Vacunado' or 'Sano')
@@ -271,7 +252,6 @@ function ShowPetDashboard(companionid)
     options[#options + 1] = {
         title = 'ID: ' .. petName,
         description = locale('cl_pet_header_desc') .. age .. ' ' .. locale('cl_stat_days'),
-        -- icon = 'fa-solid fa-paw',
         arrow = true,
         onSelect = function()
             local Stats = lib.load('client.menu.pet_stats')
@@ -316,8 +296,6 @@ function ShowPetDashboard(companionid)
 
     options[#options + 1] = {
         title = '🧠 ' .. locale('cl_personality') .. ' ' .. personalityDesc,
-        -- description = personalityDesc,
-        -- icon = 'fa-solid fa-brain',
         colorScheme = '#9C27B0',
         arrow = Config.Reproduction.GenealogyEnabled,
         onSelect = function()
@@ -326,15 +304,12 @@ function ShowPetDashboard(companionid)
                 Breeding.openGenealogyMenu(companionid)
             end
         end,
-        -- disabled = true,
         metadata = {
-            -- {label = locale('cl_current'), value = personality},
             {label = '🐕 ' .. locale('cl_behavior'), value = ''},
             {label = locale('cl_current'), value = personalityDesc},
             {label = locale('cl_achievement_progress'), value = companionData.achievementProgress or '0%'},
             {label = locale('cl_progress'), value = nextpersonalityDesc .. ' ' .. locale('cl_at') .. ' ' .. personalityProgress .. '%' },
             {label = locale('cl_next'), value = (xp >= 1000 and '2000' or '1000') .. ' XP'},
-        
             {label = '⚔️ ' .. locale('cl_combat_stats'), value = ''},
             {label = locale('cl_win_rate'), value = winRate .. '%', progress = winRate, colorScheme = winRate >= 50 and '#4CAF50' or '#F44336'},
             {label = locale('cl_xp_from_combat'), value = '+' .. xpFromCombat .. ' XP'},
@@ -349,8 +324,6 @@ function ShowPetDashboard(companionid)
     
     options[#options + 1] = {
         title = '⚡ ' .. locale('cl_label_actions'),
-        -- description = locale('cl_tab_actions_desc'):format(actionsCount),
-        -- icon = 'fa-solid fa-bolt',
         arrow = true,
         onSelect = function()
             local Actions = lib.load('client.menu.pet_actions')
@@ -369,8 +342,6 @@ function ShowPetDashboard(companionid)
     
     options[#options + 1] = {
         title = '🎮 ' .. locale('cl_tab_games'),
-        -- description = locale('cl_tab_games_desc'):format(unlockedGames, 5),
-        -- icon = 'fa-solid fa-gamepad',
         arrow = true,
         onSelect = function()
             ShowPetGamesTab(companionid)
@@ -398,20 +369,16 @@ function ShowPetDashboard(companionid)
     -- TAB 4: INVENTORY
     options[#options + 1] = {
         title = '🎒 ' .. locale('cl_tab_inventory'),
-        -- description = locale('cl_tab_inventory_desc'),
-        -- icon = 'fa-solid fa-box',
         arrow = true,
         onSelect = function()
             TriggerEvent('hdrp-pets:client:inventoryCompanion', companionid)
         end
     }
 
-    -- TAB 5: ANIMATIONS (XP >= 500)
+    -- TAB 5: ANIMATIONS
     local canAnimate = xp >= Config.XP.Trick.Animations
     options[#options + 1] = {
         title = '🎨 ' .. locale('cl_action_animations'),
-        -- description = canAnimate and locale('cl_action_animations_desc') or locale('cl_xp_required') .. ': ' .. Config.XP.Trick.Animations .. ' (XP: ' .. xp .. ' ❌)',
-        -- icon = 'fa-solid fa-masks-theater',
         disabled = not canAnimate,
         arrow = canAnimate,
         metadata = canAnimate and nil or {
@@ -427,12 +394,10 @@ function ShowPetDashboard(companionid)
         end
     }
     
-    -- TAB 6: ACHIEVEMENTS (if enabled)
+    -- TAB 6: ACHIEVEMENTS
     if Config.XP.Achievements.Enabled then
         options[#options + 1] = {
             title = '🏆 ' .. locale('cl_tab_achievements'),
-            -- description = locale('cl_tab_achievements_desc'),
-            -- icon = 'fa-solid fa-trophy',
             arrow = true,
             onSelect = function()
                 local Achievements = lib.load('client.menu.pet_achievements')
@@ -454,4 +419,3 @@ function ShowPetDashboard(companionid)
     lib.showContext('pet_dashboard')
 
 end
-

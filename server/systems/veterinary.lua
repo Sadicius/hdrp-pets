@@ -3,7 +3,6 @@ lib.locale()
 
 -- Load core modules
 local Database = lib.load('server.core.database')
-local Validation = lib.load('server.core.validation')
 
 -- HELPER FUNCTIONS
 -- Helper: calcula días desde nacimiento hasta evento y desde evento hasta hoy
@@ -116,7 +115,7 @@ RegisterNetEvent('hdrp-pets:server:fullcheckup', function(companionid)
     if not Player then return end
     
     -- Validate ownership
-    if not Validation.PetOwnership(Player.PlayerData.citizenid, companionid) then
+    if not Database.PetOwnership(Player.PlayerData.citizenid, companionid) then
         TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = locale('sv_error_not_owner'), duration = 5000 })
         return
     end
@@ -166,7 +165,7 @@ RegisterNetEvent('hdrp-pets:server:vaccination', function(companionid)
     if not Player then return end
     
     -- Validate ownership
-    if not Validation.PetOwnership(Player.PlayerData.citizenid, companionid) then
+    if not Database.PetOwnership(Player.PlayerData.citizenid, companionid) then
         TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = locale('sv_error_not_owner'), duration = 5000 })
         return
     end
@@ -224,7 +223,7 @@ RegisterNetEvent('hdrp-pets:server:surgery', function(companionid)
     if not Player then return end
     
     -- Validate ownership
-    if not Validation.PetOwnership(Player.PlayerData.citizenid, companionid) then
+    if not Database.PetOwnership(Player.PlayerData.citizenid, companionid) then
         TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = locale('sv_error_not_owner'), duration = 5000 })
         return
     end
@@ -281,7 +280,7 @@ RegisterNetEvent('hdrp-pets:server:sterilization', function(companionid)
 
     if not Player then return end
     -- Validate ownership
-    if not Validation.PetOwnership(Player.PlayerData.citizenid, companionid) then
+    if not Database.PetOwnership(Player.PlayerData.citizenid, companionid) then
         TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = locale('sv_error_not_owner'), duration = 5000 })
         return
     end

@@ -6,12 +6,6 @@ lib.locale()
 
 local State = exports['hdrp-pets']:GetState()
 local Breeding = {}
-
-Breeding.ActivePair = nil
-
--- Submenú: Listar machos viables para selección personalizada
-
--- Estado de selección personalizada
 local selectedMale, selectedFemale = nil, nil
 
 local function openCustomPairingMenu()
@@ -26,12 +20,8 @@ local function openCustomPairingMenu()
         local stats = data and data.stats or {}
         options[#options + 1] = {
             title = locale('cl_breed_selected_male') .. ': ' .. (info.name or selectedMale),
-            -- description = (info.type or '-') .. ' | ' .. (info.model or '-') .. (stats.level and (' | ' .. locale('cl_stat_level') .. ': ' .. stats.level) or ''),
             metadata = {
                 {label = locale('cl_stat_breed'), value = info.type or '-'},
-                -- {label = locale('cl_stat_species'), value = info.model or '-'},
-                -- {label = locale('cl_stat_level'), value = stats.level or '-'},
-                -- {label = locale('cl_stat_bond'), value = data and data.progression and data.progression.bonding or '-'}
             },
             onSelect = function()
                 selectedMale = nil; 
@@ -56,12 +46,8 @@ local function openCustomPairingMenu()
         local stats = data and data.stats or {}
         options[#options + 1] = {
             title = locale('cl_breed_selected_female') .. ': ' .. (info.name or selectedFemale),
-            -- description = (info.type or '-') .. ' | ' .. (info.model or '-') .. (stats.level and (' | ' .. locale('cl_stat_level') .. ': ' .. stats.level) or ''),
             metadata = {
                 {label = locale('cl_stat_breed'), value = info.type or '-'},
-                -- {label = locale('cl_stat_species'), value = info.model or '-'},
-                -- {label = locale('cl_stat_level'), value = stats.level or '-'},
-                -- {label = locale('cl_stat_bond'), value = (data and data.progression and data.progression.bonding) or '-'}
             },
             onSelect = function()
                 selectedFemale = nil; 
@@ -123,12 +109,9 @@ function openSelectGenderMenu(gender)
         if info.gender == gender and vet.breedable == true and not (vet.inbreed or false) and not (vet.breedingcooldown or false) then
             options[#options + 1] = {
                 title = info.name or (locale('cl_pet_id') .. ': ' .. companionid),
-                --description = (info.type or '-') .. ' | ' .. (info.model or '-') .. (stats.level and (' | ' .. locale('cl_stat_level') .. ': ' .. stats.level) or ''),
                 icon = gender == 'male' and 'mars' or 'venus',
                 metadata = {
                     {label = locale('cl_stat_breed'), value = info.type or '-'},
-                    -- {label = locale('cl_stat_species'), value = info.model or '-'},
-                    --{label = locale('cl_stat_level'), value = stats.level or '-'},
                     {label = locale('cl_stat_bond'), value = (data and data.progression and data.progression.bonding) or '-'}
                 },
                 onSelect = function()
@@ -175,7 +158,6 @@ local function openRecommendedPairsMenu()
         options[1] = {
             title = locale('cl_breed_no_pet_available'),
             description = locale('cl_breed_no_pet_available_desc'),
-            -- icon = 'fa-magic',
             disabled = true
         }
         lib.registerContext({
@@ -192,7 +174,6 @@ local function openRecommendedPairsMenu()
             options[1] = {
                 title = locale('cl_breed_no_recommended'),
                 description = locale('cl_breed_no_recommended_desc'),
-                -- icon = 'fa-magic',
                 disabled = true
             }
         else
@@ -206,7 +187,6 @@ local function openRecommendedPairsMenu()
                         {label = locale('cl_stat_breed'), value = partner.breed or '-'},
                         {label = locale('cl_stat_gender'), value = partner.gender or '-'},
                         {label = locale('cl_stat_health'), value = partner.health or '-'},
-                        -- {label = locale('cl_stat_level'), value = partner.level or '-'}
                     },
                     onSelect = function()
                         TriggerServerEvent('hdrp-pets:server:requestbreeding', candidate, partner.id)
@@ -298,7 +278,6 @@ local function openBreedingStatusMenu()
 end
 
 -- Submenú: Historial de reproducción
-
 local function openBreedingHistoryMenu()
     local options = {}
     lib.callback('hdrp-pets:server:getbreedinghistory', false, function(history)
@@ -350,7 +329,6 @@ function Breeding.openBreedMenu()
     options[#options + 1] = {
         title = locale('cl_breed_custom_select'),
         description = locale('cl_breed_custom_select_desc'),
-        -- icon = 'fa-solid fa-user-friends',
         arrow = true,
         onSelect = function()
             openCustomPairingMenu()
@@ -360,7 +338,6 @@ function Breeding.openBreedMenu()
     options[#options + 1] = {
         title = locale('cl_breed_recommended'),
         description = locale('cl_breed_recommended_desc'),
-        -- icon = 'fa-solid fa-magic',
         arrow = true,
         onSelect = function()
             openRecommendedPairsMenu()
@@ -371,7 +348,6 @@ function Breeding.openBreedMenu()
     options[#options + 1] = {
         title = locale('cl_breed_status_progress'),
         description = locale('cl_breed_status_progress_desc'),
-        -- icon = 'fa-solid fa-hourglass-half',
         arrow = true,
         onSelect = function()
             openBreedingStatusMenu()
@@ -381,7 +357,6 @@ function Breeding.openBreedMenu()
     options[#options + 1] = {
         title = locale('cl_breed_history'),
         description = locale('cl_breed_history_desc'),
-        -- icon = 'fa-solid fa-book',
         arrow = true,
         onSelect = function()
             openBreedingHistoryMenu()
@@ -392,7 +367,6 @@ function Breeding.openBreedMenu()
         id = 'breed_menu',
         title = locale('cl_breed_menu_title'),
         options = options,
-        -- menu = 'pet_main_menu',
         onBack = function() end,
     })
 
@@ -403,9 +377,7 @@ RegisterCommand('pet_breed', function()
     Breeding.openBreedMenu()
 end, false)
 
-------------------------------------------
--- mostrar linaje en consola o UI
-------------------------------------------
+--[[ mostrar linaje en consola o UI ]]
 function Breeding.openGenealogyMenu(petId)
     lib.callback('hdrp-pets:server:getgenealogy', petId, function(data)
         local options = {}
@@ -431,12 +403,10 @@ function Breeding.openGenealogyMenu(petId)
                 if not parent then return {} end
                 local meta = {}
                 if parent.breed then table.insert(meta, {label = locale('cl_stat_breed'), value = parent.breed}) end
-                -- if parent.species then table.insert(meta, {label = locale('cl_stat_species'), value = parent.species}) end
-                if parent.level then table.insert(meta, {label = locale('cl_stat_level'), value = parent.level}) end
+                 if parent.level then table.insert(meta, {label = locale('cl_stat_level'), value = parent.level}) end
                 if parent.gender then table.insert(meta, {label = locale('cl_stat_gender'), value = parent.gender == 'female' and '♀️' or '♂️'}) end
                 if parent.hasdisease then table.insert(meta, {label = locale('cl_stat_health'), value = '💀'}) end
                 if parent.bond then table.insert(meta, {label = locale('cl_stat_bond'), value = parent.bond}) end
-                -- if parent.custom_tags then table.insert(meta, {label = 'Tags', value = type(parent.custom_tags)=='table' and table.concat(parent.custom_tags, ', ') or tostring(parent.custom_tags)}) end
                 return meta
             end
 
@@ -458,7 +428,7 @@ function Breeding.openGenealogyMenu(petId)
 
         lib.registerContext({
             id = 'genealogy_pet_menu',
-            title = locale('cl_genealogy_title'), -- locale('cl_genealogy_title'):gsub('%%{pet}', petId),
+            title = locale('cl_genealogy_title'),
             menu = 'pet_dashboard',
             onBack = function() end,
             options = options 

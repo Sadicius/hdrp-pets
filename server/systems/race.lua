@@ -6,13 +6,9 @@ local RSGCore = exports['rsg-core']:GetCoreObject()
 local Database = lib.load('server.core.database')
 local GameConfig = lib.load('shared.game.games')
 local RaceConfig = GameConfig.Gpetracing
-
--- Active races and queues
 local activeRaces = {}
 local pvpRaceQueue = {}
 local spectatorBets = {}
-
--- Racing achievements structure
 local achievementsComp = {
     race = {
         wins = 0,
@@ -24,10 +20,7 @@ local achievementsComp = {
     unlocked = {}
 }
 
--- ============================================
--- UTILITY FUNCTIONS
--- ============================================
-
+--[[ UTILITY FUNCTIONS ]]
 RegisterNetEvent('hdrp-pets:server:startRaceShot', function()
     -- Envía a todos los clientes la orden de iniciar la carrera
     TriggerClientEvent('hdrp-pets:client:triggerRaceShot', -1)
@@ -128,11 +121,7 @@ AddEventHandler('hdrp-pets:server:raceFinished', function(raceType, raceData)
             local xp = awardPetXP(src, raceData.winner, RaceConfig.Solo.XPReward.Winner)
             updateRaceAchievements(raceData.winner, 1, nil, 1)
 
-            TriggerClientEvent('ox_lib:notify', src, {
-                title = locale('sv_race_xp_awarded') or 'XP Awarded',
-                description = string.format('+%d XP', RaceConfig.Solo.XPReward.Winner),
-                type = 'success'
-            })
+            TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_race_xp_awarded') or 'XP Awarded', description = string.format('+%d XP', RaceConfig.Solo.XPReward.Winner), type = 'success' })
         end
 
         -- Award participation XP to others
@@ -167,11 +156,7 @@ AddEventHandler('hdrp-pets:server:raceFinished', function(raceType, raceData)
             -- Award cash prize
             if prize > 0 then
                 Player.Functions.AddMoney('cash', prize)
-                TriggerClientEvent('ox_lib:notify', src, {
-                    title = locale('sv_race_prize') or 'Race Prize',
-                    description = string.format(locale('sv_race_won_prize') or 'Won $%d!', prize),
-                    type = 'success'
-                })
+                TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_race_prize') or 'Race Prize', description = string.format(locale('sv_race_won_prize') or 'Won $%d!', prize), type = 'success' })
             end
         end
     end
@@ -191,18 +176,12 @@ AddEventHandler('hdrp-pets:server:joinPvPRace', function(petId, locationIndex, e
     -- Validate entry fee
     if RaceConfig.PvP.EntryFee.Enabled and entryFee > 0 then
         if entryFee < RaceConfig.PvP.EntryFee.MinFee or entryFee > RaceConfig.PvP.EntryFee.MaxFee then
-            TriggerClientEvent('ox_lib:notify', src, {
-                title = locale('sv_race_invalid_fee') or 'Invalid Fee',
-                type = 'error'
-            })
+            TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_race_invalid_fee') or 'Invalid Fee', type = 'error' })
             return
         end
 
         if Player.PlayerData.money.cash < entryFee then
-            TriggerClientEvent('ox_lib:notify', src, {
-                title = locale('sv_race_insufficient_funds') or 'Insufficient Funds',
-                type = 'error'
-            })
+            TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_race_insufficient_funds') or 'Insufficient Funds', type = 'error' })
             return
         end
 
@@ -212,10 +191,7 @@ AddEventHandler('hdrp-pets:server:joinPvPRace', function(petId, locationIndex, e
     -- Get pet data from database
     local companion = Database.GetCompanionByCompanionId(petId)
     if not companion then
-        TriggerClientEvent('ox_lib:notify', src, {
-            title = locale('sv_race_pet_not_found') or 'Pet Not Found',
-            type = 'error'
-        })
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_race_pet_not_found') or 'Pet Not Found', type = 'error' })
         return
     end
 
@@ -245,10 +221,7 @@ AddEventHandler('hdrp-pets:server:joinPvPRace', function(petId, locationIndex, e
     -- Check if player already in queue
     for _, racer in ipairs(queue.racers) do
         if racer.owner == src then
-            TriggerClientEvent('ox_lib:notify', src, {
-                title = locale('sv_race_already_queued') or 'Already in Queue',
-                type = 'error'
-            })
+            TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_race_already_queued') or 'Already in Queue', type = 'error' })
             -- Refund entry fee
             if entryFee > 0 then
                 Player.Functions.AddMoney('cash', entryFee)
@@ -270,20 +243,12 @@ AddEventHandler('hdrp-pets:server:joinPvPRace', function(petId, locationIndex, e
 
     queue.prizePool = queue.prizePool + entryFee
 
-    TriggerClientEvent('ox_lib:notify', src, {
-        title = locale('sv_race_joined_queue') or 'Joined Race',
-        description = string.format(locale('sv_race_waiting') or 'Waiting for players: %d/%d', #queue.racers, RaceConfig.PvP.MaxPlayers),
-        type = 'success'
-    })
+    TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_race_joined_queue') or 'Joined Race', description = string.format(locale('sv_race_waiting') or 'Waiting for players: %d/%d', #queue.racers, RaceConfig.PvP.MaxPlayers), type = 'success' })
 
     -- Notify other players in queue
     for _, racer in ipairs(queue.racers) do
         if racer.owner ~= src then
-            TriggerClientEvent('ox_lib:notify', racer.owner, {
-                title = locale('sv_race_player_joined') or 'Player Joined',
-                description = string.format('%s joined the race!', Player.PlayerData.charinfo.firstname),
-                type = 'inform'
-            })
+            TriggerClientEvent('ox_lib:notify', racer.owner, { title = locale('sv_race_player_joined') or 'Player Joined', description = string.format('%s joined the race!', Player.PlayerData.charinfo.firstname), type = 'inform' })
         end
     end
 
@@ -298,11 +263,7 @@ AddEventHandler('hdrp-pets:server:joinPvPRace', function(petId, locationIndex, e
 
         -- Notify all players
         for _, racer in ipairs(queue.racers) do
-            TriggerClientEvent('ox_lib:notify', racer.owner, {
-                title = locale('sv_race_starting_soon') or 'Race Starting',
-                description = locale('sv_race_starts_in_10') or 'Race starts in 10 seconds!',
-                type = 'inform'
-            })
+            TriggerClientEvent('ox_lib:notify', racer.owner, { title = locale('sv_race_starting_soon') or 'Race Starting', description = locale('sv_race_starts_in_10') or 'Race starts in 10 seconds!', type = 'inform' })
         end
     end
 
@@ -315,11 +276,7 @@ AddEventHandler('hdrp-pets:server:joinPvPRace', function(petId, locationIndex, e
                 if RacerPlayer and pvpRaceQueue[queueKey].entryFee > 0 then
                     RacerPlayer.Functions.AddMoney('cash', pvpRaceQueue[queueKey].entryFee)
                 end
-                TriggerClientEvent('ox_lib:notify', racer.owner, {
-                    title = locale('sv_race_cancelled') or 'Race Cancelled',
-                    description = locale('sv_race_not_enough_players') or 'Not enough players',
-                    type = 'error'
-                })
+                TriggerClientEvent('ox_lib:notify', racer.owner, { title = locale('sv_race_cancelled') or 'Race Cancelled', description = locale('sv_race_not_enough_players') or 'Not enough players', type = 'error' })
             end
             pvpRaceQueue[queueKey] = nil
         end
@@ -466,11 +423,7 @@ function EndPvPRace(raceId)
             updateRaceAchievements(result.petId, i, result.finishTime, #race.racers)
 
             -- Notify player
-            TriggerClientEvent('ox_lib:notify', result.owner, {
-                title = string.format(locale('sv_race_position') or 'Position: %d', i),
-                description = prize > 0 and string.format(locale('sv_race_won_prize') or 'Won $%d!', prize) or '+' .. xpReward .. ' XP',
-                type = i <= 3 and 'success' or 'inform'
-            })
+            TriggerClientEvent('ox_lib:notify', result.owner, { title = string.format(locale('sv_race_position') or 'Position: %d', i), description = prize > 0 and string.format(locale('sv_race_won_prize') or 'Won $%d!', prize) or '+' .. xpReward .. ' XP', type = i <= 3 and 'success' or 'inform' })
         end
     end
 
@@ -531,11 +484,7 @@ AddEventHandler('hdrp-pets:server:placeRaceSpectatorBet', function(raceId, betOn
     -- Validate amount
     local betConfig = RaceConfig.PvP.SpectatorBets
     if amount < betConfig.MinBet or amount > betConfig.MaxBet then
-        TriggerClientEvent('ox_lib:notify', src, {
-            title = locale('sv_race_invalid_bet') or 'Invalid Bet',
-            description = string.format('Min: $%d, Max: $%d', betConfig.MinBet, betConfig.MaxBet),
-            type = 'error'
-        })
+        TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_race_invalid_bet') or 'Invalid Bet', description = string.format('Min: $%d, Max: $%d', betConfig.MinBet, betConfig.MaxBet), type = 'error' })
         return
     end
 
@@ -568,11 +517,7 @@ AddEventHandler('hdrp-pets:server:placeRaceSpectatorBet', function(raceId, betOn
         betOnOwner = betOnOwner
     }
 
-    TriggerClientEvent('ox_lib:notify', src, {
-        title = locale('sv_race_bet_placed') or 'Bet Placed',
-        description = string.format('$%d', amount),
-        type = 'success'
-    })
+    TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_race_bet_placed') or 'Bet Placed', description = string.format('$%d', amount), type = 'success' })
 end)
 
 -- Distribute spectator bets after race
@@ -590,17 +535,9 @@ function distributeSpectatorBets(raceId, results)
                 if bet.betOnOwner == winner.owner then
                     local winnings = math.floor(bet.amount * betConfig.WinMultiplier)
                     SpectatorPlayer.Functions.AddMoney('cash', winnings)
-                    TriggerClientEvent('ox_lib:notify', spectatorSrc, {
-                        title = locale('sv_race_bet_won') or 'Bet Won!',
-                        description = string.format('+$%d', winnings),
-                        type = 'success'
-                    })
+                    TriggerClientEvent('ox_lib:notify', spectatorSrc, { title = locale('sv_race_bet_won') or 'Bet Won!', description = string.format('+$%d', winnings), type = 'success' })
                 else
-                    TriggerClientEvent('ox_lib:notify', spectatorSrc, {
-                        title = locale('sv_race_bet_lost') or 'Bet Lost',
-                        description = string.format('-$%d', bet.amount),
-                        type = 'error'
-                    })
+                    TriggerClientEvent('ox_lib:notify', spectatorSrc, { title = locale('sv_race_bet_lost') or 'Bet Lost', description = string.format('-$%d', bet.amount), type = 'error' })
                 end
             end
             bets[raceId] = nil
@@ -641,12 +578,7 @@ RegisterCommand('pet_race_ranking', function(src)
         if i >= 10 then break end
     end
 
-    TriggerClientEvent('ox_lib:notify', src, {
-        title = locale('sv_race_ranking') or 'Race Ranking',
-        description = msg,
-        type = 'inform',
-        duration = 15000
-    })
+    TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_race_ranking') or 'Race Ranking', description = msg, type = 'inform', duration = 15000 })
 end, false)
 
 -- ============================================
