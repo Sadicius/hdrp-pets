@@ -1,61 +1,4 @@
---[[
-    HDRP-PETS CONFIGURATION - SYSTEMS
-    Configuración de todos los sistemas del mod
-    Versión: 5.7.0
-]]
-
 return {
-    AutomaticDecay = {    -- AUTOMATIC DECAY SYSTEM
-        Enabled = false,
-        CronJob = '*/15 * * * *',  -- Every 15 minutes
-        DecayRates = {
-            Hunger = 5,       -- Per cycle
-            Thirst = 5,       -- Per cycle
-            Cleanliness = 3,  -- Per cycle
-            Strength = 2      -- Per cycle (if neglected)
-        },
-        HealthConsequences = {
-            CriticalHunger = 30,      -- If hunger < 30, health -2 per cycle
-            CriticalThirst = 30,      -- If thirst < 30, health -2 per cycle
-            CriticalCleanliness = 20  -- If cleanliness < 20, health -1 per cycle
-        },
-        HealthRegeneration = {
-            RequiredHunger = 80,  -- Minimum for regeneration
-            RequiredThirst = 80,
-            RegenAmount = 3       -- Health regenerated per cycle
-        }
-    },
-
-    Lifecycle = {    -- LIFECYCLE SYSTEM
-        Enabled = true,  -- Toggle lifecycle system
-        PetStages = {
-            Baby = {
-                ageMin = 0,
-                ageMax = 7,
-                xpMultiplier = 1.5,
-                healthMultiplier = 0.5
-            },
-            Young = {
-                ageMin = 8,
-                ageMax = 30,
-                xpMultiplier = 1.2,
-                healthMultiplier = 0.8
-            },
-            Adult = {
-                ageMin = 31,
-                ageMax = 90,
-                xpMultiplier = 1.0,
-                healthMultiplier = 1.0
-            },
-            Senior = {
-                ageMin = 91,
-                ageMax = 180,
-                xpMultiplier = 0.8,
-                healthMultiplier = 0.9
-            }
-        },
-        MaxAge = 180,  -- Days before natural death
-    },
 
     Ambient = {
         ObjectAction = true,
@@ -174,22 +117,4 @@ return {
             }
         }
     },
-
-    Statistics = {    -- STATISTICS SYSTEM
-        TrackActivity = true,
-        Activities = {
-            'fed', 'drank', 'groomed', 'played', 'trained',
-            'hunted', 'attacked', 'tracked', 'generated_resources'
-        },
-        CompetitiveStats = {
-            Enabled = true,
-            TrackInDatabase = true,
-            Categories = {
-                'totalHunted',
-                'totalXP',
-                'longestLived',
-                'mostFed'
-            }
-        }
-    }
 }

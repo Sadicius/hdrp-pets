@@ -150,6 +150,7 @@ function MakeDogsFight(ped1, ped2, dog1, dog2)
     TaskCombatPed(ped2, ped1, 0, 16)
    
     CreateThread(function()
+        if not DogFightConfig.Enabled then return end
         local fightStartTime = GetGameTimer()
         local lastTaskRefresh = 0
         local noAttackTime = 0
@@ -268,7 +269,7 @@ AddEventHandler('hdrp-pets:client:openBettingMenu', function()
     end
 
     local options = {}
-    if Config.EnabledBetsFight then
+    if DogFightConfig.Enabled then
         options[#options + 1] = {
             title = locale('cl_bet'),
             -- description = locale('cl_bet_desc'),
@@ -641,6 +642,7 @@ end)
 
 -- Request active fights on load
 CreateThread(function()
+    if not DogFightConfig.Enabled then return end
     Wait(2000)
     TriggerServerEvent('hdrp-pets:server:requestActiveFights')
 end)
@@ -768,17 +770,18 @@ local SpawnedBlips = {}
 
 -- Prompt Handling Thread
 CreateThread(function()
+    if not DogFightConfig.Enabled then return end
     for i, loc in pairs(DogFightConfig.Location) do
-        local prompt, group = CreateDogFightPrompt(loc.PromptName, loc.PromptKey, loc.HoldDuration)
+        local prompt, group = CreateDogFightPrompt(loc.PromptName, Config.KeyBind, loc.HoldDuration)
         DogFightPrompts[i] = prompt
         PromptGroups[i] = group
 
-        if loc.ShowBlip then
+        if Config.Blip.Fight.ShowBlip then
             local blip = Citizen.InvokeNative(0x554D9D53F696D002, 1664425300, loc.Coords.x, loc.Coords.y, loc.Coords.z)
-            SetBlipSprite(blip, loc.Blip.blipSprite, true)
-            SetBlipScale(blip, loc.Blip.blipScale)
-            Citizen.InvokeNative(0x9CB1A1623062F402, blip, loc.Blip.blipName)
-            Citizen.InvokeNative(0x662D364ABF16DE2F, blip, GetHashKey("BLIP_MODIFIER_MP_COLOR_32"))
+            SetBlipSprite(blip, Config.Blip.Fight.blipSprite, true)
+            SetBlipScale(blip, Config.Blip.Fight.blipScale)
+            Citizen.InvokeNative(0x9CB1A1623062F402, blip, Config.Blip.Fight.blipName)
+            Citizen.InvokeNative(0x662D364ABF16DE2F, blip, Config.Blip.ColorModifier)
             Citizen.InvokeNative(0x9029B2F3DA924928, blip, true)
             table.insert(SpawnedBlips, blip)
         end
@@ -786,6 +789,7 @@ CreateThread(function()
 end)
 
 CreateThread(function()
+    if not DogFightConfig.Enabled then return end
     while true do
         Wait(1)
         local playerPed = PlayerPedId()
@@ -846,11 +850,13 @@ AddEventHandler('hdrp-pets:client:updateCombatAchievements', function(petId, ach
 end)
 
 RegisterCommand('pet_fight', function()
+    if not DogFightConfig.Enabled then return end
     TriggerEvent('hdrp-pets:client:openBettingMenu')
 end)
 
 -- Cooldown Timer Thread
 CreateThread(function()
+    if not DogFightConfig.Enabled then return end
     while true do
         Wait(1000)
         if recentlyFought > 0 then

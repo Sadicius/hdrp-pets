@@ -62,9 +62,9 @@ local function SpawnCheckpointMarkers(checkpoints)
     for i, coords in ipairs(checkpoints) do
         -- Create blip
         local blip = Citizen.InvokeNative(0x554D9D53F696D002, 1664425300, coords.x, coords.y, coords.z)
-        SetBlipSprite(blip, RaceConfig.CheckpointBlipSprite, true)
-        SetBlipScale(blip, 0.6)
-        Citizen.InvokeNative(0x9CB1A1623062F402, blip, "Checkpoint " .. i)
+        SetBlipSprite(blip, Config.Blip.RaceCheckPoints.blipSprite, true)
+        SetBlipScale(blip, Config.Blip.RaceCheckPoints.blipScale)
+        Citizen.InvokeNative(0x9CB1A1623062F402, blip, Config.Blip.RaceCheckPoints.blipName .. i)
         table.insert(checkpointBlips, blip)
 
         -- Create prop (optional visual marker)
@@ -193,7 +193,7 @@ local isTriggered = false
 -- Detectar disparo para iniciar la carrera y avisar al server
 CreateThread(function()
     while true do
-        Wait(0)
+        Wait(1)
         -- Detectar si el jugador presiona la tecla de disparo (mouse izquierdo) mientras mantiene presionada la tecla Shift izquierda
         if IsControlJustReleased(0, 0xD8F73058) and IsControlPressed(0, 0xF84FA74F) then
             isTriggered = true
@@ -1043,16 +1043,16 @@ end
 -- Create prompts and blips for race locations
 CreateThread(function()
     for i, loc in pairs(RaceConfig.Location) do
-        local prompt, group = CreateRacePrompt(loc.PromptName, loc.PromptKey, loc.HoldDuration)
+        local prompt, group = CreateRacePrompt(loc.PromptName, Config.KeyBind, loc.HoldDuration)
         RacePrompts[i] = prompt
         RacePromptGroups[i] = group
 
-        if loc.ShowBlip then
+        if Config.Blip.Race.ShowBlip then
             local blip = Citizen.InvokeNative(0x554D9D53F696D002, 1664425300, loc.Coords.x, loc.Coords.y, loc.Coords.z)
-            SetBlipSprite(blip, loc.Blip.blipSprite, true)
-            SetBlipScale(blip, loc.Blip.blipScale)
-            Citizen.InvokeNative(0x9CB1A1623062F402, blip, loc.Blip.blipName)
-            Citizen.InvokeNative(0x662D364ABF16DE2F, blip, GetHashKey("BLIP_MODIFIER_MP_COLOR_32"))
+            SetBlipSprite(blip, Config.Blip.Race.blipSprite, true)
+            SetBlipScale(blip, Config.Blip.Race.blipScale)
+            Citizen.InvokeNative(0x9CB1A1623062F402, blip, Config.Blip.Race.blipName)
+            Citizen.InvokeNative(0x662D364ABF16DE2F, blip, Config.Blip.ColorModifier)
             Citizen.InvokeNative(0x9029B2F3DA924928, blip, true)
             table.insert(RaceBlips, blip)
         end

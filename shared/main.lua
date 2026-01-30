@@ -5,8 +5,6 @@ Config.Debug = true
 -- GENERAL SETTINGS
 Config.EnableTarget = true       -- toggle between target and prompt
 Config.EnablePrompts = true      -- enable prompts
-
-Config.EnabledBetsFight = true  -- enable betting system for dog fights
 Config.EnableBuyPetMenu = true   -- enable buy pet option in stable menu (alternative to target system)
 
 -- STABLE SETTINGS
@@ -21,14 +19,14 @@ Config.MaxCallDistance = 50.0     -- Max distance to "move" vs "spawn"
     
 -- ITEMS
 Config.Items = {
-    Bone = 'pet_bone',
-    Brush = 'pet_brush',
-    Stimulant = 'pet_stimulant',
-    Revive = 'pet_reviver',
-    Food = 'pet_feed',
-    Drink = 'pet_water',
-    Happy = 'sugarcube',
-    Treasure = 'shovel'
+    Bone        = 'pet_bone',
+    Brush       = 'pet_brush',
+    Stimulant   = 'pet_stimulant',
+    Revive      = 'pet_reviver',
+    Food        = 'pet_feed',
+    Drink       = 'pet_water',
+    Happy       = 'sugarcube',
+    Treasure    = 'shovel'
 }
 
 -- PROMPTS / KEYBINDS
@@ -93,23 +91,22 @@ Config.TablesTrack = lib.load('shared.game.tracking') -- Load tracking configura
 Config.Animations = lib.load('shared.game.animations') -- Load animations configuration
 Config.XP = lib.load('shared.game.xp') -- Load XP system configuration
 
-Config.PetAttributes = lib.load('shared.config.attributes') -- Load pet attributes configuration
+local Attributes = lib.load('shared.config.attributes')
+Config.PetAttributes = Attributes -- Load pet attributes configuration
+Config.AutoDecay = Attributes.AutomaticDecay
+Config.Lifecycle = Attributes.Lifecycle
 Config.Blip = lib.load('shared.config.blips') -- Load blip configuration
 
--- FIX v5.8.51+: Load consumables configuration (was missing)
 local Consumables = lib.load('shared.config.consumables')
 Config.PetFeed = Consumables.Items
 Config.DistanceFeed = Consumables.DistanceFeed
 Config.Consumables = Consumables.DefaultValues
 
 local Systems = lib.load('shared.config.systems') -- Load systems configuration
-Config.AutoDecay = Systems.AutomaticDecay
-Config.Lifecycle = Systems.Lifecycle
 Config.Ambient = Systems.Ambient
 Config.Herding = Systems.Herding
 Config.Wandering = Systems.Wandering
 Config.Reproduction = Systems.Reproduction
 Config.Veterinary = Systems.Veterinary
-Config.PetStatistics = Systems.Statistics
 
 return Config

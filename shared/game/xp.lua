@@ -8,47 +8,47 @@ lib.locale()
 return {
     Trick = { -- xp required to unlock tricks
         -- animations
-        Stay = 0, -- 50,
-        Lay = 0, -- 105,
-        Animations = 0, -- 500,
-        Follow = 0, -- 75, -- XP necesario para que la mascota siga de forma continua
+        Stay = 50,
+        Lay = 105,
+        Animations = 500,
+        Follow = 75, -- XP necesario para que la mascota siga de forma continua
         -- games
-        Bone = 0, --50,
-        Hunt = 0, --150,
-        BuriedBone = 0, -- 100,
-        digRandom = 0, -- 150,
-        TreasureHunt = 0, -- 200,
+        Bone = 50,
+        Hunt = 150,
+        BuriedBone = 100,
+        digRandom = 150,
+        TreasureHunt = 200,
         -- attacker
-        Track = 0, -- 250,
-        HuntAnimals = 0, -- 100,
-        Attack = 0, -- 500,
-        SearchData = 0, -- 500,
+        Track = 250,
+        HuntAnimals = 100,
+        Attack = 500,
+        SearchData = 500,
         -- fighting
-        pet_vs_npc = 0, -- 500,
-        pet_vs_player = 0, -- 750,
-        own_pets = 0, -- 50,
+        pet_vs_npc = 500,
+        pet_vs_player = 750,
+        own_pets = 50,
         -- formations
         formationExpLimits = {
             formation_line = 0,
             formation_column = 0,
-            formation_diamond = 0, -- 100,
-            formation_escalonada = 0, -- 50,
-            formation_peloton = 0, -- 120,
-            formation_square = 0, -- 80,
+            formation_diamond = 100,
+            formation_escalonada = 50,
+            formation_peloton = 120,
+            formation_square = 80,
             formation_dispersed = 0,
-            formation_zigzag = 0, -- 40,
-            formation_doublezigzag = 0, -- 60,
-            formation_stair = 0, -- 30,
-            formation_spiral = 0, -- 100,
-            formation_snail = 0, -- 120,
-            formation_wave = 0, -- 80,
-            formation_star = 0, -- 150,
-            formation_heart = 0, -- 200,
-            formation_s = 0, -- 100,
-            formation_h = 0, -- 150,
-            formation_v = 0, -- 30,
-            formation_circle = 0, -- 40,
-            formation_arc = 0 -- 40,
+            formation_zigzag = 40,
+            formation_doublezigzag = 60,
+            formation_stair = 30,
+            formation_spiral = 100,
+            formation_snail = 120,
+            formation_wave = 80,
+            formation_star = 150,
+            formation_heart = 200,
+            formation_s = 100,
+            formation_h = 450,
+            formation_v = 150,
+            formation_circle = 600,
+            formation_arc = 400
         }
     },
     
@@ -169,23 +169,4 @@ return {
         }
     },
 
-    -- PARTY XP SHARING (Cooperative Activities)
-    PartyXPSharing = {
-        Enabled = true,
-        -- Activities that share XP among all active pets
-        CooperativeActivities = {
-            'hostile',  -- Combat vs NPCs
-            'bandit'    -- Combat vs humans
-        },
-        -- Activities that give XP to specific pet only
-        IndividualActivities = {
-            'dig_random',
-            'find_buried',
-            'treasure',
-            'feed',
-            'drink',
-            'clean'
-        },
-        ShareMultiplier = 1.0  -- 1.0 = full XP to all, 0.5 = half XP to all
-    }
 }

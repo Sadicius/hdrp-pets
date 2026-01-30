@@ -1,8 +1,4 @@
 --[[
-    HDRP-PETS ANIMATIONS CONFIGURATION
-    Separated from: shared/extra.lua (v5.8.0+)
-    Updated: v5.8.1+ - Removed WaterTypes (moved to water_types.lua)
-    
     Contains:
     - Pet animations with experience requirements
     - type: 'canis', 'felis', 'bird', 'wild', 'reptilia', 'fish'

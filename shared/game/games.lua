@@ -1,17 +1,3 @@
---[[
-    HDRP-PETS GAMES CONFIGURATION
-    Separated from: shared/games.lua (v5.8.0+)
-    Updated: v5.8.1+ - Removed Ranimals (moved to retrievable_animals.lua)
-    
-    Contains:
-    - Bone game settings
-    - Buried bone settings
-    - Dig random rewards
-    - Treasure hunt configuration
-    - Hostile encounters
-    - Bandit encounters
-]]
-
 lib.locale()
 
 -------------------------
@@ -78,68 +64,6 @@ local Game_treasure = {
     }
 }
 
--- HOSTILE ENCOUNTERS
-local Game_hostile = {
-    SpawnDistance = 10.0,
-    DespawnDistance = 100.0,
-
-    Chance = 15,     -- treasure.lua
-
-    Animals = {
-        -- chance: Peso para la probabilidad (cuanto más alto, más común)
-        { model = 'A_C_Wolf_Small', label = locale('enemy_wolf_pack'), health = 120, chance = 40, isPack = true, min = 2, max = 5 },
-        { model = 'a_c_wolf_medium', label = locale('enemy_wolf_pack'), health = 200, chance = 40, isPack = true, min = 2, max = 3 },
-        { model = 'A_C_Cougar_01', label = locale('enemy_cougar'), health = 300, chance = 25, isPack = true, min = 1, max = 2 },
-        { model = 'A_C_Boar_01', label = locale('enemy_boar_rabid'), health = 150, chance = 20, isPack = true, min = 2, max = 4 },
-        { model = 'a_c_snakeblacktailrattle_01', label = locale('enemy_snake'), health = 20, chance = 10, isPack = true, min = 2, max = 4 },
-        { model = 'A_C_Bear_01', label = locale('enemy_bear'), health = 450, chance = 15, isPack = false },
-        { model = 'A_C_BearBlack_01', label = locale('enemy_bear'), health = 300, chance = 50, isPack = false },
-        { model = 'A_C_Panther_01', label = locale('enemy_panther'), health = 300, chance = 50, isPack = false },
-        { model = 'a_c_lionmangy_01', label = locale('enemy_lion'), health = 300, chance = 50, isPack = false },
-    }
-}
-
-local Game_bandit = {
-    SpawnDistance = 25.0,
-    DespawnDistance = 150.0,
-    Chance = 20, 
-
-    WeaponPool = {
-        `WEAPON_REVOLVER_CATTLEMAN`,
-        `WEAPON_REVOLVER_SCHOFIELD`,
-        `WEAPON_REPEATER_CARBINE`,
-        `WEAPON_SHOTGUN_SAWEDOFF`,
-
-        `weapon_melee_knife`,
-        `weapon_melee_machete`,
-        `weapon_melee_hatchet`,
-        `weapon_melee_cleaver`,
-        `weapon_bow`,
-        `weapon_bow_improved`,
-    },
-
-    Enemies = {
-        { 
-            label = locale('enemy_odriscolls'), 
-            chance = 40, 
-            isPack = true, min = 2, max = 8,
-            models = { `g_m_m_uniduster_01`, `g_m_m_uniduster_02`, `g_m_m_uniduster_03` }
-        },
-        { 
-            label = locale('enemy_rustlers'), 
-            chance = 30, 
-            isPack = true, min = 3, max = 5,
-            models = { `u_m_m_bountytarget_01`, `u_m_m_bountytarget_02`, `u_m_m_bountytarget_03` }
-        },
-        { 
-            label = locale('enemy_lone_bandit'), 
-            chance = 30, 
-            isPack = false,
-            models = { `g_m_m_unicriminals_01`, `g_m_m_unicriminals_02` }
-        },
-    }
-}
-
 -- PET RACING SYSTEM
 -- Three race modes:
 -- 1. Solo Race: Player's own pets race against each other
@@ -150,12 +74,11 @@ local Game_race = {
     MinBet = 10,
     MaxBet = 1000,
     RaceCooldown = 120,         -- Cooldown between races (seconds)
-    CountdownTime = 5,          -- Countdown before race starts (seconds)
+    CountdownTime = 10,          -- Countdown before race starts (seconds)
     MaxRaceTime = 120,          -- Maximum race duration (seconds)
 
     -- Checkpoint settings
     CheckpointModel = `mp001_s_mp_racecheckflag01x`,  -- Flag model for checkpoints
-    CheckpointBlipSprite = -1018164873, -- Blip sprite for checkpoints
     CheckpointRadius = 3.0,      -- Radius to trigger checkpoint
 
     -- Race track locations
@@ -163,11 +86,8 @@ local Game_race = {
         {
             Coords = vector3(606.10, -221.13, 146.26),
             PromptName = locale('cl_race_start_prompt') or 'Start Race',
-            PromptKey = "J",
             HoldDuration = 1000,
             PromptDistance = 3.0,
-            ShowBlip = true,
-            Blip = { blipSprite = -1018164873, blipScale = 0.8, blipName = locale('cl_race_blip') or 'Pet Racing' },
             -- Race track checkpoints (relative offsets from start)
             Track = {
                 { offset = vector3(0, 20, 0) },
@@ -182,11 +102,8 @@ local Game_race = {
         {
             Coords = vector3(-1447.27, -1158.45, 74.10),
             PromptName = locale('cl_race_start_prompt') or 'Start Race',
-            PromptKey = "J",
             HoldDuration = 1000,
             PromptDistance = 3.0,
-            ShowBlip = true,
-            Blip = { blipSprite = -1018164873, blipScale = 0.8, blipName = locale('cl_race_blip') or 'Pet Racing' },
             Track = {
                 { offset = vector3(0, 25, 0) },
                 { offset = vector3(20, 45, 0) },
@@ -282,14 +199,88 @@ local Game_race = {
     OutlawStatusAdd = 2,
 }
 
+-- HOSTILE ENCOUNTERS
+local Game_hostile = {
+    SpawnDistance = 10.0,
+    DespawnDistance = 100.0,
+
+    Chance = 15,     -- treasure.lua
+
+    Animals = {
+        -- chance: Peso para la probabilidad (cuanto más alto, más común)
+        { model = 'A_C_Wolf_Small', label = locale('enemy_wolf_pack'), health = 120, chance = 40, isPack = true, min = 2, max = 5 },
+        { model = 'a_c_wolf_medium', label = locale('enemy_wolf_pack'), health = 200, chance = 40, isPack = true, min = 2, max = 3 },
+        { model = 'A_C_Cougar_01', label = locale('enemy_cougar'), health = 300, chance = 25, isPack = true, min = 1, max = 2 },
+        { model = 'A_C_Boar_01', label = locale('enemy_boar_rabid'), health = 150, chance = 20, isPack = true, min = 2, max = 4 },
+        { model = 'a_c_snakeblacktailrattle_01', label = locale('enemy_snake'), health = 20, chance = 10, isPack = true, min = 2, max = 4 },
+        { model = 'A_C_Bear_01', label = locale('enemy_bear'), health = 450, chance = 15, isPack = false },
+        { model = 'A_C_BearBlack_01', label = locale('enemy_bear'), health = 300, chance = 50, isPack = false },
+        { model = 'A_C_Panther_01', label = locale('enemy_panther'), health = 300, chance = 50, isPack = false },
+        { model = 'a_c_lionmangy_01', label = locale('enemy_lion'), health = 300, chance = 50, isPack = false },
+    }
+}
+
+local Game_bandit = {
+    SpawnDistance = 25.0,
+    DespawnDistance = 150.0,
+    Chance = 20, 
+
+    WeaponPool = {
+        `WEAPON_REVOLVER_CATTLEMAN`,
+        `WEAPON_REVOLVER_SCHOFIELD`,
+        `WEAPON_REPEATER_CARBINE`,
+        `WEAPON_SHOTGUN_SAWEDOFF`,
+
+        `weapon_melee_knife`,
+        `weapon_melee_machete`,
+        `weapon_melee_hatchet`,
+        `weapon_melee_cleaver`,
+        `weapon_bow`,
+        `weapon_bow_improved`,
+    },
+
+    Enemies = {
+        { 
+            label = locale('enemy_odriscolls'), 
+            chance = 40, 
+            isPack = true, min = 2, max = 8,
+            models = { `g_m_m_uniduster_01`, `g_m_m_uniduster_02`, `g_m_m_uniduster_03` }
+        },
+        { 
+            label = locale('enemy_rustlers'), 
+            chance = 30, 
+            isPack = true, min = 3, max = 5,
+            models = { `u_m_m_bountytarget_01`, `u_m_m_bountytarget_02`, `u_m_m_bountytarget_03` }
+        },
+        { 
+            label = locale('enemy_lone_bandit'), 
+            chance = 30, 
+            isPack = false,
+            models = { `g_m_m_unicriminals_01`, `g_m_m_unicriminals_02` }
+        },
+    }
+}
+
+-- FIGHTING SYSTEM
 local Game_fight = {
+    Enabled = false, -- Enable/disable the dog fighting system
     MinBet = 10,
     MaxBet = 1000,
     FightCooldown = 60,
 
     Location = {
-        { Coords = vector3(-2411.77, -2455.10, 60.17), PromptName = locale('cl_fight_start_prompt'), PromptKey = "J", HoldDuration = 1000, PromptDistance = 3.0, ShowBlip = true, Blip = { blipSprite = -1646261997, blipScale = 0.8, blipName = locale('cl_fight_blip') } },
-        { Coords = vector3(-1795.0, -420.0, 158.0), PromptName = locale('cl_fight_start_prompt'), PromptKey = "J", HoldDuration = 1000, PromptDistance = 3.0, ShowBlip = true, Blip = { blipSprite = -1646261997, blipScale = 0.8, blipName = locale('cl_fight_blip') } }
+        {
+            Coords = vector3(-2411.77, -2455.10, 60.17),
+            PromptName = locale('cl_fight_start_prompt'),
+            HoldDuration = 1000,
+            PromptDistance = 3.0
+        },
+        { 
+            Coords = vector3(-1795.0, -420.0, 158.0),
+            PromptName = locale('cl_fight_start_prompt'),
+            HoldDuration = 1000,
+            PromptDistance = 3.0
+        }
     },
 
     Dogs = {

@@ -31,6 +31,24 @@ return {
         blipScale = 0.2,
         blipTime = 1 * 60 * 1000, -- 1 min delete blip
     },
+    Race = { 
+        ShowBlip = true,
+        blipSprite = `blip_mp_playlist_races`,
+        blipScale = 0.2,
+        blipName = locale('cl_race_blip') or 'Pet Racing'
+    },
+    RaceCheckPoints = {
+        blipSprite = `blip_mp_race_checkpoint`,
+        blipScale = 0.5,
+        blipName = locale('cl_race_checkpoint_blip') or 'Race Checkpoint'
+    },
+    Fight = {
+        ShowBlip = true,
+        blipSprite = -1646261997,
+        blipScale = 0.2,
+        blipName = locale('cl_fight_blip')
+    },
+            
     -- BLIP COLOR MODIFIER
     ColorModifier = `BLIP_MODIFIER_MP_COLOR_1`,  -- Applied to all pet blips and GPS
 }

@@ -1,11 +1,3 @@
---[[
-    HDRP-PETS WATER TYPES CONFIGURATION
-    Separated from: shared/config/animations.lua (v5.8.1+)
-    
-    Contains:
-    - Water types for pet drinking detection
-]]
-
 return {
     {name = 'San Luis River',       waterhash = -1504425495, watertype = 'river'},
     {name = 'Upper Montana River',  waterhash = -1781130443, watertype = 'river'},

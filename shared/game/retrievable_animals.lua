@@ -1,7 +1,4 @@
 --[[
-    HDRP-PETS RETRIEVABLE ANIMALS CONFIGURATION
-    Separated from: shared/config/games.lua (v5.8.1+)
-    
     Contains:
     - Animals that can be retrieved by pets (hunt mode)
 ]]
