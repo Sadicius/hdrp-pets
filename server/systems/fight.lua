@@ -41,6 +41,14 @@ local function checkAchievements(src, petId)
 
     -- Solo desbloquear logros y XP según estadísticas persistentes
     achievements.unlocked = achievements.unlocked or {}
+    achievements.fight = achievements.fight or { victories = 0, defeats = 0, winrate = 0, combatxp = 0, streak = 0, maxStreak = 0, ko = 0, fights = 0 }
+    achievements.formation = achievements.formation or { unlocked = 0 }
+    achievements.treasure = achievements.treasure or { completed = 0 }
+
+    -- Calcular nivel basado en XP
+    local xp = (data.progression and data.progression.xp) or 0
+    local level = math.floor(xp / 100) + 1
+
     for key, ach in pairs(Config.XP.Achievements.List) do
         if ach.requirement and ach.requirement.type and ach.requirement.value then
             local achieved = false
@@ -48,17 +56,15 @@ local function checkAchievements(src, petId)
                 achieved = true
             elseif ach.requirement.type == 'fight_streak' and (achievements.fight.streak or 0) >= ach.requirement.value then
                 achieved = true
-            --[[
-            -- ejemplos a trasladar a los correspondientes sistemas si se desea
-            elseif ach.requirement.type == 'combat' and (achievements.combat.victories or 0) >= ach.requirement.value then
+            -- FIX: Habilitada verificación de logros de nivel
+            elseif ach.requirement.type == 'level' and level >= ach.requirement.value then
                 achieved = true
-            elseif ach.requirement.type == 'level' and (data.progression.level or 0) >= ach.requirement.value then
+            -- FIX: Habilitada verificación de logros de formación
+            elseif ach.requirement.type == 'formation' and (achievements.formation.unlocked or 0) >= ach.requirement.value then
                 achieved = true
-            elseif ach.requirement.type == 'formation' and (achievements.combat.streak or 0) >= ach.requirement.value then
+            -- FIX: Habilitada verificación de logros de tesoro
+            elseif ach.requirement.type == 'treasure' and (achievements.treasure.completed or 0) >= ach.requirement.value then
                 achieved = true
-            elseif ach.requirement.type == 'treasure' and (achievements.combat.streak or 0) >= ach.requirement.value then
-                achieved = true
-                ]]
             end
             if achieved and not achievements.unlocked[key] then
                 achievements.unlocked[key] = true

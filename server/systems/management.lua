@@ -146,11 +146,52 @@ end)
 
 -- TREASURE REWARDS
 ---Give treasure item reward (from treasure hunt minigame)
-RegisterServerEvent('hdrp-pets:server:givetreasure', function()
+---FIX: Actualizado para recibir petId y actualizar achievements de tesoro
+RegisterServerEvent('hdrp-pets:server:givetreasure', function(petId)
     local src = source
     local Player = RSGCore.Functions.GetPlayer(src)
     if not Player then return end
-    
+
+    -- FIX: Actualizar achievements de tesoro si se proporciona petId
+    if petId then
+        local companion = Database.GetCompanionByCompanionId(petId)
+        if companion then
+            local achievements = companion.achievements and json.decode(companion.achievements) or {}
+            achievements.treasure = achievements.treasure or { completed = 0 }
+            achievements.treasure.completed = (achievements.treasure.completed or 0) + 1
+            achievements.unlocked = achievements.unlocked or {}
+
+            -- Verificar logros de tesoro
+            local xpBonus = 0
+            for key, ach in pairs(Config.XP.Achievements.List) do
+                if ach.requirement and ach.requirement.type == 'treasure' then
+                    if (achievements.treasure.completed or 0) >= ach.requirement.value then
+                        if not achievements.unlocked[key] then
+                            achievements.unlocked[key] = true
+                            xpBonus = xpBonus + (ach.xpBonus or 0)
+                            TriggerClientEvent('hdrp-pets:client:achievement', src, ach.name, ach.description .. ' +' .. tostring(ach.xpBonus or 0) .. ' XP')
+                        end
+                    end
+                end
+            end
+
+            Database.UpdateCompanionAchievements(petId, achievements)
+
+            -- Actualizar XP si hay bonus
+            if xpBonus > 0 then
+                local data = companion.data and json.decode(companion.data) or {}
+                data.progression = data.progression or {}
+                data.progression.xp = (data.progression.xp or 0) + xpBonus
+                Database.UpdateCompanionData(petId, data)
+                TriggerClientEvent('hdrp-pets:client:updateanimals', src, petId, data)
+            end
+
+            if Config.Debug then
+                print('^2[TREASURE]^7 Updated treasure achievements for pet ' .. petId .. '. Total: ' .. achievements.treasure.completed)
+            end
+        end
+    end
+
     -- Get treasure reward based on chance
     local function getTreasureReward()
         local roll = math.random(1, 100)
@@ -163,7 +204,7 @@ RegisterServerEvent('hdrp-pets:server:givetreasure', function()
         end
         return nil
     end
-    
+
     local rewards = getTreasureReward()
     if rewards and type(rewards.items) == "table" and #rewards.items > 0 then
         local item = rewards.items[math.random(#rewards.items)]
@@ -179,7 +220,7 @@ RegisterServerEvent('hdrp-pets:server:givetreasure', function()
             print('^3[MANAGEMENT WARNING]^7 No valid treasure reward found for player ' .. src)
         end
     end
-    
+
     -- Log to Discord
     local rewardStr = locale('ui_reward_none')
     if rewards and rewards.items then
