@@ -25,6 +25,19 @@ local activeTreasureHunts = {}
 local playerFollowingPet = nil
 local selectedPetToFollow = nil  -- Pet the player chose to follow
 
+-- Restricted zones (cities) - constant
+local RESTRICTED_ZONES = {
+    {name = "Valentine", coords = vector3(-306.0, 792.0, 118.0), radius = 150.0},
+    {name = "Blackwater", coords = vector3(-813.0, -1324.0, 43.0), radius = 200.0},
+    {name = "Rhodes", coords = vector3(1346.0, -1312.0, 76.0), radius = 150.0},
+    {name = "Saint Denis", coords = vector3(2632.0, -1312.0, 52.0), radius = 300.0},
+    {name = "Strawberry", coords = vector3(-1803.0, -386.0, 160.0), radius = 120.0},
+    {name = "Annesburg", coords = vector3(2930.0, 1288.0, 44.0), radius = 120.0},
+    {name = "Armadillo", coords = vector3(-3685.0, -2562.0, -13.0), radius = 130.0},
+    {name = "Tumbleweed", coords = vector3(-5512.0, -2937.0, -2.0), radius = 130.0},
+    {name = "Van Horn", coords = vector3(2976.0, 544.0, 44.0), radius = 100.0},
+}
+
 --================================
 -- HELPER FUNCTIONS
 --================================
@@ -38,6 +51,69 @@ local function isWaterAtCoords(coords)
         end
     end
     return false
+end
+
+local function isInRestrictedZone(point)
+    for _, zone in ipairs(RESTRICTED_ZONES) do
+        local distance = #(point - zone.coords)
+        if distance < zone.radius then
+            return true, zone.name
+        end
+    end
+    return false
+end
+
+-- Get random clue animation for pet
+local function getRandomClueAnimation()
+    local roll = math.random(1, 100)
+    local anim, animTime = nil, gameTreasureConfig.anim.clueWaitTime
+
+    if roll <= 25 then
+        anim = 'amb_creature_mammal@world_dog_howling_sitting@base'
+        animTime = gameTreasureConfig.anim.howAnimTime
+    elseif roll <= 50 then
+        anim = 'amb_creature_mammal@world_dog_sniffing_ground@base'
+    elseif roll <= 75 then
+        anim = 'amb_creature_mammal@world_dog_guard_growl@base'
+        animTime = gameTreasureConfig.anim.guaAnimTime
+    else
+        anim = 'amb_creature_mammal@world_dog_digging@base'
+    end
+
+    return anim, animTime
+end
+
+-- Find pet by name or ID
+local function findPetByIdentifier(searchTerm, activePets)
+    local lowerTerm = string.lower(searchTerm)
+
+    for id, petData in pairs(activePets) do
+        if tostring(id) == lowerTerm then
+            return id, petData
+        end
+        local petName = petData.data and petData.data.info and petData.data.info.name or nil
+        if petName and string.lower(petName):find(lowerTerm, 1, true) then
+            return id, petData
+        end
+    end
+
+    return nil, nil
+end
+
+-- Get valid pets for treasure hunt
+local function getValidPetsForTreasure(activePets)
+    local validPets = {}
+    local count = 0
+
+    for petId, petData in pairs(activePets) do
+        local canStart, _ = validateTreasureRequirements(petId)
+        if canStart then
+            validPets[petId] = petData
+            count = count + 1
+        end
+    end
+
+    return validPets, count
 end
 
 -- Validate if pet meets treasure hunt requirements
@@ -199,10 +275,7 @@ local function showSkillCheckShovel(entity, petId)
     table.insert(itemProps, { treasure = treasureObject })
 
     State.ResetPlayerState(true)
-
     handleTreasureFound(petId)
-
-    State.ResetPlayerState(true)
 
     if DoesEntityExist(shovelObject) then
         DeleteObject(shovelObject)
@@ -279,29 +352,6 @@ end
 local function generateRandomTreasureRoute(startPos, steps)
     local route = {}
     local lastPos = startPos
-
-    -- Restricted zones (cities)
-    local restrictedZones = {
-        {name = "Valentine", coords = vector3(-306.0, 792.0, 118.0), radius = 150.0},
-        {name = "Blackwater", coords = vector3(-813.0, -1324.0, 43.0), radius = 200.0},
-        {name = "Rhodes", coords = vector3(1346.0, -1312.0, 76.0), radius = 150.0},
-        {name = "Saint Denis", coords = vector3(2632.0, -1312.0, 52.0), radius = 300.0},
-        {name = "Strawberry", coords = vector3(-1803.0, -386.0, 160.0), radius = 120.0},
-        {name = "Annesburg", coords = vector3(2930.0, 1288.0, 44.0), radius = 120.0},
-        {name = "Armadillo", coords = vector3(-3685.0, -2562.0, -13.0), radius = 130.0},
-        {name = "Tumbleweed", coords = vector3(-5512.0, -2937.0, -2.0), radius = 130.0},
-        {name = "Van Horn", coords = vector3(2976.0, 544.0, 44.0), radius = 100.0},
-    }
-
-    local function isInRestrictedZone(point)
-        for _, zone in ipairs(restrictedZones) do
-            local distance = #(vector3(point.x, point.y, point.z) - zone.coords)
-            if distance < zone.radius then
-                return true, zone.name
-            end
-        end
-        return false
-    end
 
     for i = 1, steps do
         local validPoint = false
@@ -512,22 +562,7 @@ local function movePetToClue(petId, clueIndex, isMultiPetMode)
                 ClearPedTasksImmediately(entity)
 
                 -- Random animation at clue
-                local roll = math.random(1, 100)
-                local anim = nil
-                local animTime = gameTreasureConfig.anim.clueWaitTime
-
-                if roll <= 25 then
-                    anim = 'amb_creature_mammal@world_dog_howling_sitting@base'
-                    animTime = gameTreasureConfig.anim.howAnimTime
-                elseif roll <= 50 then
-                    anim = 'amb_creature_mammal@world_dog_sniffing_ground@base'
-                elseif roll <= 75 then
-                    anim = 'amb_creature_mammal@world_dog_guard_growl@base'
-                    animTime = gameTreasureConfig.anim.guaAnimTime
-                else
-                    anim = 'amb_creature_mammal@world_dog_digging@base'
-                end
-
+                local anim, animTime = getRandomClueAnimation()
                 if anim then
                     State.PlayPetAnimation(petId, anim, 'base', true, animTime)
                     Wait(animTime)
@@ -671,16 +706,7 @@ local function startMultiPetTreasureHunt()
     end
 
     -- Validate requirements for all pets
-    local validPets = {}
-    for petId, petData in pairs(activePets) do
-        local canStart, errorMsg = validateTreasureRequirements(petId)
-        if canStart then
-            validPets[petId] = petData
-        end
-    end
-
-    local petCount = 0
-    for _ in pairs(validPets) do petCount = petCount + 1 end
+    local validPets, petCount = getValidPetsForTreasure(activePets)
 
     if petCount < 2 then
         lib.notify({ title = locale('cl_game_treasure_need_two_pets'), description = locale('cl_error_treasure_hunt_requirement'), type = 'warning' })
@@ -997,23 +1023,9 @@ RegisterCommand('pet_treasure', function(source, args)
         return
     end
 
-    local targetPetId = nil
-
     -- Check if specific pet argument provided
     if args and args[1] then
-        local searchTerm = string.lower(args[1])
-
-        for id, petData in pairs(activePets) do
-            if tostring(id) == searchTerm then
-                targetPetId = id
-                break
-            end
-            local petName = petData.data and petData.data.info and petData.data.info.name or nil
-            if petName and string.lower(petName):find(searchTerm, 1, true) then
-                targetPetId = id
-                break
-            end
-        end
+        local targetPetId, _ = findPetByIdentifier(args[1], activePets)
 
         if not targetPetId then
             lib.notify({ title = locale('cl_error_no_pet_retrieve_bone'), description = locale('cl_error_pet_not_found') .. ': ' .. args[1], type = 'error' })
@@ -1035,16 +1047,7 @@ RegisterCommand('pet_treasure', function(source, args)
         end
     else
         -- No argument: multi-pet competition if 2+ valid pets, otherwise single pet
-        local validPets = {}
-        for petId, petData in pairs(activePets) do
-            local canStart, _ = validateTreasureRequirements(petId)
-            if canStart then
-                validPets[petId] = petData
-            end
-        end
-
-        local validPetCount = 0
-        for _ in pairs(validPets) do validPetCount = validPetCount + 1 end
+        local validPets, validPetCount = getValidPetsForTreasure(activePets)
 
         if validPetCount == 0 then
             lib.notify({ title = locale('cl_error_treasurehunt'), description = locale('cl_error_treasure_hunt_requirement'), type = 'error' })
