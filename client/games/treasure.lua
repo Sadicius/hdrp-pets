@@ -110,26 +110,7 @@ local function findPetByIdentifier(searchTerm, activePets)
     return nil, nil
 end
 
----Get valid pets for treasure hunt (XP + shovel requirements)
----@param activePets table Table of active pets
----@return table validPets Table of pets that meet requirements
----@return number count Number of valid pets
-local function getValidPetsForTreasure(activePets)
-    local validPets = {}
-    local count = 0
-
-    for petId, petData in pairs(activePets) do
-        local canStart, _ = validateTreasureRequirements(petId)
-        if canStart then
-            validPets[petId] = petData
-            count = count + 1
-        end
-    end
-
-    return validPets, count
-end
-
--- Validate if pet meets treasure hunt requirements
+---Validate if pet meets treasure hunt requirements
 ---@param petId string
 ---@return boolean canStart
 ---@return string|nil errorMessage
@@ -159,6 +140,25 @@ local function validateTreasureRequirements(petId)
     end
 
     return true, nil
+end
+
+---Get valid pets for treasure hunt (XP + shovel requirements)
+---@param activePets table Table of active pets
+---@return table validPets Table of pets that meet requirements
+---@return number count Number of valid pets
+local function getValidPetsForTreasure(activePets)
+    local validPets = {}
+    local count = 0
+
+    for petId, petData in pairs(activePets) do
+        local canStart, _ = validateTreasureRequirements(petId)
+        if canStart then
+            validPets[petId] = petData
+            count = count + 1
+        end
+    end
+
+    return validPets, count
 end
 
 local function treasureCleanUp()
