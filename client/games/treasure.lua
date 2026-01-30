@@ -114,15 +114,16 @@ end
 ---@param petId string
 ---@return boolean canStart
 ---@return string|nil errorMessage
+---@return table|nil petData Pet data if validation succeeds
 local function validateTreasureRequirements(petId)
     -- Check if pet exists and is alive
     if not State.ShouldThreadContinue(petId) then
-        return false, locale('cl_error_treasurehunt') or 'Pet not available'
+        return false, locale('cl_error_treasurehunt') or 'Pet not available', nil
     end
 
     local petData = State.GetPet(petId)
     if not petData then
-        return false, locale('cl_error_treasurehunt') or 'Pet not available'
+        return false, locale('cl_error_treasurehunt') or 'Pet not available', nil
     end
 
     -- Check XP requirement
@@ -130,16 +131,16 @@ local function validateTreasureRequirements(petId)
     local requiredXP = Config.XP.Trick.TreasureHunt
 
     if xp < requiredXP then
-        return false, string.format(locale('cl_error_xp_required') or 'XP required: %d (Current: %d)', requiredXP, xp)
+        return false, string.format(locale('cl_error_xp_required') or 'XP required: %d (Current: %d)', requiredXP, xp), nil
     end
 
     -- Check for shovel item
     local hasShovel = RSGCore.Functions.HasItem(Config.Items.Treasure)
     if not hasShovel then
-        return false, locale('cl_error_treasure_hunt_requirement') or 'Shovel required'
+        return false, locale('cl_error_treasure_hunt_requirement') or 'Shovel required', nil
     end
 
-    return true, nil
+    return true, nil, petData
 end
 
 ---Get valid pets for treasure hunt (XP + shovel requirements)
@@ -1061,15 +1062,14 @@ RegisterCommand('pet_treasure', function(source, args)
             return
         end
 
-        -- Validate requirements for specific pet
-        local canStart, errorMsg = validateTreasureRequirements(targetPetId)
+        -- Validate requirements for specific pet (returns petData to avoid double State.GetPet call)
+        local canStart, errorMsg, petData = validateTreasureRequirements(targetPetId)
         if not canStart then
             lib.notify({ title = locale('cl_error_treasurehunt') or 'Error', description = errorMsg, type = 'error' })
             return
         end
 
         -- Specific pet treasure hunt
-        local petData = State.GetPet(targetPetId)
         local petPed = petData and petData.ped or nil
         if petPed and DoesEntityExist(petPed) then
             startTreasureHunt(petPed, targetPetId)
@@ -1105,19 +1105,14 @@ AddEventHandler('hdrp-pets:client:startTreasureHunt', function(petId)
         return
     end
 
-    -- Validate requirements
-    local canStart, errorMsg = validateTreasureRequirements(petId)
+    -- Validate requirements (returns petData to avoid double State.GetPet call)
+    local canStart, errorMsg, petData = validateTreasureRequirements(petId)
     if not canStart then
         lib.notify({ title = locale('cl_error_treasurehunt') or 'Error', description = errorMsg, type = 'error' })
         return
     end
 
-    local petPed = nil
-    if petId then
-        local petData = State.GetPet(petId)
-        petPed = petData and petData.ped or nil
-    end
-
+    local petPed = petData and petData.ped or nil
     if petPed and DoesEntityExist(petPed) then
         startTreasureHunt(petPed, petId)
     else
