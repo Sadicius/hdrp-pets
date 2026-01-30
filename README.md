@@ -77,8 +77,8 @@ ensure hdrp-pets
 - Add or edit items, prices, and shop props in `shared/stable/`.
 - Add new UI/notification/log strings to both `locales/es.json` and `locales/en.json` and use `locale('key')` in code.
 - Map assets for pet stables are in `stream/` (YMAPs).
+  
 ---
-
 
 ## Main Configuration
 - 📁 shared/main.lua
@@ -195,17 +195,17 @@ end, companionid)
 ---
 
 ## Changelog
-See `CHANGELOG.md` for a full list of changes and version history.
-🤝 Contribute
-Contributions are welcome. Please:
+- See `CHANGELOG.md` for a full list of changes and version history.
+- 🤝 Contribute
+- Contributions are welcome. Please:
 
 ## Fork the repository
-Create a branch for your feature (git checkout -b feature/new-feature)
-Commit your changes (git commit -m 'Add new feature')
-Push to the branch (git push origin feature/new-feature)
-Open a Pull Request
+- Create a branch for your feature (git checkout -b feature/new-feature)
+- Commit your changes (git commit -m 'Add new feature')
+- Push to the branch (git push origin feature/new-feature)
+- Open a Pull Request
 
 ## Credits
-HDRP framework by Sadicius. Additional acknowledgments and contributors in `CHANGELOG.md`.
+- HDRP framework by Sadicius. Additional acknowledgments and contributors in `CHANGELOG.md`.
 
 <img width="500" height="500" alt="qrcode" src="https://github.com/user-attachments/assets/d79129e4-ad53-44af-8cab-cdd6383271a6" />
