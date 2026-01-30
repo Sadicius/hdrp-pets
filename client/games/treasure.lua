@@ -53,6 +53,10 @@ local function isWaterAtCoords(coords)
     return false
 end
 
+---Check if point is in restricted zone (city)
+---@param point vector3
+---@return boolean inZone
+---@return string|nil zoneName
 local function isInRestrictedZone(point)
     for _, zone in ipairs(RESTRICTED_ZONES) do
         local distance = #(point - zone.coords)
@@ -63,7 +67,9 @@ local function isInRestrictedZone(point)
     return false
 end
 
--- Get random clue animation for pet
+---Get random clue animation for pet
+---@return string anim Animation dictionary path
+---@return number animTime Duration in milliseconds
 local function getRandomClueAnimation()
     local roll = math.random(1, 100)
     local anim, animTime = nil, gameTreasureConfig.anim.clueWaitTime
@@ -83,7 +89,11 @@ local function getRandomClueAnimation()
     return anim, animTime
 end
 
--- Find pet by name or ID
+---Find pet by name or ID
+---@param searchTerm string Pet name or ID to search
+---@param activePets table Table of active pets
+---@return string|nil petId
+---@return table|nil petData
 local function findPetByIdentifier(searchTerm, activePets)
     local lowerTerm = string.lower(searchTerm)
 
@@ -100,7 +110,10 @@ local function findPetByIdentifier(searchTerm, activePets)
     return nil, nil
 end
 
--- Get valid pets for treasure hunt
+---Get valid pets for treasure hunt (XP + shovel requirements)
+---@param activePets table Table of active pets
+---@return table validPets Table of pets that meet requirements
+---@return number count Number of valid pets
 local function getValidPetsForTreasure(activePets)
     local validPets = {}
     local count = 0
@@ -117,17 +130,28 @@ local function getValidPetsForTreasure(activePets)
 end
 
 -- Validate if pet meets treasure hunt requirements
+---@param petId string
+---@return boolean canStart
+---@return string|nil errorMessage
 local function validateTreasureRequirements(petId)
     -- Check if pet exists and is alive
+    if not State.ShouldThreadContinue(petId) then
+        return false, locale('cl_error_treasurehunt') or 'Pet not available'
+    end
+
     local petData = State.GetPet(petId)
-    if not petData or not petData.ped or not DoesEntityExist(petData.ped) or IsEntityDead(petData.ped) then
+    if not petData then
         return false, locale('cl_error_treasurehunt') or 'Pet not available'
     end
 
     -- Check XP requirement
     local xp = (petData.data and petData.data.progression and petData.data.progression.xp) or 0
-    if xp < Config.XP.Trick.TreasureHunt then
-        return false, string.format(locale('cl_error_xp_required') or 'XP required: %d', Config.XP.Trick.TreasureHunt)
+    local requiredXP = Config.XP.Trick.TreasureHunt
+
+    if xp < requiredXP then
+        local currentLevel = State.GetPetLevel(xp)
+        local requiredLevel = State.GetPetLevel(requiredXP)
+        return false, string.format(locale('cl_error_xp_required') or 'Level %d required (Current: %d)', requiredLevel, currentLevel)
     end
 
     -- Check for shovel item
@@ -407,6 +431,11 @@ end
 -- UNIFIED CLUE MOVEMENT (Single & Multi-Pet Mode)
 --================================
 
+---Move pet to clue location with player follow logic
+---Handles both single-pet and multi-pet treasure hunt modes
+---@param petId string Pet companion ID
+---@param clueIndex number Current clue index (1-based)
+---@param isMultiPetMode boolean True for multi-pet competition mode
 local function movePetToClue(petId, clueIndex, isMultiPetMode)
     local entity, cluePoints, totalClues, huntData
 
@@ -477,10 +506,16 @@ local function movePetToClue(petId, clueIndex, isMultiPetMode)
         local iterationCount = 0
 
         local function shouldCancel()
+            if IsEntityDead(cache.ped) then return true end
+
+            if not State.ShouldThreadContinue(petId) then
+                return true
+            end
+
             if isMultiPetMode then
-                return not multiPetHuntActive or not entity or not DoesEntityExist(entity) or IsEntityDead(entity) or IsEntityDead(cache.ped)
+                return not multiPetHuntActive
             else
-                return not treasureInProgress or not entity or not DoesEntityExist(entity) or IsEntityDead(entity) or IsEntityDead(cache.ped)
+                return not treasureInProgress
             end
         end
 
@@ -493,9 +528,8 @@ local function movePetToClue(petId, clueIndex, isMultiPetMode)
             Wait(1000)
 
             local dogPos = GetEntityCoords(entity)
-            local playerPos = GetEntityCoords(cache.ped)
             local distToTarget = #(dogPos - targetCoords)
-            local distToPlayer = #(dogPos - playerPos)
+            local distToPlayer = State.GetDistancePlayerToPet(petId)
 
             local isFollowedPet = not isMultiPetMode or (selectedPetToFollow == petId)
             local currentHeading = isMultiPetMode and huntData.headingToTarget or headingToTarget
@@ -856,12 +890,9 @@ local function startMultiPetTreasureHunt()
                 break
             end
 
-            local playerPos = GetEntityCoords(cache.ped)
-
             for petId, huntData in pairs(activeTreasureHunts) do
-                if DoesEntityExist(huntData.ped) and not IsEntityDead(huntData.ped) then
-                    local petPos = GetEntityCoords(huntData.ped)
-                    local distToPlayer = #(petPos - playerPos)
+                if State.ShouldThreadContinue(petId) then
+                    local distToPlayer = State.GetDistancePlayerToPet(petId)
 
                     -- Player approaches a pet during navigation - this becomes the followed pet
                     if not selectedPetToFollow and not huntData.hasArrived and distToPlayer < gameTreasureConfig.mindistToPlayer then
