@@ -241,6 +241,11 @@ RegisterServerEvent('hdrp-pets:server:useitem', function(item, companionid)
     -- Update companion data if stats changed
     if statsChanged then
         Database.UpdateCompanionData(companionid, currentData)
-
+        -- Sync updated stats to client
+        TriggerClientEvent('hdrp-pets:client:refreshPetData', src, companionid, currentData)
+ 
+        if Config.Debug then
+            print(string.format('^2[ITEM USE]^7 Synced stats to client for %s', companionid))
+        end
     end
 end)

@@ -147,28 +147,70 @@ end
 function Database.ActivateCompanionAtomic(companionId, citizenid, maxPets)
     if not companionId or not citizenid then return false, "Invalid parameters" end
     if Config.Debug then print('^3[DATABASE] Attempting to activate companion ID ' .. tostring(companionId) .. ' for citizenid ' .. tostring(citizenid) .. '^7') end
-    -- Atomic operation using MySQL transaction
-    -- This prevents race condition when multiple requests come simultaneously
-    local success, result = pcall(function()
-        -- Use UPDATE with subquery to check count atomically
-        local affected = MySQL.update.await([[
-            UPDATE pet_companion 
-            SET active = 1 
-            WHERE companionid = ? 
-            AND citizenid = ? 
-            AND (SELECT COUNT(*) FROM pet_companion WHERE citizenid = ? AND active = 1) < ?
-        ]], {companionId, citizenid, citizenid, maxPets})
-        if Config.Debug then print('^3[DATABASE] Activation affected rows: ' .. tostring(affected) .. '^7') end
-        return affected
-    end)
-    if Config.Debug then print('^3[DATABASE] Activation success: ' .. tostring(success) .. ', result: ' .. tostring(result) .. '^7') end
-    if success and result and result > 0 then
-        return true, nil
-    elseif success and result == 0 then
-        return false, "Max pets limit reached"
-    else
-        return false, "Database error"
+    -- Retry mechanism with exponential backoff to handle race conditions
+    local maxRetries = 3
+    local retryDelay = 50 -- milliseconds
+
+    for attempt = 1, maxRetries do
+        -- First, check current active count with a query
+        local countSuccess, countResult = pcall(function()
+            return MySQL.scalar.await('SELECT COUNT(*) FROM pet_companion WHERE citizenid = ? AND active = 1', {citizenid})
+        end)
+
+        if not countSuccess or not countResult then
+            if Config.Debug then print('^1[DATABASE ERROR]^7 Failed to count active pets') end
+            return false, "Database error"
+        end
+
+        if countResult >= maxPets then
+            if Config.Debug then print('^3[DATABASE]^7 Max pets limit reached (' .. countResult .. '/' .. maxPets .. ')') end
+            return false, "Max pets limit reached"
+        end
+
+        -- Try to activate the companion
+        -- This UPDATE is safe because we checked the count first
+        local updateSuccess, affected = pcall(function()
+            return MySQL.update.await([[
+                UPDATE pet_companion
+                SET active = 1
+                WHERE companionid = ?
+                AND citizenid = ?
+                AND active = 0
+            ]], {companionId, citizenid})
+        end)
+
+        if not updateSuccess then
+            if Config.Debug then print('^1[DATABASE ERROR]^7 Update query failed') end
+            return false, "Database error"
+        end
+
+        -- Verify the update succeeded and count is still valid
+        if affected and affected > 0 then
+            -- Double-check that we didn't exceed the limit after the update
+            local verifySuccess, newCount = pcall(function()
+                return MySQL.scalar.await('SELECT COUNT(*) FROM pet_companion WHERE citizenid = ? AND active = 1', {citizenid})
+            end)
+
+            if verifySuccess and newCount and newCount <= maxPets then
+                if Config.Debug then print('^2[DATABASE SUCCESS]^7 Companion activated (attempt ' .. attempt .. ')') end
+                return true, nil
+            else
+                -- Rollback: we exceeded the limit somehow, deactivate this pet
+                if Config.Debug then print('^1[DATABASE ROLLBACK]^7 Exceeded limit after activation, rolling back') end
+                MySQL.update.await('UPDATE pet_companion SET active = 0 WHERE companionid = ? AND citizenid = ?', {companionId, citizenid})
+                return false, "Max pets limit reached (rollback)"
+            end
+        end
+
+        -- If update didn't affect any rows, the pet might already be active or doesn't exist
+        if attempt < maxRetries then
+            if Config.Debug then print('^3[DATABASE RETRY]^7 Activation failed, retrying... (attempt ' .. attempt .. ')') end
+            Wait(retryDelay * attempt) -- Exponential backoff
+        end
     end
+
+    if Config.Debug then print('^1[DATABASE]^7 Activation failed after ' .. maxRetries .. ' attempts') end
+    return false, "Failed to activate after retries"
 end
 
 ---Deactivate a companion and store in stable

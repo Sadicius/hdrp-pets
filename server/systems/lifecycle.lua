@@ -12,8 +12,28 @@ local Database = lib.load('server.core.database')
 local lifecycleEnabled = Config.Lifecycle and Config.Lifecycle.Enabled
 local decayEnabled = Config.AutoDecay and Config.AutoDecay.Enabled
 
+-- Execution lock to prevent concurrent runs
+local isProcessingLifecycle = false
+local lifecycleProcessCount = 0
+
+-- Helper function to send telegram notification
+local function sendPetTelegram(citizenid, subject, message)
+    pcall(MySQL.insert.await,
+        'INSERT INTO telegrams (citizenid, recipient, sender, sendername, subject, sentDate, message) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        {
+            citizenid,
+            'Stable Master',
+            '22222222',
+            'Stables',
+            subject,
+            os.date('%x'),
+            message
+        }
+    )
+end
+
 if not lifecycleEnabled and not decayEnabled then
-    if Config.Debug then 
+    if Config.Debug then
         print('^3[LIFECYCLE & DECAY]^7 Both systems disabled') 
     end
     return
@@ -245,11 +265,30 @@ end
 
 -- UNIFIED UPDATE FUNCTION
 local function updatePetLifecycleAndDecay()
+    -- Prevent concurrent execution to avoid write conflicts
+    if isProcessingLifecycle then
+        if Config.Debug then
+            print('^3[LIFECYCLE & DECAY]^7 Already processing, skipping this run')
+        end
+        return
+    end
+
+    isProcessingLifecycle = true
+    lifecycleProcessCount = lifecycleProcessCount + 1
+    local processId = lifecycleProcessCount
+
+    if Config.Debug then
+        print(string.format('^2[LIFECYCLE & DECAY START]^7 Process #%d started', processId))
+    end
     -- Process only active pets to reduce load under large datasets
     local success, result = pcall(MySQL.query.await, 'SELECT * FROM pet_companion WHERE active = 1')
-    if not success then return end
+    if not success then
+        isProcessingLifecycle = false
+        return
+    end
     if not result or #result == 0 then
         if Config.Debug then print('^3[LIFECYCLE & DECAY]^7 No pets found to process') end
+        isProcessingLifecycle = false
         return
     end
     
@@ -300,18 +339,11 @@ local function updatePetLifecycleAndDecay()
                     )
                     TriggerEvent('rsg-log:server:CreateLog', Config.WebhookName, Config.WebhookTitle, Config.WebhookColour, discordMessage, false)
                     
-                    -- Send telegram to owner
-                    pcall(MySQL.insert.await,
-                        'INSERT INTO telegrams (citizenid, recipient, sender, sendername, subject, sentDate, message) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                        {
-                            petRecord.citizenid,
-                            'Stable Master',
-                            '22222222',
-                            'Stables',
-                            (currentData.info.name or 'Your pet') .. ' has passed away',
-                            os.date('%x'),
-                            'Your beloved ' .. (currentData.info.name or 'pet') .. ' has reached the end of its natural lifespan and has passed away peacefully.'
-                        }
+                    -- Send telegram to owner (always, even if offline)
+                    sendPetTelegram(
+                        petRecord.citizenid,
+                        (currentData.info.name or 'Your pet') .. ' has passed away',
+                        'Your beloved ' .. (currentData.info.name or 'pet') .. ' has reached the end of its natural lifespan and has passed away peacefully.'
                     )
                     
                 end
@@ -320,9 +352,29 @@ local function updatePetLifecycleAndDecay()
                 
             elseif lifecycleEvent == 'stage_change' then
                 -- Pet changed life stage
+                local newStage, _ = getPetStage(currentData.stats.age)
                 currentData.stats.scale = calculatePetScale(currentData.stats.age)
                 needsUpdate = true
                 updateCount = updateCount + 1
+
+                -- Notify owner of stage change
+                local Player = RSGCore.Functions.GetPlayerByCitizenId(petRecord.citizenid)
+                if Player then
+                    -- Online: send immediate notification
+                    TriggerClientEvent('ox_lib:notify', Player.PlayerData.source, {
+                        type = 'info',
+                        title = 'Pet Life Stage Change',
+                        description = (currentData.info.name or 'Your pet') .. ' has grown into a ' .. newStage .. '!',
+                        duration = 7000
+                    })
+                else
+                    -- Offline: send telegram
+                    sendPetTelegram(
+                        petRecord.citizenid,
+                        (currentData.info.name or 'Your pet') .. ' has grown!',
+                        'Your pet ' .. (currentData.info.name or 'pet') .. ' has matured into a ' .. newStage .. ' stage. Visit the stable to see the changes!'
+                    )
+                end
                 
             elseif currentData.stats.age ~= calculateAge(currentData.info.born) then
                 -- Age updated without stage change
@@ -342,21 +394,57 @@ local function updatePetLifecycleAndDecay()
                 if Config.Debug then print(string.format('^3[DECAY]^7 %s - Hunger: %d, Thirst: %d, Health: %d, Happiness: %d, Strength: %d', currentData.info.name or 'Pet #' .. currentData.id, math.floor(currentData.stats.hunger), math.floor(currentData.stats.thirst), math.floor(currentData.stats.health), math.floor(currentData.stats.happiness), math.floor(currentData.stats.strength) )) end
                 
                 -- Notify owner if pet needs critical care
-                local Player = RSGCore.Functions.GetPlayerByCitizenId(petRecord.citizenid)
-                if Player then
-                    local critical = getCriticalStatus(currentData)
-                    if critical.isHungry or critical.isThirsty or critical.isDirty then
-                        TriggerClientEvent('ox_lib:notify', Player.PlayerData.source, { type = 'warning', title = locale('cl_decay_warning'), description = (currentData.info.name or locale('cl_pet_your')) .. ' ' .. locale('sv_pet_needs_care'), duration = 7000 })
+                local critical = getCriticalStatus(currentData)
+                if critical.isHungry or critical.isThirsty or critical.isDirty then
+                    local Player = RSGCore.Functions.GetPlayerByCitizenId(petRecord.citizenid)
+                    if Player then
+                        -- Online: send immediate notification
+                        TriggerClientEvent('ox_lib:notify', Player.PlayerData.source, {
+                            type = 'warning',
+                            title = locale('cl_decay_warning'),
+                            description = (currentData.info.name or locale('cl_pet_your')) .. ' ' .. locale('sv_pet_needs_care'),
+                            duration = 7000
+                        })
+                    --[[ else
+                        -- Offline: send telegram (only once per critical state)
+                        if not currentData.notifiedCritical then
+                            local issues = {}
+                            if critical.isHungry then table.insert(issues, 'hungry') end
+                            if critical.isThirsty then table.insert(issues, 'thirsty') end
+                            if critical.isDirty then table.insert(issues, 'dirty') end
+
+                            sendPetTelegram(
+                                petRecord.citizenid,
+                                (currentData.info.name or 'Your pet') .. ' needs care!',
+                                'Your pet ' .. (currentData.info.name or 'pet') .. ' is in critical condition and needs immediate care. It is ' .. table.concat(issues, ', ') .. '. Please attend to it as soon as possible!'
+                            )
+                            currentData.notifiedCritical = true
+                            needsUpdate = true
+                        end ]]
                     end
                 end
             end
-        end
-        
-        -- Si la salud es 0 o menos y no está marcado como muerto, marcar como muerto y actualizar
-        if (currentData.stats.health or 100) <= 0 and not currentData.veterinary.dead then
             currentData.veterinary.dead = true
             needsUpdate = true
             if Config.Debug then print(string.format('^1[LIFECYCLE]^7 Pet marked as dead due to 0 health: %s (ID: %s)', currentData.info.name or 'Unknown', tostring(petRecord.companionid or currentData.id))) end
+            -- Notify owner of pet death
+            local Player = RSGCore.Functions.GetPlayerByCitizenId(petRecord.citizenid)
+            if Player then
+                -- Online: send immediate notification
+                TriggerClientEvent('ox_lib:notify', Player.PlayerData.source, {
+                    type = 'error',
+                    title = 'Pet Death',
+                    description = (currentData.info.name or 'Your pet') .. ' has died due to poor health!',
+                    duration = 10000
+                })
+            else
+                -- Offline: send telegram
+                sendPetTelegram(
+                    petRecord.citizenid,
+                    (currentData.info.name or 'Your pet') .. ' has died',
+                    'Unfortunately, your pet ' .. (currentData.info.name or 'pet') .. ' has died due to poor health. Please remember to care for your remaining pets regularly to avoid this tragedy.'
+                )
+            end
         end
 
         -- Update database if changes occurred
@@ -379,7 +467,7 @@ local function updatePetLifecycleAndDecay()
                 local ok, err = pcall(Database.UpdateCompanionData, companionid, currentData)
                 if not ok then
                     print('^1[LIFECYCLE ERROR]^7 Fallo al guardar mascota:', err)
-                else
+                    else
                     -- Notify owner if online
                     local Player = RSGCore.Functions.GetPlayerByCitizenId(petRecord.citizenid)
                     if Player then
@@ -395,7 +483,12 @@ local function updatePetLifecycleAndDecay()
         ::continue_processing::
     end
     
-    if Config.Debug and (updateCount > 0 or deathCount > 0 or decayCount > 0) then print(string.format('^2[LIFECYCLE & DECAY]^7 Processed: %d updates, %d deaths, %d decays', updateCount, deathCount, decayCount)) end
+    -- Release the lock
+    isProcessingLifecycle = false
+
+    if Config.Debug and (updateCount > 0 or deathCount > 0 or decayCount > 0) then
+        print(string.format('^2[LIFECYCLE & DECAY END]^7 Process #%d completed: %d updates, %d deaths, %d decays', processId, updateCount, deathCount, decayCount))
+    end
 end
 
 -- CRON JOBS

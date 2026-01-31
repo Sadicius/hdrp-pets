@@ -313,20 +313,120 @@ RegisterServerEvent('hdrp-pets:server:setdirt', function(companionid, dirt)
     Database.UpdateCompanionData(companionid, currentData)
 end)
 
+-- Update companion health (critical stat persistence)
+RegisterServerEvent('hdrp-pets:server:updatehealth', function(companionid, healthPercent)
+    local src = source
+    local Player = RSGCore.Functions.GetPlayer(src)
+    if not Player then return end
+ 
+    if not companionid or not healthPercent then return end
+ 
+    -- Verify ownership
+    local success, result = pcall(MySQL.query.await, 'SELECT data FROM pet_companion WHERE companionid = ? AND citizenid = ?', {companionid, Player.PlayerData.citizenid})
+    if not success or not result or #result == 0 then return end
+ 
+    local currentData = json.decode(result[1].data)
+ 
+    -- Clamp health value
+    currentData.stats.health = math.max(0, math.min(100, tonumber(healthPercent) or 100))
+ 
+    -- Update database
+    local updateSuccess, updateError = pcall(Database.UpdateCompanionData, companionid, currentData)
+    if not updateSuccess then
+        if Config.Debug then
+            print('^1[UPDATEHEALTH ERROR]^7 Database update failed:', updateError)
+        end
+        return
+    end
+ 
+    if Config.Debug then
+        print(string.format('^2[UPDATEHEALTH]^7 Updated health for %s: %d%%', companionid, currentData.stats.health))
+    end
+end)
+
 -- Update companion data (bonding, stats, etc.)
 RegisterServerEvent('hdrp-pets:server:updateanimals', function(companionid, data)
     local src = source
     local Player = RSGCore.Functions.GetPlayer(src)
     if not Player then return end
 
-    if not companionid or not data then return end
+    if not companionid or not data then
+        if Config.Debug then
+            print('^1[UPDATEANIMALS ERROR]^7 Missing companionid or data from source:', src)
+        end
+        return
+    end
 
     -- Verify ownership
-    local success, result = pcall(MySQL.query.await, 'SELECT id FROM pet_companion WHERE companionid = ? AND citizenid = ?', {companionid, Player.PlayerData.citizenid})
-    if not success or not result or #result == 0 then return end
+    local ownerCheck = pcall(MySQL.query.await, 'SELECT id FROM pet_companion WHERE companionid = ? AND citizenid = ?', {companionid, Player.PlayerData.citizenid})
+    if not ownerCheck then
+        if Config.Debug then
+            print('^1[UPDATEANIMALS ERROR]^7 Ownership verification failed for:', companionid)
+        end
+        return
+    end
 
-    -- Update companion data in database
-    Database.UpdateCompanionData(companionid, data)
+    -- Validate data structure and sanitize values
+    local function validateAndSanitize(petData)
+        if type(petData) ~= 'table' then return false, 'Invalid data type' end
+
+        -- Validate and clamp stats (0-100 range)
+        if petData.stats then
+            if petData.stats.hunger then petData.stats.hunger = math.max(0, math.min(100, tonumber(petData.stats.hunger) or 100)) end
+            if petData.stats.thirst then petData.stats.thirst = math.max(0, math.min(100, tonumber(petData.stats.thirst) or 100)) end
+            if petData.stats.happiness then petData.stats.happiness = math.max(0, math.min(100, tonumber(petData.stats.happiness) or 100)) end
+            if petData.stats.dirt then petData.stats.dirt = math.max(0, math.min(100, tonumber(petData.stats.dirt) or 100)) end
+            if petData.stats.strength then petData.stats.strength = math.max(0, math.min(100, tonumber(petData.stats.strength) or 100)) end
+            if petData.stats.health then petData.stats.health = math.max(0, math.min(100, tonumber(petData.stats.health) or 100)) end
+            if petData.stats.age then petData.stats.age = math.max(0, tonumber(petData.stats.age) or 1) end
+            if petData.stats.scale then petData.stats.scale = math.max(0.1, math.min(2.0, tonumber(petData.stats.scale) or 1.0)) end
+        end
+
+        -- Validate progression values
+        if petData.progression then
+            if petData.progression.xp then petData.progression.xp = math.max(0, tonumber(petData.progression.xp) or 0) end
+            if petData.progression.level then petData.progression.level = math.max(1, tonumber(petData.progression.level) or 1) end
+            if petData.progression.bonding then petData.progression.bonding = math.max(0, tonumber(petData.progression.bonding) or 0) end
+        end
+
+        -- Validate veterinary booleans
+        if petData.veterinary then
+            if petData.veterinary.dead ~= nil then petData.veterinary.dead = petData.veterinary.dead == true end
+            if petData.veterinary.hasdisease ~= nil then petData.veterinary.hasdisease = petData.veterinary.hasdisease == true end
+            if petData.veterinary.isvaccinated ~= nil then petData.veterinary.isvaccinated = petData.veterinary.isvaccinated == true end
+            if petData.veterinary.breedable ~= nil then petData.veterinary.breedable = petData.veterinary.breedable == true end
+            if petData.veterinary.inbreed ~= nil then petData.veterinary.inbreed = petData.veterinary.inbreed == true end
+        end
+
+        return true, petData
+    end
+
+    -- Validate and sanitize the data
+    local isValid, validatedData = validateAndSanitize(data)
+    if not isValid then
+        if Config.Debug then
+            print('^1[UPDATEANIMALS ERROR]^7 Data validation failed:', validatedData)
+        end
+        TriggerClientEvent('ox_lib:notify', src, { title = 'Error', description = 'Failed to update pet data', type = 'error', duration = 3000 })
+        return
+    end
+
+    -- Update companion data in database with error handling
+    local updateSuccess, updateError = pcall(Database.UpdateCompanionData, companionid, validatedData)
+    if not updateSuccess then
+        if Config.Debug then
+            print('^1[UPDATEANIMALS ERROR]^7 Database update failed:', updateError)
+        end
+        TriggerClientEvent('ox_lib:notify', src, { title = 'Error', description = 'Failed to save pet data', type = 'error', duration = 3000 })
+        return
+    end
+
+    -- Notify client of successful update
+    TriggerClientEvent('hdrp-pets:client:refreshPetData', src, companionid, validatedData)
+
+    if Config.Debug then
+        print(string.format('^2[UPDATEANIMALS SUCCESS]^7 Updated pet %s for player %s', companionid, Player.PlayerData.citizenid))
+    end
 end)
 
 -- Rename Companion
