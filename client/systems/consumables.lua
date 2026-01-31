@@ -202,8 +202,6 @@ AddEventHandler('hdrp-pets:client:brush', function(itemName)
         return
     end
 
-    local pcoords = GetEntityCoords(cache.ped)
-    local hcoords = GetEntityCoords(petData.ped)
     if distance > 2.0 then
         lib.notify({ title = locale('cl_error_brush_need_to_be_closer'), type = 'error', duration = 7000 })
         return
@@ -217,6 +215,7 @@ AddEventHandler('hdrp-pets:client:brush', function(itemName)
     SetCurrentPedWeapon(cache.ped, `WEAPON_UNARMED`, true)
     State.ResetPlayerState()
     Wait(100)
+    local pcoords = GetEntityCoords(cache.ped)
     local boneIndex = GetEntityBoneIndexByName(cache.ped, "SKEL_R_Finger00")
     local brushitem = CreateObject(`p_brushHorse02x`, pcoords.x, pcoords.y, pcoords.z, true, true, true)
     AttachEntityToEntity(brushitem, cache.ped, boneIndex, 0.06, -0.08, -0.03, -30.0, 0.0, 60.0, true, false, true, false, 0, true)
@@ -239,7 +238,7 @@ AddEventHandler('hdrp-pets:client:brush', function(itemName)
     State.ResetPlayerState()
     SetCurrentPedWeapon(cache.ped, `WEAPON_UNARMED`, false)
     local companiondirt = Citizen.InvokeNative(0x147149F2E909323C, petData.ped, 16, Citizen.ResultAsInteger())
-    local dirt = (companiondirt - Config.Consumables.Brushdirt) or 0
+    local dirt = (companiondirt - Config.PetFeed[itemName]["dirt"]) or 0
     Citizen.InvokeNative(0xC6258F41D86676E0, petData.ped, 16, dirt)
     TriggerServerEvent('hdrp-pets:server:useitem', itemName, companionid)
 end)

@@ -583,12 +583,6 @@ end
 ------------------------------------------
 -- EVENT HANDLERS
 ------------------------------------------
--- 
---[[ RegisterNetEvent('hdrp-pets:client:updateanimals', function()
-    for companionid, newData in pairs(State.GetAllPets()) do
-        local pet = State.GetPet(companionid)
-    end
-end) ]]
 RegisterNetEvent('hdrp-pets:client:tradeCompleted')
 AddEventHandler('hdrp-pets:client:tradeCompleted', function()
     -- Refrescar lista de mascotas del jugador
@@ -601,12 +595,6 @@ AddEventHandler('hdrp-pets:client:tradeCompleted', function()
     })
 end)
 
-RegisterNetEvent('hdrp-pets:client:updateanimals', function(id, newData)
-    if State.Pets[id] then
-        State.Pets[id].data = newData
-    end
-end)
-
 -- Cleanup cada 5 min
 CreateThread(function()
     while true do
@@ -614,6 +602,7 @@ CreateThread(function()
         State.CleanupAllPetPrompts()
     end
 end)
+
 ------------------------------------------
 -- EXPORTS
 ------------------------------------------

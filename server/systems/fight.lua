@@ -78,7 +78,6 @@ local function checkAchievements(src, petId)
 
     Database.UpdateCompanionAchievements(companionid, achievements)
     Database.UpdateCompanionData(companionid, data)
-    TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, data)
     TriggerClientEvent('hdrp-pets:client:updateCombatAchievements', src, petId, achievements, xpBonus)
 end
 
@@ -127,7 +126,6 @@ local function updateStatsFight(winnerPet, loserPet, winnerSrc, loserSrc, isKO, 
         local totalFightsW = (wach.fight.victories or 0) + (wach.fight.defeats or 0)
         wach.fight.winrate = totalFightsW > 0 and math.floor((wach.fight.victories / totalFightsW) * 100) or 0
         Database.UpdateCompanionAchievements(wid, wach)
-        -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, wid, wach)
     end
 
     -- Mascota perdedora
@@ -144,7 +142,6 @@ local function updateStatsFight(winnerPet, loserPet, winnerSrc, loserSrc, isKO, 
         local totalFightsL = (lach.fight.victories or 0) + (lach.fight.defeats or 0)
         lach.fight.winrate = totalFightsL > 0 and math.floor((lach.fight.victories / totalFightsL) * 100) or 0
         Database.UpdateCompanionAchievements(lid, lach)
-        -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, lid, lach)
     end
 end
 
@@ -825,7 +822,6 @@ function resolvePvPFight(fightId)
             wdata.progression = wdata.progression or {}
             wdata.progression.xp = (wdata.progression.xp or 0) + xpWinner
             Database.UpdateCompanionData(winnerPet.PetId, wdata)
-            TriggerClientEvent('hdrp-pets:client:updateanimals', winnerSrc, winnerPet.PetId, wdata)
         end
     end
 
@@ -836,7 +832,6 @@ function resolvePvPFight(fightId)
             ldata.progression = ldata.progression or {}
             ldata.progression.xp = (ldata.progression.xp or 0) + xpLoser
             Database.UpdateCompanionData(loserPet.PetId, ldata)
-            TriggerClientEvent('hdrp-pets:client:updateanimals', loserSrc, loserPet.PetId, ldata)
         end
     end
 

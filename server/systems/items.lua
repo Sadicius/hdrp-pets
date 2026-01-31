@@ -118,10 +118,7 @@ RegisterServerEvent('hdrp-pets:server:setrevive', function(item, companionid)
         currentData.veterinary.dead = false
 
         Database.UpdateCompanionData(companionid, currentData)
-        TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
-
         TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_success_pet_revived'), type = 'success', duration = 5000 })
-
     end
 
     local discordMessage = string.format(
@@ -245,6 +242,5 @@ RegisterServerEvent('hdrp-pets:server:useitem', function(item, companionid)
     if statsChanged then
         Database.UpdateCompanionData(companionid, currentData)
 
-        TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
     end
 end)

@@ -100,8 +100,6 @@ local function awardPetXP(src, petId, xpAmount)
     data.progression.xp = (data.progression.xp or 0) + xpAmount
 
     Database.UpdateCompanionData(petId, data)
-    TriggerClientEvent('hdrp-pets:client:updateanimals', src, petId, data)
-
     return data.progression.xp
 end
 

@@ -265,8 +265,6 @@ local function loopGestation()
                 pet.data.veterinary.gestationperiod = nil
 
                 Database.UpdateCompanionData((pet.data and pet.data.id) or companionid, pet.data)
-                -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, (pet.data and pet.data.id) or companionid, pet.data)
-
                 TriggerClientEvent('hdrp-pets:client:newoffspring', -1, offspring.companionid, offspring)
             end
         end

@@ -314,7 +314,6 @@ local function updatePetLifecycleAndDecay()
                         }
                     )
                     
-                    -- TriggerClientEvent('hdrp-pets:client:updateanimals', src)
                 end
                 
                 goto continue_processing
