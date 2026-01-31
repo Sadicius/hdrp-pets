@@ -2,22 +2,34 @@ local RSGCore = exports['rsg-core']:GetCoreObject()
 lib.locale()
 
 local State = exports['hdrp-pets']:GetState()
+local ManageSpawn = lib.load('client.stable.utils_spawn')
 local gameTreasureConfig = Config.Games.Gtreasure
 local gameHostileConfig = Config.Games.Ghostile
 local gameBanditConfig = Config.Games.Gbandit
 
-local ManageSpawn = lib.load('client.stable.utils_spawn')
+-- Restricted zones (cities) - constant
+local RESTRICTED_ZONES = {
+    {name = "Valentine", coords = vector3(-306.0, 792.0, 118.0), radius = 150.0},
+    {name = "Blackwater", coords = vector3(-813.0, -1324.0, 43.0), radius = 200.0},
+    {name = "Rhodes", coords = vector3(1346.0, -1312.0, 76.0), radius = 150.0},
+    {name = "Saint Denis", coords = vector3(2632.0, -1312.0, 52.0), radius = 300.0},
+    {name = "Strawberry", coords = vector3(-1803.0, -386.0, 160.0), radius = 120.0},
+    {name = "Annesburg", coords = vector3(2930.0, 1288.0, 44.0), radius = 120.0},
+    {name = "Armadillo", coords = vector3(-3685.0, -2562.0, -13.0), radius = 130.0},
+    {name = "Tumbleweed", coords = vector3(-5512.0, -2937.0, -2.0), radius = 130.0},
+    {name = "Van Horn", coords = vector3(2976.0, 544.0, 44.0), radius = 100.0},
+}
 
 -- Local state variables
 local isTreasureHuntActive = false
 local treasureInProgress = false
 local treasurePoints = {}
+local itemProps = {}
 local currentHuntStep = 0
 local totalHuntSteps = 0
 local gpsRoute = nil
 local headingToTarget = false
 local waitingForPlayer = false
-local itemProps = {}
 
 -- Multi-pet hunt state
 local multiPetHuntActive = false
@@ -25,10 +37,13 @@ local activeTreasureHunts = {}
 local playerFollowingPet = nil
 local selectedPetToFollow = nil  -- Pet the player chose to follow
 
+
 --================================
 -- HELPER FUNCTIONS
 --================================
-
+---Check if coordinates are in water
+---@param coords vector3
+---@return boolean inWater
 local function isWaterAtCoords(coords)
     local waterTypes = Config.WaterTypes
     local waterType = Citizen.InvokeNative(0x5BA7A68A346A5A91, coords.x, coords.y, coords.z)
@@ -40,6 +55,105 @@ local function isWaterAtCoords(coords)
     return false
 end
 
+---Check if point is in restricted zone (city)
+---@param point vector3
+---@return boolean inZone
+---@return string|nil zoneName
+local function isInRestrictedZone(point)
+    for _, zone in ipairs(RESTRICTED_ZONES) do
+        local distance = #(point - zone.coords)
+        if distance < zone.radius then
+            return true, zone.name
+        end
+    end
+    return false
+end
+
+---Get random clue animation for pet
+---@return string anim Animation dictionary path
+---@return number animTime Duration in milliseconds
+local function getRandomClueAnimation()
+    local roll = math.random(1, 100)
+    local anim, animTime = nil, gameTreasureConfig.anim.clueWaitTime
+    if roll <= 25 then
+        anim = 'amb_creature_mammal@world_dog_howling_sitting@base'
+        animTime = gameTreasureConfig.anim.howAnimTime
+    elseif roll <= 50 then
+        anim = 'amb_creature_mammal@world_dog_sniffing_ground@base'
+    elseif roll <= 75 then
+        anim = 'amb_creature_mammal@world_dog_guard_growl@base'
+        animTime = gameTreasureConfig.anim.guaAnimTime
+    else
+        anim = 'amb_creature_mammal@world_dog_digging@base'
+    end
+    return anim, animTime
+end
+
+---Find pet by name or ID
+---@param searchTerm string Pet name or ID to search
+---@param activePets table Table of active pets
+---@return string|nil petId
+---@return table|nil petData
+local function findPetByIdentifier(searchTerm, activePets)
+    local lowerTerm = string.lower(searchTerm)
+    for id, petData in pairs(activePets) do
+        if tostring(id) == lowerTerm then
+            return id, petData
+        end
+        local petName = petData.data and petData.data.info and petData.data.info.name or nil
+        if petName and string.lower(petName):find(lowerTerm, 1, true) then
+            return id, petData
+        end
+    end
+    return nil, nil
+end
+
+---Validate if pet meets treasure hunt requirements
+---@param petId string
+---@return boolean canStart
+---@return string|nil errorMessage
+---@return table|nil petData Pet data if validation succeeds
+local function validateTreasureRequirements(petId)
+    -- Check if pet exists and is alive
+    if not State.ShouldThreadContinue(petId) then
+        return false, locale('cl_error_treasurehunt') or 'Pet not available', nil
+    end
+    local petData = State.GetPet(petId)
+    if not petData then
+        return false, locale('cl_error_treasurehunt') or 'Pet not available', nil
+    end
+    -- Check XP requirement
+    local xp = (petData.data and petData.data.progression and petData.data.progression.xp) or 0
+    local requiredXP = Config.XP.Trick.TreasureHunt
+    if xp < requiredXP then
+        return false, string.format(locale('cl_error_xp_required') or 'XP required: %d (Current: %d)', requiredXP, xp), nil
+    end
+    -- Check for shovel item
+    local hasShovel = RSGCore.Functions.HasItem(Config.Items.Treasure)
+    if not hasShovel then
+        return false, locale('cl_error_treasure_hunt_requirement') or 'Shovel required', nil
+    end
+    return true, nil, petData
+end
+
+---Get valid pets for treasure hunt (XP + shovel requirements)
+---@param activePets table Table of active pets
+---@return table validPets Table of pets that meet requirements
+---@return number count Number of valid pets
+local function getValidPetsForTreasure(activePets)
+    local validPets = {}
+    local count = 0
+    for petId, petData in pairs(activePets) do
+        local canStart, _ = validateTreasureRequirements(petId)
+        if canStart then
+            validPets[petId] = petData
+            count = count + 1
+        end
+    end
+    return validPets, count
+end
+
+---Clean up treasure hunt props and state
 local function treasureCleanUp()
     -- Clean up props
     for k, v in pairs(itemProps) do
@@ -78,7 +192,8 @@ end
 --================================
 -- TREASURE REWARDS
 --================================
-
+--- Handle treasure found logic
+---@param petId string|nil Pet ID that found the treasure
 local function handleTreasureFound(petId)
     -- Check for hostile encounter
     local hostileRoll = math.random(100)
@@ -109,10 +224,7 @@ local function handleTreasureFound(petId)
     end
 end
 
---================================
 -- SHOVEL MINIGAME
---================================
-
 local function createShovelAndAttach()
     local playerCoords = GetEntityCoords(cache.ped)
     local boneIndex = GetEntityBoneIndexByName(cache.ped, 'SKEL_R_Hand')
@@ -176,10 +288,7 @@ local function showSkillCheckShovel(entity, petId)
     table.insert(itemProps, { treasure = treasureObject })
 
     State.ResetPlayerState(true)
-
     handleTreasureFound(petId)
-
-    State.ResetPlayerState(true)
 
     if DoesEntityExist(shovelObject) then
         DeleteObject(shovelObject)
@@ -206,7 +315,9 @@ end
 --================================
 -- FINISH TREASURE HUNT
 --================================
-
+--- Finish treasure hunt sequence
+---@param entity Entity Pet entity that found the treasure
+---@param petId string|nil Pet ID that found the treasure
 local function finishTreasureHunt(entity, petId)
     lib.notify({ title = locale('cl_game_treasure_hunt_started'), description = locale('cl_game_treasure_hunt_started_desc'), type = 'success' })
 
@@ -256,29 +367,6 @@ end
 local function generateRandomTreasureRoute(startPos, steps)
     local route = {}
     local lastPos = startPos
-
-    -- Restricted zones (cities)
-    local restrictedZones = {
-        {name = "Valentine", coords = vector3(-306.0, 792.0, 118.0), radius = 150.0},
-        {name = "Blackwater", coords = vector3(-813.0, -1324.0, 43.0), radius = 200.0},
-        {name = "Rhodes", coords = vector3(1346.0, -1312.0, 76.0), radius = 150.0},
-        {name = "Saint Denis", coords = vector3(2632.0, -1312.0, 52.0), radius = 300.0},
-        {name = "Strawberry", coords = vector3(-1803.0, -386.0, 160.0), radius = 120.0},
-        {name = "Annesburg", coords = vector3(2930.0, 1288.0, 44.0), radius = 120.0},
-        {name = "Armadillo", coords = vector3(-3685.0, -2562.0, -13.0), radius = 130.0},
-        {name = "Tumbleweed", coords = vector3(-5512.0, -2937.0, -2.0), radius = 130.0},
-        {name = "Van Horn", coords = vector3(2976.0, 544.0, 44.0), radius = 100.0},
-    }
-
-    local function isInRestrictedZone(point)
-        for _, zone in ipairs(restrictedZones) do
-            local distance = #(vector3(point.x, point.y, point.z) - zone.coords)
-            if distance < zone.radius then
-                return true, zone.name
-            end
-        end
-        return false
-    end
 
     for i = 1, steps do
         local validPoint = false
@@ -331,56 +419,77 @@ local function generateRandomTreasureRoute(startPos, steps)
 end
 
 --================================
--- MOVE TO CLUE (Single Pet Mode)
+-- UNIFIED CLUE MOVEMENT (Single & Multi-Pet Mode)
 --================================
 
-local function moveToClue(index, entity)
-    if not entity or not DoesEntityExist(entity) then return end
-    if not treasurePoints[index] then return end
+---Move pet to clue location with player follow logic
+---Handles both single-pet and multi-pet treasure hunt modes
+---@param petId string Pet companion ID
+---@param clueIndex number Current clue index (1-based)
+---@param isMultiPetMode boolean True for multi-pet competition mode
+local function movePetToClue(petId, clueIndex, isMultiPetMode)
+    local entity, cluePoints, totalClues, huntData
 
-    local target = treasurePoints[index]
-    local targetCoords = vector3(target.x, target.y, target.z)
-
-    -- Set GPS route
-    if Config.Blip.Clue.ClueBlip then
-        if gpsRoute then ClearGpsMultiRoute() end
-        StartGpsMultiRoute(GetHashKey('COLOR_BLUE'), true, true)
-        AddPointToGpsMultiRoute(targetCoords.x, targetCoords.y, targetCoords.z)
-        SetGpsMultiRouteRender(true)
-        gpsRoute = true
+    if isMultiPetMode then
+        huntData = activeTreasureHunts[petId]
+        if not huntData then return end
+        entity = huntData.ped
+        cluePoints = huntData.cluePoints
+        totalClues = huntData.totalClues
+    else
+        local petData = State.GetPet(petId)
+        entity = petData and petData.ped or nil
+        cluePoints = treasurePoints
+        totalClues = totalHuntSteps
     end
 
-    headingToTarget = true
-    waitingForPlayer = false
+    if not entity or not DoesEntityExist(entity) then return end
+    if not cluePoints or not cluePoints[clueIndex] then return end
+
+    local target = cluePoints[clueIndex]
+    local targetCoords = vector3(target.x, target.y, target.z)
+
+    -- Update state
+    if isMultiPetMode then
+        huntData.currentClue = clueIndex
+        huntData.headingToTarget = true
+        huntData.waitingForPlayer = false
+    else
+        currentHuntStep = clueIndex
+        headingToTarget = true
+        waitingForPlayer = false
+    end
 
     -- Command pet to move
     TaskGoToCoordAnyMeans(entity, target.x, target.y, target.z, 2.0, 0, 0, 786603, 0)
 
-    lib.notify({
-        title = locale('cl_game_treasure_hunt_follow'),
-        description = string.format(locale('cl_game_treasure_hunt_follow_desc') .. ' %d ' .. locale('cl_game_treasure_hunt_follow_desc2') .. ' %d', index, totalHuntSteps),
-        type = 'info'
-    })
+    -- Only show notifications and GPS for followed pet
+    local shouldShowUI = not isMultiPetMode or (selectedPetToFollow == petId)
 
-    -- Play howl animation
-    local animHowl = 'amb_creature_mammal@world_dog_howling_sitting@base'
-    local petData, petId = State.GetPetByEntity(entity)
-    if petId then
-        ClearPedTasksImmediately(entity)
-        State.PlayPetAnimation(petId, animHowl, 'base', true, 3000)
-        Wait(3000)
-        State.ClearPetAnimation(petId)
+    if shouldShowUI then
+        lib.notify({
+            title = locale('cl_game_treasure_hunt_follow'),
+            description = string.format(locale('cl_game_treasure_hunt_follow_desc') .. ' %d ' .. locale('cl_game_treasure_hunt_follow_desc2') .. ' %d', clueIndex, totalClues),
+            type = 'info'
+        })
+
+        -- Set GPS route
+        if Config.Blip.Clue.ClueBlip then
+            if gpsRoute then ClearGpsMultiRoute() end
+            StartGpsMultiRoute(GetHashKey('COLOR_BLUE'), true, true)
+            AddPointToGpsMultiRoute(targetCoords.x, targetCoords.y, targetCoords.z)
+            SetGpsMultiRouteRender(true)
+            gpsRoute = true
+        end
     end
 
-    TaskGoToCoordAnyMeans(entity, target.x, target.y, target.z, 2.0, 0, 0, 786603, 0)
-
     if Config.Debug then
-        print(locale('cl_print_treasurehunt_move') .. ' ' .. index)
+        print(string.format('^2[TREASURE]^7 Pet %s moving to clue %d/%d', petId, clueIndex, totalClues))
     end
 
     -- Monitor thread
     CreateThread(function()
-        local step = index
+        local step = clueIndex
         local lastReissueTime = GetGameTimer()
         local clueStartTime = GetGameTimer()
         local clueTimeout = 120000  -- 2 minutes per clue
@@ -388,104 +497,101 @@ local function moveToClue(index, entity)
         local iterationCount = 0
 
         local function shouldCancel()
-            return not treasureInProgress or
-                   not entity or
-                   not DoesEntityExist(entity) or
-                   IsEntityDead(entity) or
-                   IsEntityDead(cache.ped)
+            if IsEntityDead(cache.ped) then return true end
+            if not State.ShouldThreadContinue(petId) then
+                return true
+            end
+            if isMultiPetMode then
+                return not multiPetHuntActive
+            else
+                return not treasureInProgress
+            end
         end
 
-        while treasureInProgress and currentHuntStep == step and iterationCount < maxIterations do
-            if shouldCancel() then
-                if Config.Debug then
-                    print('^3[TREASURE]^7 ' .. locale('cl_debug_treasure_cancelled_conditions'))
-                end
-                treasureCleanUp()
-                return
-            end
+        local function getCurrentStep()
+            return isMultiPetMode and huntData.currentClue or currentHuntStep
+        end
 
+        while not shouldCancel() and getCurrentStep() == step and iterationCount < maxIterations do
             iterationCount = iterationCount + 1
             Wait(1000)
 
             local dogPos = GetEntityCoords(entity)
             local playerPos = GetEntityCoords(cache.ped)
             local distToTarget = #(dogPos - targetCoords)
-            local distToPlayer = #(dogPos - playerPos)
+            local distToPlayer = State.GetDistancePlayerToPet(petId)
 
-            -- Reissue task if stuck
-            if GetGameTimer() - lastReissueTime > 10000 and headingToTarget then
-                if Config.Debug then print(locale('cl_print_treasurehunt_move_b')) end
-                TaskGoToCoordAnyMeans(entity, targetCoords.x, targetCoords.y, targetCoords.z, 2.0, 0, 0, 786603, 0)
-                lastReissueTime = GetGameTimer()
-            end
+            local isFollowedPet = not isMultiPetMode or (selectedPetToFollow == petId)
+            local currentHeading = isMultiPetMode and huntData.headingToTarget or headingToTarget
+            local currentWaiting = isMultiPetMode and huntData.waitingForPlayer or waitingForPlayer
 
-            -- Timeout per clue
-            if GetGameTimer() - clueStartTime > clueTimeout and headingToTarget then
-                lib.notify({ title = locale('cl_game_treasure_hunt_fail'), description = locale('cl_game_treasure_hunt_fail_desc'), type = 'warning' })
-                ClearPedTasksImmediately(entity)
-                local animSniff = 'amb_creature_mammal@world_dog_sniffing_ground@base'
-                if petId then
+            -- Only apply player-follow logic if this pet is selected
+            if isFollowedPet then
+                -- Reissue task if stuck
+                if GetGameTimer() - lastReissueTime > 10000 and currentHeading then
+                    if Config.Debug then print('^3[TREASURE]^7 Reissuing move command for pet ' .. petId) end
+                    TaskGoToCoordAnyMeans(entity, targetCoords.x, targetCoords.y, targetCoords.z, 2.0, 0, 0, 786603, 0)
+                    lastReissueTime = GetGameTimer()
+                end
+
+                -- Timeout per clue
+                if GetGameTimer() - clueStartTime > clueTimeout and currentHeading then
+                    lib.notify({ title = locale('cl_game_treasure_hunt_fail'), description = locale('cl_game_treasure_hunt_fail_desc'), type = 'warning' })
+                    ClearPedTasksImmediately(entity)
+                    local animSniff = 'amb_creature_mammal@world_dog_sniffing_ground@base'
                     State.PlayPetAnimation(petId, animSniff, 'base', true, gameTreasureConfig.anim.sniAnimTime)
                     Wait(gameTreasureConfig.anim.sniAnimTime)
                     State.ClearPetAnimation(petId)
+                    TaskGoToCoordAnyMeans(entity, targetCoords.x, targetCoords.y, targetCoords.z, 2.0, 0, 0, 786603, 0)
+                    clueStartTime = GetGameTimer()
+                    lastReissueTime = GetGameTimer()
                 end
-                TaskGoToCoordAnyMeans(entity, targetCoords.x, targetCoords.y, targetCoords.z, 2.0, 0, 0, 786603, 0)
-                clueStartTime = GetGameTimer()
-                lastReissueTime = GetGameTimer()
-            end
+-- Pet too far from player - wait
+                if currentHeading and distToPlayer > gameTreasureConfig.maxdistToPlayer then
+                    ClearPedTasksImmediately(entity)
+                    TaskGoToEntity(entity, cache.ped, -1, 2.0, 2.0, 0, 0)
+                    lib.notify({ title = locale('cl_game_treasure_hunt_check'), description = locale('cl_game_treasure_hunt_check_desc'), type = 'warning' })
+                   if isMultiPetMode then
+                        huntData.headingToTarget = false
+                        huntData.waitingForPlayer = true
+                    else
+                        headingToTarget = false
+                        waitingForPlayer = true
+                    end
 
-            -- Pet too far from player - wait
-            if headingToTarget and distToPlayer > gameTreasureConfig.maxdistToPlayer then
-                ClearPedTasksImmediately(entity)
-                TaskGoToEntity(entity, cache.ped, -1, 2.0, 2.0, 0, 0)
-                lib.notify({ title = locale('cl_game_treasure_hunt_check'), description = locale('cl_game_treasure_hunt_check_desc'), type = 'warning' })
-                headingToTarget = false
-                waitingForPlayer = true
-
-            elseif waitingForPlayer and distToPlayer <= gameTreasureConfig.mindistToPlayer then
-                ClearPedTasksImmediately(entity)
-                local animGrowl = 'amb_creature_mammal@world_dog_guard_growl@base'
-                if petId then
+                elseif currentWaiting and distToPlayer <= gameTreasureConfig.mindistToPlayer then
+                    ClearPedTasksImmediately(entity)
+                    local animGrowl = 'amb_creature_mammal@world_dog_guard_growl@base'
                     State.PlayPetAnimation(petId, animGrowl, 'base', true, gameTreasureConfig.anim.sniAnimTime)
                     Wait(gameTreasureConfig.anim.sniAnimTime)
                     State.ClearPetAnimation(petId)
+                    lib.notify({ title = locale('cl_game_treasure_hunt_check_player'), description = locale('cl_game_treasure_hunt_check_player_desc'), type = 'info' })
+                    TaskGoToCoordAnyMeans(entity, target.x, target.y, target.z, 2.0, 0, 0, 786603, 0)
+
+                    if isMultiPetMode then
+                        huntData.headingToTarget = true
+                        huntData.waitingForPlayer = false
+                    else
+                        headingToTarget = true
+                        waitingForPlayer = false
+                    end
+                    lastReissueTime = GetGameTimer()
                 end
-                lib.notify({ title = locale('cl_game_treasure_hunt_check_player'), description = locale('cl_game_treasure_hunt_check_player_desc'), type = 'info' })
-                TaskGoToCoordAnyMeans(entity, target.x, target.y, target.z, 2.0, 0, 0, 786603, 0)
-                headingToTarget = true
-                waitingForPlayer = false
-                lastReissueTime = GetGameTimer()
             end
 
             -- Arrived at clue
             if distToTarget < gameTreasureConfig.distToTarget then
                 ClearPedTasksImmediately(entity)
 
-                -- Random animation at clue
-                local roll = math.random(1, 100)
-                local anim = nil
-                local animTime = gameTreasureConfig.anim.clueWaitTime
-
-                if roll <= 25 then
-                    anim = 'amb_creature_mammal@world_dog_howling_sitting@base'
-                    animTime = gameTreasureConfig.anim.howAnimTime
-                elseif roll <= 50 then
-                    anim = 'amb_creature_mammal@world_dog_sniffing_ground@base'
-                elseif roll <= 75 then
-                    anim = 'amb_creature_mammal@world_dog_guard_growl@base'
-                    animTime = gameTreasureConfig.anim.guaAnimTime
-                else
-                    anim = 'amb_creature_mammal@world_dog_digging@base'
-                end
-
+                local anim, animTime = getRandomClueAnimation()
                 if petId and anim then
                     State.PlayPetAnimation(petId, anim, 'base', true, animTime)
                     Wait(animTime)
                     State.ClearPetAnimation(petId)
                 end
 
-                -- Show clue blip
-                if Config.Blip.Clue.ClueBlip then
+                -- Show clue blip if this is the followed pet
+                if isFollowedPet and Config.Blip.Clue.ClueBlip then
                     ClearGpsMultiRoute()
                     gpsRoute = nil
 
@@ -504,20 +610,42 @@ local function moveToClue(index, entity)
                     end)
                 end
 
-                currentHuntStep = currentHuntStep + 1
+                -- Move to next clue or finish
+                if isMultiPetMode then
+                    huntData.currentClue = huntData.currentClue + 1
+                    if huntData.currentClue > huntData.totalClues then
+                        -- Arrived at final destination
+                        huntData.hasArrived = true
+                        huntData.reachedTime = GetGameTimer()
+                        local animDig = 'amb_creature_mammal@world_dog_digging@base'
+                        State.PlayPetAnimation(petId, animDig, 'base', true, -1)
 
-                if currentHuntStep > totalHuntSteps then
-                    finishTreasureHunt(entity, petId)
+                        if selectedPetToFollow == petId then
+                            lib.notify({
+                                title = locale('cl_multipet_pet_arrived_title'),
+                                description = locale('cl_multipet_pet_arrived_desc'),
+                                type = 'info'
+                            })
+                        end
+                    else
+                        Wait(500)
+                        movePetToClue(petId, huntData.currentClue, true)
+                    end
                 else
-                    Wait(500)
-                    moveToClue(currentHuntStep, entity)
+                    currentHuntStep = currentHuntStep + 1
+                    if currentHuntStep > totalHuntSteps then
+                        finishTreasureHunt(entity, petId)
+                    else
+                        Wait(500)
+                        movePetToClue(petId, currentHuntStep, false)
+                    end
                 end
                 break
             end
         end
 
         -- Timeout notification
-        if iterationCount >= maxIterations and treasureInProgress then
+        if iterationCount >= maxIterations and not shouldCancel() then
             lib.notify({
                 title = locale('cl_treasure_hunt_timeout'),
                 description = locale('cl_treasure_hunt_timeout_desc'),
@@ -528,7 +656,9 @@ local function moveToClue(index, entity)
             if Config.Debug then
                 print('^3[TREASURE]^7 ' .. locale('cl_debug_treasure_timed_out'))
             end
-            treasureCleanUp()
+            if not isMultiPetMode then
+                treasureCleanUp()
+            end
         end
     end)
 end
@@ -540,6 +670,13 @@ end
 local function startTreasureHunt(entity, petId)
     if treasureInProgress then
         lib.notify({ title = locale('cl_game_treasure_hunt_in_progress'), type = 'error' })
+        return
+    end
+
+    -- Validate requirements
+    local canStart, errorMsg = validateTreasureRequirements(petId)
+    if not canStart then
+        lib.notify({ title = locale('cl_error_treasurehunt') or 'Error', description = errorMsg, type = 'error' })
         return
     end
 
@@ -563,203 +700,11 @@ local function startTreasureHunt(entity, petId)
             type = 'info',
             duration = 7000
         })
-        moveToClue(currentHuntStep, entity)
+        movePetToClue(petId, currentHuntStep, false)
     else
         lib.notify({ title = locale('cl_treasure_error_title'), description = locale('cl_treasure_error_desc'), type = 'error' })
         treasureCleanUp()
     end
-end
-
---================================
--- MULTI-PET CLUE MOVEMENT (with player follow system)
---================================
-
-local function moveToClueMultiPet(petId, clueIndex)
-    local huntData = activeTreasureHunts[petId]
-    if not huntData then return end
-
-    local entity = huntData.ped
-    if not entity or not DoesEntityExist(entity) then return end
-
-    local cluePoints = huntData.cluePoints
-    if not cluePoints or not cluePoints[clueIndex] then return end
-
-    local target = cluePoints[clueIndex]
-    local targetCoords = vector3(target.x, target.y, target.z)
-
-    huntData.currentClue = clueIndex
-    huntData.headingToTarget = true
-    huntData.waitingForPlayer = false
-
-    -- Command pet to move
-    TaskGoToCoordAnyMeans(entity, target.x, target.y, target.z, 2.0, 0, 0, 786603, 0)
-
-    -- Only show notifications if this is the pet the player is following
-    if selectedPetToFollow == petId then
-        lib.notify({
-            title = locale('cl_game_treasure_hunt_follow'),
-            description = string.format(locale('cl_game_treasure_hunt_follow_desc') .. ' %d ' .. locale('cl_game_treasure_hunt_follow_desc2') .. ' %d', clueIndex, huntData.totalClues),
-            type = 'info'
-        })
-
-        -- Set GPS route for followed pet
-        if Config.Blip.Clue.ClueBlip then
-            if gpsRoute then ClearGpsMultiRoute() end
-            StartGpsMultiRoute(GetHashKey('COLOR_BLUE'), true, true)
-            AddPointToGpsMultiRoute(targetCoords.x, targetCoords.y, targetCoords.z)
-            SetGpsMultiRouteRender(true)
-            gpsRoute = true
-        end
-    end
-
-    if Config.Debug then
-        print(string.format('^2[TREASURE]^7 Pet %s moving to clue %d/%d', petId, clueIndex, huntData.totalClues))
-    end
-
-    -- Monitor thread for this pet's clue movement
-    CreateThread(function()
-        local step = clueIndex
-        local lastReissueTime = GetGameTimer()
-        local clueStartTime = GetGameTimer()
-        local clueTimeout = 120000  -- 2 minutes per clue
-        local maxIterations = 120
-        local iterationCount = 0
-
-        while multiPetHuntActive and huntData.currentClue == step and iterationCount < maxIterations do
-            -- Check cancellation conditions
-            if not entity or not DoesEntityExist(entity) or IsEntityDead(entity) or IsEntityDead(cache.ped) then
-                if Config.Debug then
-                    print('^3[TREASURE]^7 Multi-pet clue cancelled - invalid conditions')
-                end
-                return
-            end
-
-            iterationCount = iterationCount + 1
-            Wait(1000)
-
-            local dogPos = GetEntityCoords(entity)
-            local playerPos = GetEntityCoords(cache.ped)
-            local distToTarget = #(dogPos - targetCoords)
-            local distToPlayer = #(dogPos - playerPos)
-
-            -- Only apply player-follow logic if this pet is selected
-            if selectedPetToFollow == petId then
-                -- Reissue task if stuck
-                if GetGameTimer() - lastReissueTime > 10000 and huntData.headingToTarget then
-                    if Config.Debug then print('^3[TREASURE]^7 Reissuing move command for pet ' .. petId) end
-                    TaskGoToCoordAnyMeans(entity, targetCoords.x, targetCoords.y, targetCoords.z, 2.0, 0, 0, 786603, 0)
-                    lastReissueTime = GetGameTimer()
-                end
-
-                -- Timeout per clue
-                if GetGameTimer() - clueStartTime > clueTimeout and huntData.headingToTarget then
-                    lib.notify({ title = locale('cl_game_treasure_hunt_fail'), description = locale('cl_game_treasure_hunt_fail_desc'), type = 'warning' })
-                    ClearPedTasksImmediately(entity)
-                    local animSniff = 'amb_creature_mammal@world_dog_sniffing_ground@base'
-                    State.PlayPetAnimation(petId, animSniff, 'base', true, gameTreasureConfig.anim.sniAnimTime)
-                    Wait(gameTreasureConfig.anim.sniAnimTime)
-                    State.ClearPetAnimation(petId)
-                    TaskGoToCoordAnyMeans(entity, targetCoords.x, targetCoords.y, targetCoords.z, 2.0, 0, 0, 786603, 0)
-                    clueStartTime = GetGameTimer()
-                    lastReissueTime = GetGameTimer()
-                end
-
-                -- Pet too far from player - go back to find them
-                if huntData.headingToTarget and distToPlayer > gameTreasureConfig.maxdistToPlayer then
-                    ClearPedTasksImmediately(entity)
-                    TaskGoToEntity(entity, cache.ped, -1, 2.0, 2.0, 0, 0)
-                    lib.notify({ title = locale('cl_game_treasure_hunt_check'), description = locale('cl_game_treasure_hunt_check_desc'), type = 'warning' })
-                    huntData.headingToTarget = false
-                    huntData.waitingForPlayer = true
-
-                elseif huntData.waitingForPlayer and distToPlayer <= gameTreasureConfig.mindistToPlayer then
-                    -- Player caught up, continue to clue
-                    ClearPedTasksImmediately(entity)
-                    local animGrowl = 'amb_creature_mammal@world_dog_guard_growl@base'
-                    State.PlayPetAnimation(petId, animGrowl, 'base', true, gameTreasureConfig.anim.sniAnimTime)
-                    Wait(gameTreasureConfig.anim.sniAnimTime)
-                    State.ClearPetAnimation(petId)
-                    lib.notify({ title = locale('cl_game_treasure_hunt_check_player'), description = locale('cl_game_treasure_hunt_check_player_desc'), type = 'info' })
-                    TaskGoToCoordAnyMeans(entity, target.x, target.y, target.z, 2.0, 0, 0, 786603, 0)
-                    huntData.headingToTarget = true
-                    huntData.waitingForPlayer = false
-                    lastReissueTime = GetGameTimer()
-                end
-            end
-
-            -- Arrived at clue
-            if distToTarget < gameTreasureConfig.distToTarget then
-                ClearPedTasksImmediately(entity)
-
-                -- Random animation at clue
-                local roll = math.random(1, 100)
-                local anim = nil
-                local animTime = gameTreasureConfig.anim.clueWaitTime
-
-                if roll <= 25 then
-                    anim = 'amb_creature_mammal@world_dog_howling_sitting@base'
-                    animTime = gameTreasureConfig.anim.howAnimTime
-                elseif roll <= 50 then
-                    anim = 'amb_creature_mammal@world_dog_sniffing_ground@base'
-                elseif roll <= 75 then
-                    anim = 'amb_creature_mammal@world_dog_guard_growl@base'
-                    animTime = gameTreasureConfig.anim.guaAnimTime
-                else
-                    anim = 'amb_creature_mammal@world_dog_digging@base'
-                end
-
-                if anim then
-                    State.PlayPetAnimation(petId, anim, 'base', true, animTime)
-                    Wait(animTime)
-                    State.ClearPetAnimation(petId)
-                end
-
-                -- Show clue blip if this is the followed pet
-                if selectedPetToFollow == petId and Config.Blip.Clue.ClueBlip then
-                    ClearGpsMultiRoute()
-                    gpsRoute = nil
-
-                    local ClueBlip = Citizen.InvokeNative(0x554D9D53F696D002, 1664425300, targetCoords.x, targetCoords.y, targetCoords.z)
-                    Citizen.InvokeNative(0x662D364ABF16DE2F, ClueBlip, Config.Blip.ColorModifier)
-                    SetBlipSprite(ClueBlip, Config.Blip.Clue.blipSprite, true)
-                    SetBlipScale(ClueBlip, Config.Blip.Clue.blipScale)
-                    Citizen.InvokeNative(0x45FF974EEA1DCE36, ClueBlip, true)
-                    Citizen.InvokeNative(0x9CB1A1623062F402, ClueBlip, Config.Blip.Clue.blipName)
-
-                    lib.notify({ title = locale('cl_game_treasure_hunt_find'), description = locale('cl_game_treasure_hunt_find_desc'), type = 'success', duration = 5000 })
-
-                    CreateThread(function()
-                        Wait(Config.Blip.Clue.blipTime)
-                        if ClueBlip and DoesBlipExist(ClueBlip) then RemoveBlip(ClueBlip) end
-                    end)
-                end
-
-                huntData.currentClue = huntData.currentClue + 1
-
-                if huntData.currentClue > huntData.totalClues then
-                    -- Arrived at final destination
-                    huntData.hasArrived = true
-                    huntData.reachedTime = GetGameTimer()
-
-                    local animDig = 'amb_creature_mammal@world_dog_digging@base'
-                    State.PlayPetAnimation(petId, animDig, 'base', true, -1)
-
-                    if selectedPetToFollow == petId then
-                        lib.notify({
-                            title = locale('cl_multipet_pet_arrived_title'),
-                            description = locale('cl_multipet_pet_arrived_desc'),
-                            type = 'info'
-                        })
-                    end
-                else
-                    -- Move to next clue
-                    Wait(500)
-                    moveToClueMultiPet(petId, huntData.currentClue)
-                end
-                break
-            end
-        end
-    end)
 end
 
 --================================
@@ -778,13 +723,15 @@ local function startMultiPetTreasureHunt()
         return
     end
 
-    local petCount = 0
-    for _ in pairs(activePets) do petCount = petCount + 1 end
+    -- Validate requirements for all pets
+    local validPets, petCount = getValidPetsForTreasure(activePets)
 
     if petCount < 2 then
-        lib.notify({ title = locale('cl_game_treasure_need_two_pets'), type = 'warning' })
+        lib.notify({ title = locale('cl_game_treasure_need_two_pets'), description = locale('cl_error_treasure_hunt_requirement'), type = 'warning' })
         return
     end
+
+    activePets = validPets
 
     -- Start the hunt immediately - player chooses by approaching a pet
     isTreasureHuntActive = true
@@ -902,7 +849,7 @@ local function startMultiPetTreasureHunt()
                 Wait(3000)
                 State.ClearPetAnimation(currentPetId)
                 -- Start clue navigation for this pet
-                moveToClueMultiPet(currentPetId, 1)
+                movePetToClue(currentPetId, 1, true)
             end)
 
             if Config.Debug then
@@ -926,12 +873,10 @@ local function startMultiPetTreasureHunt()
                 break
             end
 
-            local playerPos = GetEntityCoords(cache.ped)
 
             for petId, huntData in pairs(activeTreasureHunts) do
-                if DoesEntityExist(huntData.ped) and not IsEntityDead(huntData.ped) then
-                    local petPos = GetEntityCoords(huntData.ped)
-                    local distToPlayer = #(petPos - playerPos)
+                if State.ShouldThreadContinue(petId) then
+                    local distToPlayer = State.GetDistancePlayerToPet(petId)
 
                     -- Player approaches a pet during navigation - this becomes the followed pet
                     if not selectedPetToFollow and not huntData.hasArrived and distToPlayer < gameTreasureConfig.mindistToPlayer then
@@ -1093,45 +1038,40 @@ RegisterCommand('pet_treasure', function(source, args)
         return
     end
 
-    local targetPetId = nil
-
     -- Check if specific pet argument provided
     if args and args[1] then
-        local searchTerm = string.lower(args[1])
-
-        for id, petData in pairs(activePets) do
-            if tostring(id) == searchTerm then
-                targetPetId = id
-                break
-            end
-            local petName = petData.data and petData.data.info and petData.data.info.name or nil
-            if petName and string.lower(petName):find(searchTerm, 1, true) then
-                targetPetId = id
-                break
-            end
-        end
+        local targetPetId, _ = findPetByIdentifier(args[1], activePets)
 
         if not targetPetId then
             lib.notify({ title = locale('cl_error_no_pet_retrieve_bone'), description = locale('cl_error_pet_not_found') .. ': ' .. args[1], type = 'error' })
             return
         end
 
+        -- Validate requirements for specific pet (returns petData to avoid double State.GetPet call)
+        local canStart, errorMsg, petData = validateTreasureRequirements(targetPetId)
+        if not canStart then
+            lib.notify({ title = locale('cl_error_treasurehunt') or 'Error', description = errorMsg, type = 'error' })
+            return
+        end
+
         -- Specific pet treasure hunt
-        local petData = State.GetPet(targetPetId)
         local petPed = petData and petData.ped or nil
         if petPed and DoesEntityExist(petPed) then
             startTreasureHunt(petPed, targetPetId)
         end
     else
         -- No argument: multi-pet competition if 2+ pets, otherwise single pet
-        local petCount = 0
-        for _ in pairs(activePets) do petCount = petCount + 1 end
+        local validPets, validPetCount = getValidPetsForTreasure(activePets)
+        if validPetCount == 0 then
+            lib.notify({ title = locale('cl_error_treasurehunt'), description = locale('cl_error_treasure_hunt_requirement'), type = 'error' })
+            return
+        end
 
-        if petCount >= 2 then
+        if validPetCount >= 2 then
             startMultiPetTreasureHunt()
         else
             -- Single pet mode
-            for companionid, petData in pairs(activePets) do
+            for companionid, petData in pairs(validPets) do
                 if petData and petData.spawned and DoesEntityExist(petData.ped) then
                     startTreasureHunt(petData.ped, companionid)
                     break
@@ -1149,12 +1089,14 @@ AddEventHandler('hdrp-pets:client:startTreasureHunt', function(petId)
         return
     end
 
-    local petPed = nil
-    if petId then
-        local petData = State.GetPet(petId)
-        petPed = petData and petData.ped or nil
+    -- Validate requirements (returns petData to avoid double State.GetPet call)
+    local canStart, errorMsg, petData = validateTreasureRequirements(petId)
+    if not canStart then
+        lib.notify({ title = locale('cl_error_treasurehunt') or 'Error', description = errorMsg, type = 'error' })
+        return
     end
-
+    
+    local petPed = petData and petData.ped or nil
     if petPed and DoesEntityExist(petPed) then
         startTreasureHunt(petPed, petId)
     else

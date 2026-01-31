@@ -3,7 +3,7 @@ rdr3_warning 'I acknowledge that this is a prerelease build of RedM, and I am aw
 game 'rdr3'
 
 description 'hdrp-pets - Advanced Pet System for RedM by Sadicius'
-version '6.8.2'
+version '6.8.3'
 
 shared_scripts {
     '@ox_lib/init.lua',
