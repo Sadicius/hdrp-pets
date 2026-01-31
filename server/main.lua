@@ -14,7 +14,7 @@ local updateQueue = {
     dirt = {}    -- {[companionid] = {dirt, citizenid, timestamp}}
 }
  
-local QUEUE_FLUSH_INTERVAL = 10000 -- 10 seconds
+local QUEUE_FLUSH_INTERVAL = 5000 -- 5 seconds
  
 -- Flush queue thread
 CreateThread(function()
