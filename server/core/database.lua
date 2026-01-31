@@ -574,6 +574,63 @@ function Database.GetBreedingParents(citizenid)
     return record.parents and json.decode(record.parents) or {}
 end
 
+
+-- ================================================
+-- BATCH UPDATE OPERATIONS (P0: Performance Fix)
+-- ================================================
+
+---Batch update companion data for multiple pets
+---Uses CASE WHEN to update all pets in a single query
+---@param updates table Array of {companionid, data}
+---@return boolean success, number|nil affectedRows
+function Database.BatchUpdateCompanions(updates)
+    if not updates or #updates == 0 then return false, 0 end
+
+    -- Build CASE WHEN statement for JSON data
+    local caseStatements = {}
+    local companionIds = {}
+    local params = {}
+
+    for i, update in ipairs(updates) do
+        if update.companionid and update.data then
+            table.insert(companionIds, '?')
+            table.insert(caseStatements, 'WHEN companionid = ? THEN ?')
+            table.insert(params, update.companionid)
+            table.insert(params, json.encode(update.data))
+        end
+    end
+
+    if #caseStatements == 0 then return false, 0 end
+
+    -- Add companionIds for WHERE IN clause
+    for _, update in ipairs(updates) do
+        if update.companionid then
+            table.insert(params, update.companionid)
+        end
+    end
+
+    local query = string.format([[
+        UPDATE pet_companion
+        SET data = CASE %s END
+        WHERE companionid IN (%s)
+    ]], table.concat(caseStatements, ' '), table.concat(companionIds, ','))
+
+    local success, affectedRows = pcall(
+        MySQL.update.await,
+        query,
+        params
+    )
+
+    if success and affectedRows then
+        if Config.Debug then
+            print(string.format('^2[DATABASE BATCH]^7 Updated %d companions in single query', affectedRows))
+        end
+        return true, affectedRows
+    end
+
+    return false, 0
+end
+ 
 -- OWNERSHIP VALIDATION --Verify pet ownership
 ---@param citizenid string
 ---@param companionid string
@@ -582,12 +639,12 @@ function Database.PetOwnership(citizenid, companionid)
     if not citizenid or not companionid then
         return false
     end
-    
+
     local result = MySQL.scalar.await(
         'SELECT COUNT(*) FROM pet_companion WHERE citizenid = ? AND companionid = ?',
         {citizenid, companionid}
     )
-    
+
     return result and tonumber(result) > 0
 end
 

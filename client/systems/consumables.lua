@@ -168,15 +168,33 @@ end)
 -----------------
 -- ACTIONS CLEAN
 -----------------
--- dirt check thread
+-- P2 FIX: Rate-limited dirt check thread
+-- Prevents all pets from syncing simultaneously (avoids DB spikes)
 CreateThread(function()
     while true do
         if not State.HasActivePets() then
             Wait(10000)
         else
             local sleep = 5000
+            local petCount = 0
+ 
+            -- Count active pets first
+            for _ in pairs(State.GetAllPets()) do
+                petCount = petCount + 1
+            end
+ 
+            -- Calculate stagger delay to spread updates over the sync interval
+            -- If 10 pets and 5s interval: 5000ms / 10 = 500ms delay between each
+            local staggerDelay = petCount > 1 and math.floor(sleep / petCount) or 0
+ 
+            local index = 0
             for companionid, petData in pairs(State.GetAllPets()) do
                 if petData and petData.spawned and DoesEntityExist(petData.ped) then
+                    -- Stagger the server events to avoid simultaneous burst
+                    if index > 0 and staggerDelay > 0 then
+                        Wait(staggerDelay)
+                    end
+ 
                     local petdirt = Citizen.InvokeNative(0x147149F2E909323C, petData.ped, 16, Citizen.ResultAsInteger())
                     -- Sincroniza dirt con el server y actualiza el State local si aplica
                     if companionid and petdirt then
@@ -185,6 +203,8 @@ CreateThread(function()
                             petData.data.stats.dirt = petdirt
                         end
                     end
+ 
+                    index = index + 1
                 end
             end
             Wait(sleep)

@@ -13,8 +13,8 @@ local lifecycleEnabled = Config.Lifecycle and Config.Lifecycle.Enabled
 local decayEnabled = Config.AutoDecay and Config.AutoDecay.Enabled
 
 -- Execution lock to prevent concurrent runs
-local isProcessingLifecycle = false
 local lifecycleProcessCount = 0
+local LIFECYCLE_LOCK_TIMEOUT = 300 -- 5 minutes
 
 -- Helper function to send telegram notification
 local function sendPetTelegram(citizenid, subject, message)
@@ -265,36 +265,53 @@ end
 
 -- UNIFIED UPDATE FUNCTION
 local function updatePetLifecycleAndDecay()
-    -- Prevent concurrent execution to avoid write conflicts
-    if isProcessingLifecycle then
+    lifecycleProcessCount = lifecycleProcessCount + 1
+    local processId = lifecycleProcessCount
+ 
+    -- ========================================
+    -- P0 FIX: ATOMIC LOCK using MySQL GET_LOCK
+    -- ========================================
+    local lockName = 'hdrp_pets_lifecycle_lock'
+    local lockAcquired = false
+ 
+    local success, lockResult = pcall(function()
+        return MySQL.scalar.await('SELECT GET_LOCK(?, ?)', {lockName, LIFECYCLE_LOCK_TIMEOUT})
+    end)
+ 
+    if not success or not lockResult or lockResult == 0 then
         if Config.Debug then
-            print('^3[LIFECYCLE & DECAY]^7 Already processing, skipping this run')
+            print(string.format('^3[LIFECYCLE & DECAY]^7 Process #%d: Lock already held by another process, skipping', processId))
         end
         return
     end
-
-    isProcessingLifecycle = true
-    lifecycleProcessCount = lifecycleProcessCount + 1
-    local processId = lifecycleProcessCount
-
+ 
+    lockAcquired = true
+ 
     if Config.Debug then
-        print(string.format('^2[LIFECYCLE & DECAY START]^7 Process #%d started', processId))
+        print(string.format('^2[LIFECYCLE & DECAY START]^7 Process #%d started (atomic lock acquired)', processId))
     end
+ 
     -- Process only active pets to reduce load under large datasets
-    local success, result = pcall(MySQL.query.await, 'SELECT * FROM pet_companion WHERE active = 1')
-    if not success then
-        isProcessingLifecycle = false
+    local querySuccess, result = pcall(MySQL.query.await, 'SELECT * FROM pet_companion WHERE active = 1')
+    if not querySuccess then
+        -- Release lock before returning
+        pcall(MySQL.query.await, 'SELECT RELEASE_LOCK(?)', {lockName})
         return
     end
     if not result or #result == 0 then
         if Config.Debug then print('^3[LIFECYCLE & DECAY]^7 No pets found to process') end
-        isProcessingLifecycle = false
+        pcall(MySQL.query.await, 'SELECT RELEASE_LOCK(?)', {lockName})
         return
     end
-    
+ 
     local updateCount = 0
     local deathCount = 0
     local decayCount = 0
+
+    -- ========================================
+    -- P0 FIX: BATCH UPDATE QUEUE
+    -- ========================================
+    local batchUpdates = {}
 
     for i = 1, #result do
         local petRecord = result[i]
@@ -447,44 +464,71 @@ local function updatePetLifecycleAndDecay()
             end
         end
 
-        -- Update database if changes occurred
+        -- Queue update for batch processing instead of individual UPDATE
         if needsUpdate then
-            -- Debug print para rastrear companionid y dirt
-            if Config.Debug then
-                print('^5[LIFECYCLE DEBUG]^7 Intentando guardar mascota:')
-                print('  companionid:', tostring(currentData.id or currentData.companionid or petRecord.companionid))
-                print('  dirt:', type(currentData.stats.dirt), currentData.stats.dirt)
-                print('  health:', type(currentData.stats.health), currentData.stats.health)
-                print('  data.stats:', json.encode(currentData.stats))
-            end
-            -- Validación estricta
             local companionid = currentData.id or currentData.companionid or petRecord.companionid
             if not companionid then
                 print('^1[LIFECYCLE ERROR]^7 companionid es nil, no se puede guardar')
             elseif not currentData then
                 print('^1[LIFECYCLE ERROR]^7 currentData es nil, no se puede guardar')
             else
-                local ok, err = pcall(Database.UpdateCompanionData, companionid, currentData)
-                if not ok then
-                    print('^1[LIFECYCLE ERROR]^7 Fallo al guardar mascota:', err)
-                    else
-                    -- Notify owner if online
-                    local Player = RSGCore.Functions.GetPlayerByCitizenId(petRecord.citizenid)
-                    if Player then
-                        TriggerClientEvent('hdrp-pets:client:refreshPetData', Player.PlayerData.source, companionid, currentData)
-                        if Config.Debug then
-                            print(string.format('^2[LIFECYCLE SYNC]^7 Notified player about pet %s update', companionid))
-                        end
-                    end
+                -- Add to batch queue
+                table.insert(batchUpdates, {
+                    companionid = companionid,
+                    data = currentData,
+                    citizenid = petRecord.citizenid
+                })
+ 
+                if Config.Debug then
+                    print(string.format('^5[LIFECYCLE QUEUE]^7 Queued update for %s (dirt: %s, health: %s)',
+                        companionid, tostring(currentData.stats.dirt), tostring(currentData.stats.health)))
                 end
             end
         end
-        
+ 
         ::continue_processing::
     end
     
-    -- Release the lock
-    isProcessingLifecycle = false
+    -- ========================================
+    -- P0 FIX: EXECUTE BATCH UPDATE
+    -- ========================================
+    if #batchUpdates > 0 then
+        if Config.Debug then
+            print(string.format('^2[LIFECYCLE BATCH]^7 Executing batch update for %d pets...', #batchUpdates))
+        end
+ 
+        local batchSuccess, affectedRows = Database.BatchUpdateCompanions(batchUpdates)
+ 
+        if batchSuccess then
+            if Config.Debug then
+                print(string.format('^2[LIFECYCLE BATCH]^7 Successfully updated %d pets in single query', affectedRows or #batchUpdates))
+            end
+ 
+            -- Notify online players about their pet updates
+            for _, update in ipairs(batchUpdates) do
+                local Player = RSGCore.Functions.GetPlayerByCitizenId(update.citizenid)
+                if Player then
+                    TriggerClientEvent('hdrp-pets:client:refreshPetData', Player.PlayerData.source, update.companionid, update.data)
+                end
+            end
+        else
+            print('^1[LIFECYCLE BATCH ERROR]^7 Batch update failed, attempting individual updates...')
+            -- Fallback: individual updates
+            for _, update in ipairs(batchUpdates) do
+                pcall(Database.UpdateCompanionData, update.companionid, update.data)
+            end
+        end
+    end
+ 
+    -- ========================================
+    -- RELEASE ATOMIC LOCK
+    -- ========================================
+    if lockAcquired then
+        pcall(MySQL.query.await, 'SELECT RELEASE_LOCK(?)', {lockName})
+        if Config.Debug then
+            print(string.format('^2[LIFECYCLE & DECAY]^7 Process #%d: Lock released', processId))
+        end
+    end
 
     if Config.Debug and (updateCount > 0 or deathCount > 0 or decayCount > 0) then
         print(string.format('^2[LIFECYCLE & DECAY END]^7 Process #%d completed: %d updates, %d deaths, %d decays', processId, updateCount, deathCount, decayCount))

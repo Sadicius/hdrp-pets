@@ -4,6 +4,126 @@ lib.locale()
 local Database = lib.load('server.core.database')
 local PetShopPrice = Config.PetShopPrice
 
+
+-- ========================================
+-- P0 FIX: UPDATE QUEUE SYSTEM
+-- Prevents race conditions and reduces DB load
+-- ========================================
+local updateQueue = {
+    health = {}, -- {[companionid] = {health, citizenid, timestamp}}
+    dirt = {}    -- {[companionid] = {dirt, citizenid, timestamp}}
+}
+ 
+local QUEUE_FLUSH_INTERVAL = 10000 -- 10 seconds
+ 
+-- Flush queue thread
+CreateThread(function()
+    while true do
+        Wait(QUEUE_FLUSH_INTERVAL)
+ 
+        local healthUpdates = {}
+        local dirtUpdates = {}
+        local totalUpdates = 0
+ 
+        -- Collect health updates
+        for companionid, data in pairs(updateQueue.health) do
+            totalUpdates = totalUpdates + 1
+            table.insert(healthUpdates, {
+                companionid = companionid,
+                health = data.health,
+                citizenid = data.citizenid
+            })
+        end
+ 
+        -- Collect dirt updates
+        for companionid, data in pairs(updateQueue.dirt) do
+            if not updateQueue.health[companionid] then -- Avoid duplicate processing
+                totalUpdates = totalUpdates + 1
+            end
+            table.insert(dirtUpdates, {
+                companionid = companionid,
+                dirt = data.dirt,
+                citizenid = data.citizenid
+            })
+        end
+ 
+        -- Process batch if there are updates
+        if totalUpdates > 0 then
+            if Config.Debug then
+                print(string.format('^2[UPDATE QUEUE]^7 Flushing %d updates (%d health, %d dirt)',
+                    totalUpdates, #healthUpdates, #dirtUpdates))
+            end
+ 
+            -- Merge updates: if pet has both health and dirt updates, combine them
+            local mergedUpdates = {}
+            local processedIds = {}
+ 
+            for _, update in ipairs(healthUpdates) do
+                local dirtData = updateQueue.dirt[update.companionid]
+ 
+                -- Fetch current data
+                local success, result = pcall(MySQL.query.await,
+                    'SELECT data FROM pet_companion WHERE companionid = ? AND citizenid = ?',
+                    {update.companionid, update.citizenid})
+ 
+                if success and result and result[1] then
+                    local currentData = json.decode(result[1].data)
+                    currentData.stats.health = update.health
+ 
+                    -- Merge dirt if exists
+                    if dirtData then
+                        currentData.stats.dirt = dirtData.dirt
+                        processedIds[update.companionid] = true
+                    end
+ 
+                    table.insert(mergedUpdates, {
+                        companionid = update.companionid,
+                        data = currentData
+                    })
+                end
+            end
+ 
+            -- Process dirt-only updates
+            for _, update in ipairs(dirtUpdates) do
+                if not processedIds[update.companionid] then
+                    local success, result = pcall(MySQL.query.await,
+                        'SELECT data FROM pet_companion WHERE companionid = ? AND citizenid = ?',
+                        {update.companionid, update.citizenid})
+ 
+                    if success and result and result[1] then
+                        local currentData = json.decode(result[1].data)
+                        currentData.stats.dirt = update.dirt
+ 
+                        table.insert(mergedUpdates, {
+                            companionid = update.companionid,
+                            data = currentData
+                        })
+                    end
+                end
+            end
+ 
+            -- Execute batch update
+            if #mergedUpdates > 0 then
+                local batchSuccess, affectedRows = Database.BatchUpdateCompanions(mergedUpdates)
+                if batchSuccess then
+                    if Config.Debug then
+                        print(string.format('^2[UPDATE QUEUE]^7 Batch update successful: %d rows affected', affectedRows or #mergedUpdates))
+                    end
+                else
+                    -- Fallback to individual updates
+                    for _, update in ipairs(mergedUpdates) do
+                        pcall(Database.UpdateCompanionData, update.companionid, update.data)
+                    end
+                end
+            end
+ 
+            -- Clear queues
+            updateQueue.health = {}
+            updateQueue.dirt = {}
+        end
+    end
+end)
+
 ----------------------------------
 -- Buy & active
 ----------------------------------
@@ -299,21 +419,39 @@ RegisterServerEvent('hdrp-pets:server:movepet', function(petId, newStableId)
     TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_success_pet_moved'), description = string.format(locale('sv_success_pet_moved_desc'), pet[1].data.info.name, newStableId, moveFee), type = 'success', duration = 5000 })
 end)
 
--- Set companion attributes (dirt)
+-- P0 FIX: Queue updates instead of immediate DB write
 RegisterServerEvent('hdrp-pets:server:setdirt', function(companionid, dirt)
     local src = source
     local Player = RSGCore.Functions.GetPlayer(src)
     if not Player then return end
-
-    local success, result = pcall(MySQL.query.await, 'SELECT data FROM pet_companion WHERE companionid = ? AND citizenid = ? AND active = ?', {companionid, Player.PlayerData.citizenid, 1})
-    if not success or not result or #result == 0 then TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_error_no_active_pet'), type = 'error', duration = 5000 }) return end
-
-    local currentData = json.decode(result[1].data)
-    currentData.stats.dirt = tonumber(dirt) or 0
-    Database.UpdateCompanionData(companionid, currentData)
+ 
+    -- Verify ownership (lightweight check without fetching full data)
+    local success, result = pcall(MySQL.scalar.await,
+        'SELECT COUNT(*) FROM pet_companion WHERE companionid = ? AND citizenid = ? AND active = ?',
+        {companionid, Player.PlayerData.citizenid, 1})
+ 
+    if not success or not result or result == 0 then
+        TriggerClientEvent('ox_lib:notify', src, {
+            title = locale('sv_error_no_active_pet'),
+            type = 'error',
+            duration = 5000
+        })
+        return
+    end
+ 
+    -- Queue update instead of immediate write
+    updateQueue.dirt[companionid] = {
+        dirt = tonumber(dirt) or 0,
+        citizenid = Player.PlayerData.citizenid,
+        timestamp = os.time()
+    }
+ 
+    if Config.Debug then
+        print(string.format('^3[DIRT QUEUE]^7 Queued dirt update for %s: %d', companionid, tonumber(dirt) or 0))
+    end
 end)
 
--- Update companion health (critical stat persistence)
+-- P0 FIX: Queue updates instead of immediate DB write
 RegisterServerEvent('hdrp-pets:server:updatehealth', function(companionid, healthPercent)
     local src = source
     local Player = RSGCore.Functions.GetPlayer(src)
@@ -321,26 +459,25 @@ RegisterServerEvent('hdrp-pets:server:updatehealth', function(companionid, healt
  
     if not companionid or not healthPercent then return end
  
-    -- Verify ownership
-    local success, result = pcall(MySQL.query.await, 'SELECT data FROM pet_companion WHERE companionid = ? AND citizenid = ?', {companionid, Player.PlayerData.citizenid})
-    if not success or not result or #result == 0 then return end
+    -- Verify ownership (lightweight check)
+    local success, result = pcall(MySQL.scalar.await,
+        'SELECT COUNT(*) FROM pet_companion WHERE companionid = ? AND citizenid = ?',
+        {companionid, Player.PlayerData.citizenid})
  
-    local currentData = json.decode(result[1].data)
+    if not success or not result or result == 0 then return end
  
     -- Clamp health value
-    currentData.stats.health = math.max(0, math.min(100, tonumber(healthPercent) or 100))
+    local clampedHealth = math.max(0, math.min(100, tonumber(healthPercent) or 100))
  
-    -- Update database
-    local updateSuccess, updateError = pcall(Database.UpdateCompanionData, companionid, currentData)
-    if not updateSuccess then
-        if Config.Debug then
-            print('^1[UPDATEHEALTH ERROR]^7 Database update failed:', updateError)
-        end
-        return
-    end
+    -- Queue update instead of immediate write
+    updateQueue.health[companionid] = {
+        health = clampedHealth,
+        citizenid = Player.PlayerData.citizenid,
+        timestamp = os.time()
+    }
  
     if Config.Debug then
-        print(string.format('^2[UPDATEHEALTH]^7 Updated health for %s: %d%%', companionid, currentData.stats.health))
+        print(string.format('^2[HEALTH QUEUE]^7 Queued health update for %s: %d%%', companionid, clampedHealth))
     end
 end)
 
