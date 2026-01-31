@@ -298,10 +298,9 @@ RegisterNetEvent('hdrp-pets:server:surgery', function(companionid)
  
     -- Sync to client
     TriggerClientEvent('hdrp-pets:client:refreshPetData', src, companionid, currentData)
-    TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = locale('sv_vet_checkup_success') .. math.floor(currentData.stats.health) .. '%', duration = 5000 })
- 
+    TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = locale('sv_vet_surgery_success') .. math.floor(currentData.stats.health) .. '%', duration = 5000 })
     if Config.Debug then
-        print(string.format('^2[VETERINARY]^7 Checkup completed for %s, synced to client', companionid))
+        print(string.format('^2[VETERINARY]^7 Surgery completed for %s, synced to client', companionid))
     end
 
 end)
@@ -347,7 +346,8 @@ RegisterNetEvent('hdrp-pets:server:sterilization', function(companionid)
     local updateSuccess, updateError = pcall(Database.UpdateCompanionData, companionid, currentData)
     if not updateSuccess then
         if Config.Debug then
-            print('^1[VETERINARY ERROR]^7 Checkup database update failed:', updateError)
+            if Config.Debug then
+            print('^1[VETERINARY ERROR]^7 Sterilization database update failed:', updateError)
         end
         TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Failed to update pet data', duration = 5000 })
         return
@@ -357,10 +357,10 @@ RegisterNetEvent('hdrp-pets:server:sterilization', function(companionid)
  
     -- Sync to client
     TriggerClientEvent('hdrp-pets:client:refreshPetData', src, companionid, currentData)
-    TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = locale('sv_vet_checkup_success') .. math.floor(currentData.stats.health) .. '%', duration = 5000 })
+    TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = locale('sv_vet_sterilization_success'), duration = 5000 })
  
     if Config.Debug then
-        print(string.format('^2[VETERINARY]^7 Checkup completed for %s, synced to client', companionid))
+         print(string.format('^2[VETERINARY]^7 Sterilization completed for %s, synced to client', companionid))
     end
 end)
 
