@@ -313,6 +313,22 @@ RegisterServerEvent('hdrp-pets:server:setdirt', function(companionid, dirt)
     Database.UpdateCompanionData(companionid, currentData)
 end)
 
+-- Update companion data (bonding, stats, etc.)
+RegisterServerEvent('hdrp-pets:server:updateanimals', function(companionid, data)
+    local src = source
+    local Player = RSGCore.Functions.GetPlayer(src)
+    if not Player then return end
+
+    if not companionid or not data then return end
+
+    -- Verify ownership
+    local success, result = pcall(MySQL.query.await, 'SELECT id FROM pet_companion WHERE companionid = ? AND citizenid = ?', {companionid, Player.PlayerData.citizenid})
+    if not success or not result or #result == 0 then return end
+
+    -- Update companion data in database
+    Database.UpdateCompanionData(companionid, data)
+end)
+
 -- Rename Companion
 RegisterServerEvent('hdrp-pets:server:rename', function(companionid, name)
     local src = source

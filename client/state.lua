@@ -604,6 +604,74 @@ CreateThread(function()
 end)
 
 ------------------------------------------
+-- SERVER DATA SYNC EVENTS
+------------------------------------------
+
+-- Refresh pet data from server
+RegisterNetEvent('hdrp-pets:client:refreshPetData', function(companionid, updatedData)
+    if not companionid or not updatedData then return end
+
+    local pet = State.Pets[companionid]
+    if pet then
+        -- Update only the data portion, preserve runtime state (ped, blip, spawned, etc.)
+        pet.data = updatedData
+
+        if Config.Debug then
+            print(string.format('^2[SYNC]^7 Updated pet data for %s from server', companionid))
+        end
+    end
+end)
+
+-- Refresh all active pets data
+RegisterNetEvent('hdrp-pets:client:refreshAllPets', function()
+    local RSGCore = exports['rsg-core']:GetCoreObject()
+    RSGCore.Functions.TriggerCallback('hdrp-pets:server:getactivecompanions', function(results)
+        if not results then return end
+
+        for _, petRecord in ipairs(results) do
+            local petData = type(petRecord.data) == 'string' and json.decode(petRecord.data) or petRecord.data
+            if petData and petData.id then
+                local companionid = petData.id
+                local pet = State.Pets[companionid]
+                if pet then
+                    pet.data = petData
+                    if Config.Debug then
+                        print(string.format('^2[SYNC]^7 Refreshed pet %s', companionid))
+                    end
+                end
+            end
+        end
+    end)
+end)
+
+-- Periodic data refresh thread
+CreateThread(function()
+    local RSGCore = exports['rsg-core']:GetCoreObject()
+
+    while true do
+        Wait(60000) -- Refresh every 60 seconds
+
+        -- Only refresh if player has active pets
+        if State.HasActivePets() then
+            RSGCore.Functions.TriggerCallback('hdrp-pets:server:getactivecompanions', function(results)
+                if not results then return end
+
+                for _, petRecord in ipairs(results) do
+                    local petData = type(petRecord.data) == 'string' and json.decode(petRecord.data) or petRecord.data
+                    if petData and petData.id then
+                        local companionid = petData.id
+                        local pet = State.Pets[companionid]
+                        if pet then
+                            pet.data = petData
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+------------------------------------------
 -- EXPORTS
 ------------------------------------------
 

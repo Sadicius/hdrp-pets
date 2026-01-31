@@ -379,8 +379,16 @@ local function updatePetLifecycleAndDecay()
                 local ok, err = pcall(Database.UpdateCompanionData, companionid, currentData)
                 if not ok then
                     print('^1[LIFECYCLE ERROR]^7 Fallo al guardar mascota:', err)
+                else
+                    -- Notify owner if online
+                    local Player = RSGCore.Functions.GetPlayerByCitizenId(petRecord.citizenid)
+                    if Player then
+                        TriggerClientEvent('hdrp-pets:client:refreshPetData', Player.PlayerData.source, companionid, currentData)
+                        if Config.Debug then
+                            print(string.format('^2[LIFECYCLE SYNC]^7 Notified player about pet %s update', companionid))
+                        end
+                    end
                 end
-                -- No enviar updateanimals aquí, src no está definido en lifecycle
             end
         end
         
