@@ -1,3 +1,4 @@
+
 ------------------------------------------
 -- GLOBAL STATE TABLE
 ------------------------------------------
@@ -228,6 +229,20 @@ function State.IsPetNearPlayer(pet, maxDistance)
     if not pet or not pet.ped or not DoesEntityExist(pet.ped) then return false end
     local dist = State.GetDistanceBetweenEntities(pet.ped, cache.ped)
     return dist <= (maxDistance or 10.0)
+end
+
+---Get position in front of an entity
+---@param entity number
+---@param distance number
+---@return vector3
+function State.GetPositionInFrontOfEntity(entity, distance)
+    if not entity or not DoesEntityExist(entity) then return GetEntityCoords(entity) end
+    local heading = GetEntityHeading(entity)
+    local radians = math.rad(heading)
+    local offsetX = -distance * math.sin(radians)
+    local offsetY = distance * math.cos(radians)
+    local coords = GetEntityCoords(entity)
+    return vector3(coords.x - offsetX, coords.y - offsetY, coords.z - 1.0)
 end
 
 -- COUNT FUNCTIONS
