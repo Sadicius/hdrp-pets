@@ -19,18 +19,6 @@ if not lifecycleEnabled and not decayEnabled then
     return
 end
 
---================================
--- LIFECYCLE HELPER FUNCTIONS
--- Calcula días desde nacimiento hasta evento y desde evento hasta hoy
--- Sin uso actualmente pero puede ser útil para futuras funciones
-local function calcEventDays(born, eventTs)
-    if not born or not eventTs or eventTs <= 0 then return nil, nil end
-    local daysAtEvent = math.floor((eventTs - born) / 86400)
-    local daysSinceEvent = math.floor((os.time() - eventTs) / 86400)
-    return daysAtEvent, daysSinceEvent
-end
---================================
-
 local function getPetStage(age)
     if not lifecycleEnabled then return 'Adult', {} end
     

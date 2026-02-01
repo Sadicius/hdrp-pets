@@ -195,37 +195,6 @@ RegisterServerEvent('hdrp-pets:server:buy', function(price, model, stable, compa
     TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_success_pet_owned'), type = 'success', duration = 5000 })
 end)
 
--- active
-RegisterServerEvent('hdrp-pets:server:setactive', function(id)
-    local src = source
-    local Player = RSGCore.Functions.GetPlayer(src)
-    if not Player then return end
-    -- Buscar el registro por companionid para obtener el id numérico
-    local companion = Database.GetCompanionByCompanionId(id)
-    if not companion or not companion.id then
-        TriggerClientEvent('ox_lib:notify', src, { title = locale('cl_error_pet_not_found'), type = 'error', duration = 5000 })
-        return
-    end
-    local breedcompanion = MySQL.scalar.await('SELECT id FROM pet_companion WHERE citizenid = ? AND data LIKE ?', {Player.PlayerData.citizenid, '%"inbreed":true%'})
-    if breedcompanion then
-        TriggerClientEvent('ox_lib:notify', src, {title = locale('sv_error_breed_duplicate'), type = 'error', duration = 5000 })
-        return
-    end
-
-    -- SISTEMA MULTI-MASCOTA
-    local maxPets = Config.MaxActivePets or 1
-    local success, error = Database.ActivateCompanionAtomic(id, Player.PlayerData.citizenid, maxPets)
-    if not success then
-        if error == "Max pets limit reached" then
-            local activeCount = Database.CountActiveCompanions(Player.PlayerData.citizenid)
-            TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_error_pet_limit'), description = string.format(locale('sv_error_pet_limit_desc'), activeCount, maxPets), type = 'error', duration = 5000 })
-        else
-            TriggerClientEvent('ox_lib:notify', src, { title = locale('sv_database_error'), type = 'error', duration = 5000 })
-        end
-        return
-    end
-end)
-
 -- Desactivar mascota específica por companionid usando Database module -- store
 RegisterServerEvent('hdrp-pets:server:store', function(companionId, stableid)
     local src = source

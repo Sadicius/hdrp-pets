@@ -202,7 +202,8 @@ AddEventHandler('hdrp-pets:client:triggerRaceShot', function()
     end
 end)
 
-local function StartSoloRace(locationIndex)
+RegisterNetEvent('hdrp-pets:client:StartSoloRace')
+AddEventHandler('hdrp-pets:client:StartSoloRace', function(locationIndex)
     local location = RaceConfig.Location[locationIndex]
     if not location then
         lib.notify({ title = locale('cl_race_error') or 'Error', description = locale('cl_race_invalid_location') or 'Invalid location', type = 'error' })
@@ -424,13 +425,14 @@ local function StartSoloRace(locationIndex)
             end
         end
     end)
-end
+end)
 
 -- ============================================
 -- NPC RACE MODE (Player's pet vs NPCs)
 -- ============================================
 
-local function StartNPCRace(petId, locationIndex)
+RegisterNetEvent('hdrp-pets:client:StartNPCRace')
+AddEventHandler('hdrp-pets:client:StartNPCRace', function(petId, locationIndex)
     local location = RaceConfig.Location[locationIndex]
     if not location then
         lib.notify({ title = locale('cl_race_error') or 'Error', type = 'error' })
@@ -637,7 +639,7 @@ local function StartNPCRace(petId, locationIndex)
         currentRace = nil
         recentlyRaced = RaceConfig.RaceCooldown
     end)
-end
+end)
 
 -- ============================================
 -- PVP RACE MODE (Multiplayer)
@@ -645,65 +647,6 @@ end
 
 local pvpRaceQueue = {}
 local currentPvPRace = nil
-
--- Open PvP race menu
-function OpenPvPRaceMenu(locationIndex)
-    if not RaceConfig.PvP.Enabled then
-        lib.notify({ title = locale('cl_race_pvp_disabled') or 'PvP Disabled', type = 'error' })
-        return
-    end
-
-    local petList = {}
-    for id, pet in pairs(State.GetAllPets()) do
-        if pet and pet.spawned and DoesEntityExist(pet.ped) then
-            local petName = (pet.data and pet.data.info and pet.data.info.name) or 'Unknown'
-            local stats = GetPetRacingStats(pet)
-
-            petList[#petList + 1] = {
-                title = petName .. ' (ID: ' .. id .. ')',
-                metadata = {
-                    { label = locale('cl_race_speed') or 'Speed', value = math.floor(stats.Speed) .. '%' },
-                    { label = locale('cl_race_stamina') or 'Stamina', value = math.floor(stats.Stamina) .. '%' },
-                },
-                icon = 'fa-solid fa-dog',
-                args = { petId = id, pet = pet, locationIndex = locationIndex },
-                onSelect = function(data)
-                    if RaceConfig.PvP.EntryFee.Enabled then
-                        local input = lib.inputDialog(locale('cl_race_entry_fee') or 'Entry Fee', {
-                            {
-                                type = 'number',
-                                label = locale('cl_race_fee_amount') or 'Fee Amount',
-                                description = string.format('Min: $%d, Max: $%d', RaceConfig.PvP.EntryFee.MinFee, RaceConfig.PvP.EntryFee.MaxFee),
-                                required = true,
-                                min = RaceConfig.PvP.EntryFee.MinFee,
-                                max = RaceConfig.PvP.EntryFee.MaxFee,
-                                default = RaceConfig.PvP.EntryFee.MinFee
-                            }
-                        })
-
-                        if input and input[1] then
-                            TriggerServerEvent('hdrp-pets:server:joinPvPRace', data.petId, data.locationIndex, input[1])
-                        end
-                    else
-                        TriggerServerEvent('hdrp-pets:server:joinPvPRace', data.petId, data.locationIndex, 0)
-                    end
-                end
-            }
-        end
-    end
-
-    if #petList == 0 then
-        lib.notify({ title = locale('cl_race_no_pets') or 'No pets available', type = 'error' })
-        return
-    end
-
-    lib.registerContext({
-        id = 'pvp_race_pet_selection',
-        title = locale('cl_race_select_pet') or 'Select Pet for Race',
-        options = petList
-    })
-    lib.showContext('pvp_race_pet_selection')
-end
 
 -- Receive PvP race start from server
 RegisterNetEvent('hdrp-pets:client:startPvPRace')
@@ -893,110 +836,6 @@ AddEventHandler('hdrp-pets:client:endPvPRace', function(raceId, results, prizes)
     recentlyRaced = RaceConfig.RaceCooldown
 end)
 
--- ============================================
--- MAIN RACE MENU
--- ============================================
-
-RegisterNetEvent('hdrp-pets:client:openRaceMenu')
-AddEventHandler('hdrp-pets:client:openRaceMenu', function(locationIndex)
-    if recentlyRaced > 0 then
-        lib.notify({
-            title = locale('cl_race_cooldown') or 'Cooldown',
-            description = string.format(locale('cl_race_cooldown_desc') or 'Wait %d seconds', recentlyRaced),
-            type = 'error'
-        })
-        return
-    end
-
-    if isRacing then
-        lib.notify({ title = locale('cl_race_already_racing') or 'Already in a race', type = 'error' })
-        return
-    end
-
-    local options = {
-        {
-            title = locale('cl_race_solo') or 'Solo Race',
-            description = locale('cl_race_solo_desc') or 'Race your own pets against each other',
-            icon = 'fa-solid fa-dog',
-            metadata = {
-                { label = locale('cl_race_min_pets') or 'Min Pets', value = RaceConfig.Solo.MinPets },
-                { label = locale('cl_race_xp_winner') or 'Winner XP', value = RaceConfig.Solo.XPReward.Winner },
-            },
-            onSelect = function()
-                StartSoloRace(locationIndex)
-            end
-        },
-        {
-            title = locale('cl_race_npc') or 'Race vs NPCs',
-            description = locale('cl_race_npc_desc') or 'Race your selected pet against AI opponents',
-            icon = 'fa-solid fa-robot',
-            metadata = {
-                { label = locale('cl_race_npc_count') or 'Opponents', value = RaceConfig.NPC.NPCCount },
-                { label = locale('cl_race_min_xp') or 'Min XP', value = RaceConfig.NPC.MinXP },
-                { label = locale('cl_race_first_prize') or '1st Prize', value = '$' .. RaceConfig.NPC.Prizes.First },
-            },
-            onSelect = function()
-                -- Open pet selection for NPC race
-                local petList = {}
-                for id, pet in pairs(State.GetAllPets()) do
-                    if pet and pet.spawned and DoesEntityExist(pet.ped) then
-                        local petName = (pet.data and pet.data.info and pet.data.info.name) or 'Unknown'
-                        local stats = GetPetRacingStats(pet)
-                        local xp = (pet.data and pet.data.progression and pet.data.progression.xp) or 0
-
-                        petList[#petList + 1] = {
-                            title = petName,
-                            metadata = {
-                                { label = 'XP', value = xp },
-                                { label = locale('cl_race_speed') or 'Speed', value = math.floor(stats.Speed) .. '%' },
-                            },
-                            args = { petId = id },
-                            onSelect = function(data)
-                                StartNPCRace(data.petId, locationIndex)
-                            end
-                        }
-                    end
-                end
-
-                if #petList == 0 then
-                    lib.notify({ title = locale('cl_race_no_pets') or 'No pets', type = 'error' })
-                    return
-                end
-
-                lib.registerContext({
-                    id = 'npc_race_pet_selection',
-                    title = locale('cl_race_select_pet') or 'Select Pet',
-                    menu = 'race_main_menu',
-                    options = petList
-                })
-                lib.showContext('npc_race_pet_selection')
-            end
-        }
-    }
-
-    -- PvP option if enabled
-    if RaceConfig.PvP.Enabled then
-        options[#options + 1] = {
-            title = locale('cl_race_pvp') or 'PvP Race',
-            description = locale('cl_race_pvp_desc') or 'Race against other players',
-            icon = 'fa-solid fa-users',
-            metadata = {
-                { label = locale('cl_race_min_players') or 'Min Players', value = RaceConfig.PvP.MinPlayers },
-                { label = locale('cl_race_max_players') or 'Max Players', value = RaceConfig.PvP.MaxPlayers },
-            },
-            onSelect = function()
-                OpenPvPRaceMenu(locationIndex)
-            end
-        }
-    end
-
-    lib.registerContext({
-        id = 'race_main_menu',
-        title = locale('cl_race_menu_title') or 'Pet Racing',
-        options = options
-    })
-    lib.showContext('race_main_menu')
-end)
 
 -- ============================================
 -- PROMPT SYSTEM
@@ -1115,5 +954,12 @@ AddEventHandler('onResourceStop', function(resource)
     if resource == GetCurrentResourceName() then
         CleanupCheckpointMarkers()
         CleanupNPCs()
+    end
+end)
+
+CreateThread(function()
+    while true do
+        Wait(1000)
+        TriggerEvent('hdrp-pets:client:updateRaceState', isRacing, recentlyRaced)
     end
 end)
