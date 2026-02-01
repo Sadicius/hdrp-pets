@@ -87,7 +87,6 @@ function SpawnAnimal(companionid, companionData, components, xp, spawnCoords, sp
     -- 12. APLICAR XP Y BONDING
     xp = xp or 0
     ManageSpawn.ApplyBonding(newPed, xp) -- utils_spawn.lua 
-    State.GetBondingLevels(newPed,companionid) -- Actualizar niveles de bonding
 
     -- 14. CREAR BLIP
     local blip = Citizen.InvokeNative(0x23f74c2fda6e7c61, -1749618580, newPed)
@@ -208,7 +207,14 @@ local function MultiPet(dbPetData, delay)
     if not newPed then
         return false
     end
+    -- Asegurar que companionData tiene la estructura requerida
+    if not (companionData.data or companionData.progression) then
+        companionData = { data = companionData, progression = companionData.progression or {} }
+    end
     State.RegisterPet(companionid, newPed, blip, companionData)
+    
+    -- Actualizar niveles de bonding DESPUÉS de registrar
+    State.GetBondingLevels(newPed, companionid)
 
     return true
 end

@@ -278,17 +278,20 @@ end
 -- Actualiza los niveles de vinculación de todas las mascotas activas
 -- Sin usar de momento
 function State.GetBondingLevels(entity, companionid)
-    if entity and DoesEntityExist(entity) then
-        local maxBonding = GetMaxAttributePoints(entity, 7)
-        local currentBonding = GetAttributePoints(entity, 7)
-        local thirdBonding = maxBonding / 3
-        local bondingLevel = 1
+    if not entity or not DoesEntityExist(entity) then return end
+    if not companionid or not State.Pets[companionid] then return end
+    
+    local maxBonding = GetMaxAttributePoints(entity, 7)
+    local currentBonding = GetAttributePoints(entity, 7)
+    local thirdBonding = maxBonding / 3
+    local bondingLevel = 1
 
-        if currentBonding >= maxBonding then bondingLevel = 4 end
-        if currentBonding >= thirdBonding and thirdBonding * 2 > currentBonding then bondingLevel = 2 end
-        if currentBonding >= thirdBonding * 2 and maxBonding > currentBonding then bondingLevel = 3 end
-        if thirdBonding > currentBonding then bondingLevel = 1 end
-        -- v.data.progression.bonding = bondingLevel
+    if currentBonding >= maxBonding then bondingLevel = 4 end
+    if currentBonding >= thirdBonding and thirdBonding * 2 > currentBonding then bondingLevel = 2 end
+    if currentBonding >= thirdBonding * 2 and maxBonding > currentBonding then bondingLevel = 3 end
+    if thirdBonding > currentBonding then bondingLevel = 1 end
+    -- v.data.progression.bonding = bondingLevel
+    if State.Pets[companionid].data and State.Pets[companionid].data.progression then
         State.Pets[companionid].data.progression.bonding = bondingLevel
         TriggerServerEvent('hdrp-pets:server:updateanimals', companionid, State.Pets[companionid].data)
     end
