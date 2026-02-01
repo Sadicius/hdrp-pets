@@ -323,7 +323,7 @@ CreateThread(function()
             for cid, petData in pairs(State.GetAllPets()) do
                 if petData.spawned and petData.ped == targetedEntity then
                     companionid = cid
-                    isHunting = (petData.flag and petData.flag.isHunting) or false
+                    isHunting = State.GetFlag(petData.ped, "isHunting")
                     break
                 end
             end

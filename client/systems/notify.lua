@@ -168,8 +168,8 @@ RegisterCommand('pet_xp', function()
     local playerData = RSGCore.Functions.GetPlayerData()
     if not playerData or not playerData.group or playerData.group ~= 'admin' then
         lib.notify({
-            title = 'Acceso denegado',
-            description = 'Este comando solo puede ser ejecutado por administradores.',
+            title = locale('cl_error_access_denied') or 'Acceso denegado',
+            description = locale('cl_error_admin_only') or 'Este comando solo puede ser ejecutado por administradores.',
             type = 'error'
         })
         return
@@ -177,39 +177,39 @@ RegisterCommand('pet_xp', function()
     -- Construir opciones para el select de mascotas activas
     local petOptions = {}
     for companionid, petData in pairs(State.GetAllPets()) do
-        local name = petData.data and petData.data.info and petData.data.info.name or ('ID: '..tostring(companionid))
+        local name = petData.data and petData.data.info and petData.data.info.name or (locale('cl_pet_id') or 'ID: ')..tostring(companionid)
         table.insert(petOptions, { label = name..' ['..tostring(companionid)..']', value = companionid })
     end
     lib.inputDialog({
-        title = 'Gestionar XP de Mascota',
-        description = 'Selecciona o escribe el Companion ID para modificar la experiencia',
+        title = locale('cl_manage_pet_xp_title') or 'Gestionar XP de Mascota',
+        description = locale('cl_manage_pet_xp_desc') or 'Selecciona o escribe el Companion ID para modificar la experiencia',
         inputs = {
             {
                 type = 'input',
-                label = 'Companion ID (manual)',
+                label = locale('cl_input_companionid_manual') or 'Companion ID (manual)',
                 name = 'companionid_input',
                 required = false
             },
             {
                 type = 'select',
-                label = 'Seleccionar Mascota',
+                label = locale('cl_input_select_pet') or 'Seleccionar Mascota',
                 name = 'companionid_select',
                 options = petOptions,
                 required = false
             },
             {
                 type = 'select',
-                label = 'Acción',
+                label = locale('cl_input_action') or 'Acción',
                 name = 'accion',
                 options = {
-                    {label = 'Dar XP', value = 'givexp'},
-                    {label = 'Quitar XP', value = 'removexp'}
+                    {label = locale('cl_action_givexp') or 'Dar XP', value = 'givexp'},
+                    {label = locale('cl_action_removexp') or 'Quitar XP', value = 'removexp'}
                 },
                 required = true
             },
             {
                 type = 'input',
-                label = 'Cantidad de XP',
+                label = locale('cl_input_xp_amount') or 'Cantidad de XP',
                 name = 'amount',
                 required = true
             }
@@ -219,8 +219,8 @@ RegisterCommand('pet_xp', function()
         local companionid = values.companionid_input and values.companionid_input ~= '' and values.companionid_input or values.companionid_select
         if not companionid then
             lib.notify({
-                title = 'Error',
-                description = 'Debes seleccionar o escribir un Companion ID',
+                title = locale('cl_error') or 'Error',
+                description = locale('cl_error_select_companionid') or 'Debes seleccionar o escribir un Companion ID',
                 type = 'error'
             })
             return
@@ -228,8 +228,8 @@ RegisterCommand('pet_xp', function()
         local amount = tonumber(values.amount)
         if not amount or amount < 0 then
             lib.notify({
-                title = 'Error',
-                description = 'Cantidad inválida',
+                title = locale('cl_error') or 'Error',
+                description = locale('cl_error_invalid_amount') or 'Cantidad inválida',
                 type = 'error'
             })
             return

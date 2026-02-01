@@ -1003,7 +1003,21 @@
 	"cl_pvp_spectator_lost": "Apuesta de Espectador Perdida",
 	"cl_fight_xp_gained": "XP de Combate",
 	"cl_action_treasure_hunt_multi": "Caza de Tesoro Multi-Mascota",
-	"cl_valid_pets": "Mascotas Válidas"
+	"cl_valid_pets": "Mascotas Válidas",
+	"cl_error_access_denied": "Acceso denegado",
+	"cl_error_admin_only": "Este comando solo puede ser ejecutado por administradores.",
+	"cl_manage_pet_xp_title": "Gestionar XP de Mascota",
+	"cl_manage_pet_xp_desc": "Selecciona o escribe el Companion ID para modificar la experiencia",
+	"cl_input_companionid_manual": "Companion ID (manual)",
+	"cl_input_select_pet": "Seleccionar Mascota",
+	"cl_input_action": "Acción",
+	"cl_action_givexp": "Dar XP",
+	"cl_action_removexp": "Quitar XP",
+	"cl_input_xp_amount": "Cantidad de XP",
+	"cl_error": "Error",
+	"cl_error_select_companionid": "Debes seleccionar o escribir un Companion ID",
+	"cl_error_invalid_amount": "Cantidad inválida",
+	"cl_pet_id": "ID: "
 }
 
 

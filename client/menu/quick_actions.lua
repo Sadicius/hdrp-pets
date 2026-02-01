@@ -56,9 +56,9 @@ function QuickActions.ShowMenu()
                 for companionid, petData in pairs(spawnedPets) do
                     if DoesEntityExist(petData.ped) then
                         petIndex = petIndex + 1
-                        local isHerding = (petData and petData.flag and petData.flag.isHerding) or false
-                        local isWandering = (petData and petData.flag and petData.flag.isWandering) or false
-                        local isFrozen = (petData and petData.flag and petData.flag.isFrozen) or false
+                        local isHerding = State.GetFlag(petData.ped, 'isHerding')
+                        local isWandering = State.GetFlag(petData.ped, 'isWandering')
+                        local isFrozen = State.GetFlag(petData.ped, 'isFrozen')
                         if isHerding then StopPetHerding(companionid) end
                         if isWandering then StopPetWandering(companionid) end
                         if isFrozen then
@@ -67,8 +67,6 @@ function QuickActions.ShowMenu()
                         ClearPedTasksImmediately(petData.ped)
                         if State.SetPetTrait then
                             State.SetPetTrait(companionid, 'isFollowing', true)
-                            State.SetPetTrait(companionid, 'isHerding', false)
-                            State.SetPetTrait(companionid, 'isWandering', false)
                         end
                         local offset = offsets[petIndex] or {x = -4.0, y = 0.0}
                         Wait(100)
@@ -105,7 +103,7 @@ function QuickActions.ShowMenu()
                 local successCount = 0
                 for companionid, petData in pairs(spawnedPets) do
                     local xp = (petData.progression and petData.progression.xp) or 0
-                    local isHunting = (petData and petData.flag and petData.flag.isHunting) or false
+                    local isHunting = State.GetFlag(petData.ped, "isHunting")
                     if xp < Config.XP.Trick.Hunt then
                         lib.notify({ title = locale('cl_error_xp_needed'):format(Config.XP.Trick.Hunt), type = 'error' })
                         return

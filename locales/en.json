@@ -998,5 +998,19 @@
 	"cl_pvp_spectator_lost": "Spectator Bet Lost",
 	"cl_fight_xp_gained": "Combat XP",
 	"cl_action_treasure_hunt_multi": "Multi-Pet Treasure Hunt",
-	"cl_valid_pets": "Valid Pets"
+	"cl_valid_pets": "Valid Pets",
+	"cl_error_access_denied": "Access denied",
+	"cl_error_admin_only": "This command can only be run by administrators.",
+	"cl_manage_pet_xp_title": "Manage Pet XP",
+	"cl_manage_pet_xp_desc": "Select or enter the Companion ID to modify experience",
+	"cl_input_companionid_manual": "Companion ID (manual)",
+	"cl_input_select_pet": "Select Pet",
+	"cl_input_action": "Action",
+	"cl_action_givexp": "Give XP",
+	"cl_action_removexp": "Remove XP",
+	"cl_input_xp_amount": "XP Amount",
+	"cl_error": "Error",
+	"cl_error_select_companionid": "You must select or enter a Companion ID",
+	"cl_error_invalid_amount": "Invalid amount",
+	"cl_pet_id": "ID: "
 }

@@ -277,7 +277,7 @@ function OpenHerdingMainMenu()
                 -- Detener herding en todas las mascotas activas
                 local allPets = State.GetAllPets and State.GetAllPets() or {}
                 for companionid, petData in pairs(allPets) do
-                    if petData and petData.flag and petData.flag.isHerding then
+                    if State.GetFlag(petData.ped, "isHerding") then
                         if StopPetHerding then StopPetHerding(companionid) end
                         if State.SetPetTrait then State.SetPetTrait(companionid, 'isWandering', true) end
                         if SetupPetWandering and petData.ped then SetupPetWandering(companionid, petData.ped, GetEntityCoords(petData.ped)) end
