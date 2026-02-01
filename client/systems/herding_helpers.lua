@@ -6,6 +6,7 @@ local RSGCore = exports['rsg-core']:GetCoreObject()
 lib.locale()
 
 local State = exports['hdrp-pets']:GetState()
+local herdingStates = exports['hdrp-pets']:GetHerdingStates()
 
 ---Genera un número aleatorio en rango (incluye ambos extremos)
 ---@param min number

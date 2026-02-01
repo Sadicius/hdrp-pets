@@ -163,9 +163,8 @@ function TrackTarget(data)
         local timeout = 0
         local success, err = pcall(function()
             while true do
-                local companionCoords = GetEntityCoords(petPed)
                 local targetCoords = GetEntityCoords(target)
-                local distance = #(companionCoords - targetCoords)
+                local distance = State.GetDistanceBetweenEntities(petPed, target)
                 local sleep = distance > 15.0 and 1000 or (distance > 5.0 and 500 or 150)
 
                 -- Prevent freezing by yielding each loop
@@ -261,7 +260,7 @@ function HuntAnimals(data)
             if not DoesEntityExist(target) then break end
             Wait(100)
             
-            local distance = #(GetEntityCoords(petPed) - GetEntityCoords(target))
+            local distance = State.GetDistanceBetweenEntities(petPed, target)
             if distance <= 3.0 then
                 TaskCombatPed(petPed, target, 0, 16)
             end

@@ -158,18 +158,18 @@ CreateThread(function()
         -- FIX: Changed from Wait(1) to Wait(100) to reduce CPU usage
         Wait(100)
         local closestPet, _, _ = State.GetClosestPet()
-        local tcompanion = closestPet and closestPet.ped or nil
-        if cache.ped == nil or tcompanion == nil then goto continue end
+        local companion = closestPet and closestPet.ped or nil
+        if cache.ped == nil or companion == nil then goto continue end
 
         if not IsPedLeadingHorse(cache.ped) or isObjectInteracting then
             Wait(1000)
             goto continue
         end
 
-        if IsEntityInWater(tcompanion) then
-            HandleWaterInteraction(tcompanion)
+        if IsEntityInWater(companion) then
+            HandleWaterInteraction(companion)
         elseif Config.Ambient.ObjectAction then
-            HandleObjectInteraction(tcompanion)
+            HandleObjectInteraction(companion)
         end
     end
 end)

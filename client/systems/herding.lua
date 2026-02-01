@@ -6,11 +6,16 @@ lib.locale()
 
 
 -- Tabla local para estados de herding
-local herdingStates = {}
+local herdingStates = {
+    active = false,              -- Si el sistema está activo
+    selectedPets = {},           -- Mascotas seleccionadas
+    preferredFormation = nil,    -- Formación preferida
+    pets = {}                    -- Estados individuales de mascotas
+}
 
 
 function SetupPetHerding(companionid, entity, opts)
-    herdingStates[companionid] = {
+    herdingStates.pets[companionid] = {
         entity = entity,
         active = true,
         formation = opts and opts.formation or nil,
@@ -19,22 +24,22 @@ function SetupPetHerding(companionid, entity, opts)
 end
 
 function StopPetHerding(companionid)
-    local state = herdingStates[companionid]
+    local state = herdingStates.pets[companionid]
     if state and DoesEntityExist(state.entity) then
         ClearPedTasks(state.entity)
     end
-    herdingStates[companionid] = nil
+    herdingStates.pets[companionid] = nil
 end
 
 function PausePetHerding(companionid)
-    local state = herdingStates[companionid]
+    local state = herdingStates.pets[companionid]
     if state then
         state.active = false
     end
 end
 
 function ResumePetHerding(companionid)
-    local state = herdingStates[companionid]
+    local state = herdingStates.pets[companionid]
     if state then
         state.active = true
     end
@@ -45,23 +50,16 @@ exports('SetupPetHerding', SetupPetHerding)
 exports('StopPetHerding', StopPetHerding)
 exports('PausePetHerding', PausePetHerding)
 exports('ResumePetHerding', ResumePetHerding)
-exports('GetPetHerdingState', function(id) return herdingStates[tostring(id)] end)
+
+exports('GetPetHerdingState', function(id) return herdingStates.pets[tostring(id)] end)
+
 exports('GetAllHerdingPets', function()
     local pets = {}
-    for id, state in pairs(herdingStates) do
+    for id, state in pairs(herdingStates.pets) do
         if state.active then table.insert(pets, id) end
     end
     return pets
 end)
-
--- Helper global: ¿hay alguna mascota en herding?
-function IsAnyHerdingActive()
-    for _, state in pairs(herdingStates) do
-        if state.active then return true end
-    end
-    return false
-end
-exports('IsAnyHerdingActive', IsAnyHerdingActive)
 
 -- Hilo principal de movimiento y formaciones
 local herdingThread = nil
@@ -74,7 +72,7 @@ function StartHerdingThread()
             Wait(2000)
             local anyActive = false
             local petsArray = {}
-            for companionid, state in pairs(herdingStates) do
+            for companionid, state in pairs(herdingStates.pets) do
                 if state.active and DoesEntityExist(state.entity) then
                     table.insert(petsArray, {companionid=companionid, entity=state.entity})
                     anyActive = true
@@ -118,9 +116,11 @@ exports('GetHerdingStates', function()
 end)
 
 function StopAllHerding()
-    for companionid in pairs(herdingStates) do
+    for companionid in pairs(herdingStates.pets) do
         StopPetHerding(companionid)
     end
+    herdingStates.active = false
+    herdingStates.selectedPets = {}
 end
 exports('StopAllHerding', StopAllHerding)
 
@@ -181,7 +181,6 @@ end, false)
 -- UTILITY FUNCTIONS
 ---------------------------------
 function GetNearbyCompanions()
-    local playerPos = GetEntityCoords(cache.ped)
     local nearbyPets = {}
     local activePetsList = State.GetAllPets()
     
@@ -190,10 +189,10 @@ function GetNearbyCompanions()
     for companionid, petData in pairs(activePetsList) do
         if petData and petData.spawned and DoesEntityExist(petData.ped) then
             local petPos = GetEntityCoords(petData.ped)
-            local distance = #(playerPos - petPos)
+            local distance = State.GetDistancePlayerToPet(companionid)
             -- Corregir: obtener nombre personalizado si existe
             local petName = (petData.data and petData.data.info and petData.data.info.name) or petData.name or 'Pet'
-            if distance <= Config.Herding.Distance then
+            if State.IsPetNearPlayer(petData, Config.Herding.Distance) then
                 table.insert(nearbyPets, {
                     companionid = companionid,
                     ped = petData.ped,

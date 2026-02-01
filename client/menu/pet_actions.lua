@@ -13,7 +13,7 @@ local Actions = {}
     
 local function ShowWanderingSettingsMenu(companionid)
     local pet = State.GetPet(companionid)
-    local isWanderingEnabled = (pet and pet.flag and pet.flag.isWandering) or false
+    local isWandering = State.GetFlag(pet, 'isWandering')
     local currentDistance = (Config.Wandering and Config.Wandering.MaxDistance) or 20
     local options = {}
     
@@ -22,18 +22,7 @@ local function ShowWanderingSettingsMenu(companionid)
         title = '📊 ' .. locale('cl_wandering_status_title'),
         description = locale('cl_wandering_status_desc'),
     }
-    
-    -- TOGGLE ENABLED
-    options[#options + 1] = {
-        title = '🔄 ' .. locale('cl_wandering_toggle'),
-        description = locale('cl_wandering_status') .. ': ' .. (isWanderingEnabled and locale('cl_enabled') or locale('cl_disabled')),
-        icon = isWanderingEnabled and 'fa-solid fa-toggle-on' or 'fa-solid fa-toggle-off',
-        onSelect = function()
-            -- Toggle wandering
-            TriggerEvent('hdrp-pets:client:toggleWandering', companionid)
-        end
-    }
-    
+
     -- DISTANCE SETTINGS
     options[#options + 1] = {
         title = '📏 ' .. locale('cl_wandering_distance'),
@@ -65,7 +54,7 @@ function Actions.ShowTab(companionid)
     local companionData = pet and pet.data or {}
     local petName = companionData.info and companionData.info.name or 'Unknown'
     local xp = (companionData.progression and companionData.progression.xp) or 0
-    local isHunting = (pet and pet.flag and pet.flag.isHunting) or false
+    local isHunting = State.GetFlag(pet, 'isHunting')
     local isPetAlive = pet and pet.spawned and DoesEntityExist(pet.ped) and not IsEntityDead(pet.ped)
     local options = {}
 

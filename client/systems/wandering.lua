@@ -142,7 +142,8 @@ function SetupPetWandering(companionid, entity, spawnPos)
     end
     companionid = tostring(companionid)
     local pet = State.Pets[companionid]
-    if not pet or not pet.flag or not pet.flag.isWandering then return end
+    local isWandering = State.GetFlag(pet, "isWandering")
+    if not isWandering then return end
     if wanderStates[companionid] then StopPetWandering(companionid) end
     wanderStates[companionid] = {
         entity = entity,
@@ -183,10 +184,7 @@ function ResumePetWandering(companionid)
     wanderState.state = 'idle'
     wanderState.stateChangeTime = GetGameTimer()
     wanderState.targetPosition = nil
-    local pet = State.Pets[companionid]
-    if pet and pet.flag then
-        pet.flag.isWandering = true
-    end
+    State.SetPetTrait(companionid, 'isWandering', true)
 end
 -- antiguo wandering_behavior.lua
 -- antiguo wandering_utilities.lua
