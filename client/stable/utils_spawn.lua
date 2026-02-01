@@ -32,23 +32,13 @@ function ManageSpawn.moveCompanionToPlayer(entity, playerPed)
     if not playerPed or not DoesEntityExist(playerPed) then
         playerPed = cache.ped
     end
-    
-    -- Unfreeze pet if it was frozen using State
-    local petData, petId = State.GetPetByEntity(entity)
-    if petId then
-        State.petUnfreeze(entity)
-    end
-    
-    -- Limpiar tareas anteriores
-    FreezeEntityPosition(entity, false)
-    ClearPedTasksImmediately(entity)
-    
-    -- Ir hacia el jugador
+
+    State.petUnfreeze(entity)
+
     TaskGoToEntity(entity, playerPed, -1, 2.0, 2.0, 1073741824, 0)
-    
-    -- Actualizar State por entity y enviar XP
-    local petData, petId = State.GetPetByEntity(entity)
-    if petData and petId then
+
+    local _, petId = State.GetPetByEntity(entity)
+    if petId then
         State.SetPetTrait(petId, 'isCall', true)
         TriggerServerEvent('hdrp-pets:server:useitem', 'no-item', petId)
     end
@@ -290,7 +280,7 @@ function ManageSpawn.UpdatePetStats(entity, xp, dirt)
     -- Set dirt level
     Citizen.InvokeNative(0x5DA12E025D47D4E5, entity, 16, dirt) -- set dirt
     
-    -- Calculate hValue based on XP (same logic as hdrp-companion and SpawnPetBase)
+    -- Calculate hValue based on XP (same logic as hdrp-companion and SpawnAnimal)
     local hValue = 0
     for i, level in ipairs(Config.PetAttributes.levelAttributes) do
         if xp >= level.xpMin and xp <= level.xpMax then

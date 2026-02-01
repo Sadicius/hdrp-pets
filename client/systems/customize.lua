@@ -150,7 +150,7 @@ RegisterNetEvent('hdrp-pets:client:custShop', function(data)
                 spawnHeading = (v.petcustom and v.petcustom.w) or 0.0
             end
             local model = companionData.info.model
-            local ped, blip = SpawnPetBase(
+            local ped, blip = SpawnAnimal(
                 companionid,
                 companionData,
                 components,

@@ -19,6 +19,11 @@ function CleanUpRelationshipGroup()
     end
 end
 
+local function IsPedAnimal(entity)
+    local pedType = GetPedType(entity)    -- Use GetPedType() to identify animal-like entities
+    return pedType >= 28 and pedType <= 31    -- Animal types are typically different from human types
+end
+
 ---Command a pet to attack a target
 ---@param data table|number Target entity or data table {entity = target, petId = optional}
 function AttackTarget(data)
@@ -34,7 +39,7 @@ function AttackTarget(data)
         return
     end
     
-    if not target or not DoesEntityExist(target) or (not IsPedHuman(target) and not State.IsPedAnimal(target)) or IsPedAPlayer(target) then
+    if not target or not DoesEntityExist(target) or (not IsPedHuman(target) and not IsPedAnimal(target)) or IsPedAPlayer(target) then
         lib.notify({ title = locale('cl_error_attack_inv_target'), description = locale('cl_error_attack_inv_target_des'), type = 'error' })
         return
     end
@@ -70,7 +75,7 @@ exports('AttackTarget', function(data) AttackTarget(data) end)
 function AttackTargetAllPets(data)
     local target = type(data) == "table" and data.entity or data
     
-    if not target or not DoesEntityExist(target) or (not IsPedHuman(target) and not State.IsPedAnimal(target)) or IsPedAPlayer(target) then
+    if not target or not DoesEntityExist(target) or (not IsPedHuman(target) and not IsPedAnimal(target)) or IsPedAPlayer(target) then
         lib.notify({ title = locale('cl_error_attack_inv_target'), description = locale('cl_error_attack_inv_target_des'), type = 'error' })
         return
     end
@@ -132,7 +137,7 @@ function TrackTarget(data)
         return 
     end
     
-    if not target or not DoesEntityExist(target) or (not IsPedHuman(target) and not State.IsPedAnimal(target)) or IsPedAPlayer(target) then
+    if not target or not DoesEntityExist(target) or (not IsPedHuman(target) and not IsPedAnimal(target)) or IsPedAPlayer(target) then
         lib.notify({title = locale('cl_error_track_inv_target'), type = 'error'})
         return
     end

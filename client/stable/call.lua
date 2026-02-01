@@ -14,7 +14,7 @@ local ManageSpawn = lib.load('client.stable.utils_spawn')
 --- @param options table Opciones adicionales: {petName = string, isMultiPet = boolean}
 --- @return number|nil newPed Entity handle del ped creado (nil si falla)
 --- @return number|nil blip Blip handle del blip creado (nil si falla)
-function SpawnPetBase(companionid, companionData, components, xp, spawnCoords, spawnHeading, options)
+function SpawnAnimal(companionid, companionData, components, xp, spawnCoords, spawnHeading, options)
     options = options or {}
 
     local x, y, z = table.unpack(spawnCoords)
@@ -87,6 +87,7 @@ function SpawnPetBase(companionid, companionData, components, xp, spawnCoords, s
     -- 12. APLICAR XP Y BONDING
     xp = xp or 0
     ManageSpawn.ApplyBonding(newPed, xp) -- utils_spawn.lua 
+    State.GetBondingLevels(newPed,companionid) -- Actualizar niveles de bonding
 
     -- 14. CREAR BLIP
     local blip = Citizen.InvokeNative(0x23f74c2fda6e7c61, -1749618580, newPed)
@@ -158,7 +159,7 @@ function SpawnPetBase(companionid, companionData, components, xp, spawnCoords, s
 end
 
 -- Spawn Multi-Pet (for multi-pet system)
-local function SpawnMultiPet(dbPetData, delay)
+local function MultiPet(dbPetData, delay)
     if delay then Wait(delay) end
     if not dbPetData then
         return false
@@ -191,7 +192,7 @@ local function SpawnMultiPet(dbPetData, delay)
     end
     local xp = (companionData.progression and companionData.progression.xp) or 0
     -- USAR FUNCIÓN BASE DE SPAWN
-    local newPed, blip = SpawnPetBase(
+    local newPed, blip = SpawnAnimal(
         companionid,
         companionData,
         components,
@@ -213,7 +214,7 @@ local function SpawnMultiPet(dbPetData, delay)
 end
 
 -- Helper function: Call all active pets
-local function CallAllActivePets()
+local function CallAll()
     -- Get active pets from database (those marked as active=1)
     RSGCore.Functions.TriggerCallback('hdrp-pets:server:getactivecompanions', function(activePetsData)
         if not activePetsData or #activePetsData == 0 then
@@ -224,26 +225,23 @@ local function CallAllActivePets()
             })
             return
         end
-        local playerCoords = GetEntityCoords(cache.ped)
         local petsToCome = 0
         local petsNeedingSpawn = 0
-        local maxCallDistance = Config.MaxCallDistance or 100.0
         -- Process each active pet from database
         for i, dbPetData in ipairs(activePetsData) do
             local companionid = dbPetData.companionid
             local petData = State.GetPet(companionid)
             if petData and petData.spawned and DoesEntityExist(petData.ped) then
                 -- Pet is spawned, check distance
-                local petCoords = GetEntityCoords(petData.ped)
-                local distance = #(playerCoords - petCoords)
-                -- Siempre mover la mascota al jugador si está spawneada
-                ManageSpawn.moveCompanionToPlayer(petData.ped, cache.ped)
+                if not State.IsPetNearPlayer(petData, Config.PetAttributes.FollowDistance or 10.0) then
+                    ManageSpawn.moveCompanionToPlayer(petData.ped, cache.ped)
+                end
                 petsToCome = petsToCome + 1
             else
                 -- Pet not spawned - needs to be spawned
                 petsNeedingSpawn = petsNeedingSpawn + 1
                 local spawnDelay = (i - 1) * 1000  -- 1000ms between each pet
-                SpawnMultiPet(dbPetData, spawnDelay)
+                MultiPet(dbPetData, spawnDelay)
             end
         end
         -- Single summary notification
@@ -257,103 +255,57 @@ local function CallAllActivePets()
     end)
 end
 
-
 -- HILO DE SEGUIMIENTO Y GESTIÓN DE FLAGS
 CreateThread(function()
--- HILO DE SEGUIMIENTO REALISTA PARA MULTI-MASCOTA
     local followTimers = {}
-    local FOLLOW_TIME = 10000 -- ms que la mascota sigue tras ser llamada (ajustable)
-    local function loopCall()
-        local playerCoords = GetEntityCoords(cache.ped)
-        for companionid, petData in pairs(State.GetAllPets()) do
+    local FOLLOW_TIME = 10000
+    while true do
+        Wait(50)
+        local anyActive = false
+        for companionid, pet in pairs(State.GetAllPets()) do
+            if not pet.spawned or not DoesEntityExist(pet.ped) then goto continue end
 
-            local isFollow = (petData and petData.flag and petData.flag.isFollowing) or false
-            local isHerding = (petData and petData.flag and petData.flag.isHerding) or false
-            local isWandering = (petData and petData.flag and petData.flag.isWandering) or false
-            local isHunting = (petData and petData.flag and petData.flag.isHunting) or false
-            local isCall = (petData and petData.flag and petData.flag.isCall) or false
+            local isCall = State.GetFlag(pet, "isCall")
+            local isFollow = State.GetFlag(pet, "isFollowing")
+            local prevMode = pet.flag.prevMovement
 
-            if petData and petData.spawned and isCall and DoesEntityExist(petData.ped) then
-                local xp = petData.xp or 0
-                local requiredXP = (Config.XP and Config.XP.Trick and Config.XP.Trick.Follow) or 75
-                local age = (petData.data and petData.data.stats and petData.data.stats.age) or 0
-                local minFollowAge = 3
-                if xp >= requiredXP and age >= minFollowAge then
-                    local petCoords = GetEntityCoords(petData.ped)
-                    local distance = #(playerCoords - petCoords)
-                    -- Guardar el estado previo antes de cambiar a isFollowing (por mascota)
-                    if not petData.flag.prevMovement then
-                        if isHunting then
-                            petData.flag.prevMovement = 'isHunting'
-                        elseif isHerding then
-                            petData.flag.prevMovement = 'isHerding'
-                        else
-                            petData.flag.prevMovement = nil
-                        end
+            if isCall then
+                anyActive = true
+                local xp = pet.xp or 0
+                local age = (pet.data and pet.data.stats and pet.data.stats.age) or 0
+                if xp >= ((Config.XP and Config.XP.Trick and Config.XP.Trick.Follow) or 75) and age >= 3 then
+                    if not prevMode then
+                        if State.GetFlag(pet, "isHunting") then pet.flag.prevMovement = "isHunting"
+                        elseif State.GetFlag(pet, "isHerding") then pet.flag.prevMovement = "isHerding"
+                        else pet.flag.prevMovement = nil end
                     end
-
-                    if distance > Config.PetAttributes.FollowDistance then
-                        -- Si está lejos, sigue al jugador
-                        if petData.flag.prevMovement == 'isHunting' then
-                            State.SetPetTrait(companionid, 'isHunting', false)
-                        elseif petData.flag.prevMovement == 'isHerding' then
-                            StopPetHerding(companionid)
-                            State.SetPetTrait(companionid, 'isHerding', false)
-                        else
-                            StopPetWandering(companionid)
-                            State.SetPetTrait(companionid, 'isWandering', false)
-                        end
-                        State.SetPetTrait(companionid, 'isFollowing', true)
-                        ManageSpawn.moveCompanionToPlayer(petData.ped, cache.ped)
+                    local dist = State.GetDistanceBetweenEntities(pet.ped, cache.ped)
+                    if dist > Config.PetAttributes.FollowDistance then
+                        State.SetMode(companionid, "isFollowing")
+                        ManageSpawn.moveCompanionToPlayer(pet.ped, cache.ped)
                         followTimers[companionid] = GetGameTimer() + FOLLOW_TIME
-                    else
-                        -- Si ya está cerca, inicia el temporizador de seguimiento
-                        if not isFollow then
-                            if petData.flag.prevMovement == 'isHunting' then
-                                State.SetPetTrait(companionid, 'isHunting', false)
-                            elseif petData.flag.prevMovement == 'isHerding' then
-                                StopPetHerding(companionid)
-                                State.SetPetTrait(companionid, 'isHerding', false)
-                            else
-                                StopPetWandering(companionid)
-                                State.SetPetTrait(companionid, 'isWandering', false)
-                            end
-                            State.SetPetTrait(companionid, 'isFollowing', true)
-                            followTimers[companionid] = GetGameTimer() + FOLLOW_TIME
-                        end
+                    elseif not isFollow then
+                        State.SetMode(companionid, "isFollowing")
+                        followTimers[companionid] = GetGameTimer() + FOLLOW_TIME
                     end
                 end
             end
             -- Si está siguiendo, verifica si debe dejar de seguir
-            if isFollow then
-                if followTimers[companionid] and GetGameTimer() > followTimers[companionid] then
-                    followTimers[companionid] = nil
-                    -- Restaurar el estado previo guardado (por mascota)
-                    State.SetPetTrait(companionid, 'isFollowing', false)
-                    Wait(500) -- Small wait before changing state
-                    if petData.flag.prevMovement == 'isHunting' then
-                        State.SetPetTrait(companionid, 'isHunting', true)
-                    elseif petData.flag.prevMovement == 'isHerding' then
-                        State.SetPetTrait(companionid, 'isHerding', true)
-                        local herdingState = exports['hdrp-pets']:GetPetHerdingState(companionid)
-                        if herdingState and not herdingState.active then
-                            ResumePetHerding(companionid)
-                        elseif not herdingState then
-                            SetupPetHerding(companionid, petData.ped, {})
-                        end
-                    else
-                        State.SetPetTrait(companionid, 'isWandering', true)
-                        SetupPetWandering(companionid, petData.ped, GetEntityCoords(petData.ped))
-                    end
-                    -- Limpiar el flag temporal
-                    if petData.flag then petData.flag.prevMovement = nil end
+            if isFollow and followTimers[companionid] and GetGameTimer() > followTimers[companionid] then
+                followTimers[companionid] = nil
+                State.SetMode(companionid, prevMode or "isWandering")
+                if prevMode == "isHerding" then
+                    local herdingState = exports['hdrp-pets']:GetPetHerdingState(companionid)
+                    if herdingState and not herdingState.active then ResumePetHerding(companionid)
+                    elseif not herdingState then SetupPetHerding(companionid, pet.ped, {}) end
+                elseif prevMode == "isWandering" or not prevMode then
+                    SetupPetWandering(companionid, pet.ped, GetEntityCoords(pet.ped))
                 end
+                pet.flag.prevMovement = nil
             end
+            ::continue::
         end
-    end
-    while true do
-        Wait(1000)
-        loopCall()
+        Wait(anyActive and 1000 or 2000)
     end
 end)
 
@@ -368,12 +320,27 @@ CreateThread(function()
     end
 end)
 
+
 RegisterCommand("pet_call", function()
     RSGCore.Functions.GetPlayerData(function(PlayerData)
         if PlayerData.metadata["injail"] == 0 and not IsEntityDead(cache.ped) then
             TriggerServerEvent("InteractSound_SV:PlayWithinDistance", 10, 'CALLING_WHISTLE_01', 0.7)
-            CallAllActivePets()
+            CallAll()
         end
     end)
     Wait(2000) -- Anti spam
 end, false)
+
+-- Limpieza al detener/reiniciar el recurso
+AddEventHandler('onResourceStop', function(resourceName)
+    if resourceName ~= GetCurrentResourceName() then return end
+    -- Limpiar todas las mascotas, blips y prompts
+    for companionid, pet in pairs(State.GetAllPets()) do
+        if pet and pet.ped and DoesEntityExist(pet.ped) then
+            DeleteEntity(pet.ped)
+        end
+        if pet and pet.blip and DoesBlipExist(pet.blip) then
+            RemoveBlip(pet.blip)
+        end
+    end
+end)

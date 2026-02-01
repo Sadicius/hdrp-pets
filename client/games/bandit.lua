@@ -120,7 +120,6 @@ RegisterNetEvent('hdrp-pets:client:startBanditEncounter', function()
         local blip = Citizen.InvokeNative(0x23F74C2FDA6E7C61, -1749618580, banditPed)
         SetBlipSprite(blip, -1832924447)
         SetBlipScale(blip, 0.2)
-        State.AddBandit(banditPed, blip)
         SetModelAsNoLongerNeeded(modelHash)
         Wait(100)
     end
@@ -201,5 +200,4 @@ end, false)
 -- STOP RESOURCE
 AddEventHandler('onResourceStop', function(resource)
     if GetCurrentResourceName() ~= resource then return end
-    State.CleanupAllBandits()
 end) ]]
