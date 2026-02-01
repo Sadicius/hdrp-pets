@@ -78,6 +78,7 @@ local function checkAchievements(src, petId)
 
     Database.UpdateCompanionAchievements(companionid, achievements)
     Database.UpdateCompanionData(companionid, data)
+    TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, data)
     TriggerClientEvent('hdrp-pets:client:updateCombatAchievements', src, petId, achievements, xpBonus)
 end
 
@@ -126,6 +127,7 @@ local function updateStatsFight(winnerPet, loserPet, winnerSrc, loserSrc, isKO, 
         local totalFightsW = (wach.fight.victories or 0) + (wach.fight.defeats or 0)
         wach.fight.winrate = totalFightsW > 0 and math.floor((wach.fight.victories / totalFightsW) * 100) or 0
         Database.UpdateCompanionAchievements(wid, wach)
+        -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, wid, wach)
     end
 
     -- Mascota perdedora
@@ -142,6 +144,7 @@ local function updateStatsFight(winnerPet, loserPet, winnerSrc, loserSrc, isKO, 
         local totalFightsL = (lach.fight.victories or 0) + (lach.fight.defeats or 0)
         lach.fight.winrate = totalFightsL > 0 and math.floor((lach.fight.victories / totalFightsL) * 100) or 0
         Database.UpdateCompanionAchievements(lid, lach)
+        -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, lid, lach)
     end
 end
 
@@ -822,16 +825,10 @@ function resolvePvPFight(fightId)
             wdata.progression = wdata.progression or {}
             wdata.progression.xp = (wdata.progression.xp or 0) + xpWinner
             Database.UpdateCompanionData(winnerPet.PetId, wdata)
-            -- Sync to winner's client
-            if winnerSrc then
-                TriggerClientEvent('hdrp-pets:client:refreshPetData', winnerSrc, winnerPet.PetId, wdata)
-                if Config.Debug then
-                    print(string.format('^2[FIGHT XP]^7 Winner %s gained %d XP, synced to client', winnerPet.PetId, xpWinner))
-                end
-            end
+            TriggerClientEvent('hdrp-pets:client:updateanimals', winnerSrc, winnerPet.PetId, wdata)
         end
     end
- 
+
     if loserPet.PetId then
         local lcompanion = Database.GetCompanionByCompanionId(loserPet.PetId)
         if lcompanion then
@@ -839,14 +836,7 @@ function resolvePvPFight(fightId)
             ldata.progression = ldata.progression or {}
             ldata.progression.xp = (ldata.progression.xp or 0) + xpLoser
             Database.UpdateCompanionData(loserPet.PetId, ldata)
- 
-            -- Sync to loser's client
-            if loserSrc then
-                TriggerClientEvent('hdrp-pets:client:refreshPetData', loserSrc, loserPet.PetId, ldata)
-                if Config.Debug then
-                    print(string.format('^2[FIGHT XP]^7 Loser %s gained %d XP, synced to client', loserPet.PetId, xpLoser))
-                end
-            end
+            TriggerClientEvent('hdrp-pets:client:updateanimals', loserSrc, loserPet.PetId, ldata)
         end
     end
 

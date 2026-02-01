@@ -148,25 +148,14 @@ RegisterNetEvent('hdrp-pets:server:fullcheckup', function(companionid)
         currentData.veterinary.dayssincecheckup = daysSince
     end
     
-    -- Update database with error handling
-    local updateSuccess, updateError = pcall(Database.UpdateCompanionData, companionid, currentData)
-    if not updateSuccess then
-        if Config.Debug then
-            print('^1[VETERINARY ERROR]^7 Checkup database update failed:', updateError)
-        end
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Failed to update pet data', duration = 5000 })
-        return
-    end
- 
+    -- Update database
+    Database.UpdateCompanionData(companionid, currentData) 
+    -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
+
     Player.Functions.RemoveMoney('cash', serviceConfig.price)
- 
-    -- Sync to client
-    TriggerClientEvent('hdrp-pets:client:refreshPetData', src, companionid, currentData)
+
     TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = locale('sv_vet_checkup_success') .. math.floor(currentData.stats.health) .. '%', duration = 5000 })
- 
-    if Config.Debug then
-        print(string.format('^2[VETERINARY]^7 Checkup completed for %s, synced to client', companionid))
-    end
+
 end)
 
 ---Vaccination service
@@ -217,25 +206,14 @@ RegisterNetEvent('hdrp-pets:server:vaccination', function(companionid)
         currentData.veterinary.dayssincevaccination = daysSince
     end
     
-    -- Update database with error handling
-    local updateSuccess, updateError = pcall(Database.UpdateCompanionData, companionid, currentData)
-    if not updateSuccess then
-        if Config.Debug then
-            print('^1[VETERINARY ERROR]^7 Vaccination database update failed:', updateError)
-        end
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Failed to update pet data', duration = 5000 })
-        return
-    end
- 
+    -- Update database
+    Database.UpdateCompanionData(companionid, currentData) 
+    -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
+    
     Player.Functions.RemoveMoney('cash', serviceConfig.price)
- 
-    -- Sync to client
-    TriggerClientEvent('hdrp-pets:client:refreshPetData', src, companionid, currentData)
+    
     TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = locale('sv_vet_vaccine_success'), duration = 5000 })
- 
-    if Config.Debug then
-        print(string.format('^2[VETERINARY]^7 Vaccination completed for %s, synced to client', companionid))
-    end
+
 end)
 
 ---Surgery service
@@ -284,24 +262,14 @@ RegisterNetEvent('hdrp-pets:server:surgery', function(companionid)
         currentData.veterinary.dayssincesurgery = daysSince
     end
     
-    -- Update database with error handling
-    local updateSuccess, updateError = pcall(Database.UpdateCompanionData, companionid, currentData)
-    if not updateSuccess then
-        if Config.Debug then
-            print('^1[VETERINARY ERROR]^7 Checkup database update failed:', updateError)
-        end
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Failed to update pet data', duration = 5000 })
-        return
-    end
- 
+    -- Update database
+    Database.UpdateCompanionData(companionid, currentData) 
+
     Player.Functions.RemoveMoney('cash', serviceConfig.price)
- 
-    -- Sync to client
-    TriggerClientEvent('hdrp-pets:client:refreshPetData', src, companionid, currentData)
+    
+    -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
+    
     TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = locale('sv_vet_surgery_success') .. math.floor(currentData.stats.health) .. '%', duration = 5000 })
-    if Config.Debug then
-        print(string.format('^2[VETERINARY]^7 Surgery completed for %s, synced to client', companionid))
-    end
 
 end)
 
@@ -342,25 +310,15 @@ RegisterNetEvent('hdrp-pets:server:sterilization', function(companionid)
         currentData.veterinary.dayssincesterilization = daysSince
     end
 
-    -- Update database with error handling
-    local updateSuccess, updateError = pcall(Database.UpdateCompanionData, companionid, currentData)
-    if not updateSuccess then
-        if Config.Debug then
-            print('^1[VETERINARY ERROR]^7 Sterilization database update failed:', updateError)
-        end
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Failed to update pet data', duration = 5000 })
-        return
-    end
- 
+    -- Update database
+    Database.UpdateCompanionData(companionid, currentData) 
+
     Player.Functions.RemoveMoney('cash', serviceConfig.price)
- 
-    -- Sync to client
-    TriggerClientEvent('hdrp-pets:client:refreshPetData', src, companionid, currentData)
+
+    -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, companionid, currentData)
+
     TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = locale('sv_vet_sterilization_success'), duration = 5000 })
- 
-    if Config.Debug then
-         print(string.format('^2[VETERINARY]^7 Sterilization completed for %s, synced to client', companionid))
-    end
+
 end)
 
 -- DISEASE MANAGEMENT
@@ -401,6 +359,7 @@ RegisterNetEvent('hdrp-pets:server:disease:check', function()
         -- Update database if changes occurred
         if diseaseApplied or effectsApplied then
             Database.UpdateCompanionData(petRecord.companionid or companionid, currentData) 
+            -- TriggerClientEvent('hdrp-pets:client:updateanimals', src, petRecord.companionid or companionid, currentData)
             updateCount = updateCount + 1
         end
 
@@ -426,5 +385,4 @@ end)
 
 exports('CalculateDiseaseChance', function(data)
     return calculateDiseaseChance(data)
-
 end)

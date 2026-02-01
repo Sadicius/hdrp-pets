@@ -83,17 +83,18 @@ end)
 RSGCore.Functions.CreateCallback('hdrp-pets:server:getactivecompanions', function(source, cb)
     local Player = RSGCore.Functions.GetPlayer(source)
     if not Player then cb({}) return end
-
-    local success, result = pcall(Database.GetAllCompanionsActive, Player.PlayerData.citizenid)
-
-    if success and result then
-        cb(result)
-    else
-        if Config.Debug then
-            print('^1[CALLBACK ERROR]^7 getactivecompanions failed:', result or 'unknown error')
-        end
+    
+    local success, result = pcall(function()
+        cb(Database.GetAllCompanionsActive(Player.PlayerData.citizenid))
+        return 
+    end)
+    
+    if not success then
         cb({})
+        return
     end
+    
+    -- cb(result or {})
 end)
 
 -- Callback: obtener estado de reproducción de una mascota

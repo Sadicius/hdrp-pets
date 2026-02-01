@@ -217,26 +217,12 @@ local function CallAllActivePets()
     -- Get active pets from database (those marked as active=1)
     RSGCore.Functions.TriggerCallback('hdrp-pets:server:getactivecompanions', function(activePetsData)
         if not activePetsData or #activePetsData == 0 then
-            lib.notify({
-                title = locale('cl_no_active_pets'),
-                type = 'error',
-                duration = 5000
+            lib.notify({ 
+                title = locale('cl_no_active_pets'), 
+                type = 'error', 
+                duration = 5000 
             })
             return
-        end
-        -- Sync pet data from database to client state (handles offline decay updates)
-        for _, dbPetRecord in ipairs(activePetsData) do
-            local petDataFromDB = type(dbPetRecord.data) == 'string' and json.decode(dbPetRecord.data) or dbPetRecord.data
-            if petDataFromDB and petDataFromDB.id then
-                local existingPet = State.GetPet(petDataFromDB.id)
-                if existingPet and existingPet.data then
-                    -- Update only data, preserve runtime state
-                    existingPet.data = petDataFromDB
-                    if Config.Debug then
-                        print(string.format('^2[CALL SYNC]^7 Updated offline data for %s', petDataFromDB.id))
-                    end
-                end
-            end
         end
         local playerCoords = GetEntityCoords(cache.ped)
         local petsToCome = 0

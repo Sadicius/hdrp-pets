@@ -147,70 +147,28 @@ end
 function Database.ActivateCompanionAtomic(companionId, citizenid, maxPets)
     if not companionId or not citizenid then return false, "Invalid parameters" end
     if Config.Debug then print('^3[DATABASE] Attempting to activate companion ID ' .. tostring(companionId) .. ' for citizenid ' .. tostring(citizenid) .. '^7') end
-    -- Retry mechanism with exponential backoff to handle race conditions
-    local maxRetries = 3
-    local retryDelay = 50 -- milliseconds
-
-    for attempt = 1, maxRetries do
-        -- First, check current active count with a query
-        local countSuccess, countResult = pcall(function()
-            return MySQL.scalar.await('SELECT COUNT(*) FROM pet_companion WHERE citizenid = ? AND active = 1', {citizenid})
-        end)
-
-        if not countSuccess or not countResult then
-            if Config.Debug then print('^1[DATABASE ERROR]^7 Failed to count active pets') end
-            return false, "Database error"
-        end
-
-        if countResult >= maxPets then
-            if Config.Debug then print('^3[DATABASE]^7 Max pets limit reached (' .. countResult .. '/' .. maxPets .. ')') end
-            return false, "Max pets limit reached"
-        end
-
-        -- Try to activate the companion
-        -- This UPDATE is safe because we checked the count first
-        local updateSuccess, affected = pcall(function()
-            return MySQL.update.await([[
-                UPDATE pet_companion
-                SET active = 1
-                WHERE companionid = ?
-                AND citizenid = ?
-                AND active = 0
-            ]], {companionId, citizenid})
-        end)
-
-        if not updateSuccess then
-            if Config.Debug then print('^1[DATABASE ERROR]^7 Update query failed') end
-            return false, "Database error"
-        end
-
-        -- Verify the update succeeded and count is still valid
-        if affected and affected > 0 then
-            -- Double-check that we didn't exceed the limit after the update
-            local verifySuccess, newCount = pcall(function()
-                return MySQL.scalar.await('SELECT COUNT(*) FROM pet_companion WHERE citizenid = ? AND active = 1', {citizenid})
-            end)
-
-            if verifySuccess and newCount and newCount <= maxPets then
-                if Config.Debug then print('^2[DATABASE SUCCESS]^7 Companion activated (attempt ' .. attempt .. ')') end
-                return true, nil
-            else
-                -- Rollback: we exceeded the limit somehow, deactivate this pet
-                if Config.Debug then print('^1[DATABASE ROLLBACK]^7 Exceeded limit after activation, rolling back') end
-                MySQL.update.await('UPDATE pet_companion SET active = 0 WHERE companionid = ? AND citizenid = ?', {companionId, citizenid})
-                return false, "Max pets limit reached (rollback)"
-            end
-        end
-
-        -- If update didn't affect any rows, the pet might already be active or doesn't exist
-        if attempt < maxRetries then
-            if Config.Debug then print('^3[DATABASE RETRY]^7 Activation failed, retrying... (attempt ' .. attempt .. ')') end
-            Wait(retryDelay * attempt) -- Exponential backoff
-        end
+    -- Atomic operation using MySQL transaction
+    -- This prevents race condition when multiple requests come simultaneously
+    local success, result = pcall(function()
+        -- Use UPDATE with subquery to check count atomically
+        local affected = MySQL.update.await([[
+            UPDATE pet_companion 
+            SET active = 1 
+            WHERE companionid = ? 
+            AND citizenid = ? 
+            AND (SELECT COUNT(*) FROM pet_companion WHERE citizenid = ? AND active = 1) < ?
+        ]], {companionId, citizenid, citizenid, maxPets})
+        if Config.Debug then print('^3[DATABASE] Activation affected rows: ' .. tostring(affected) .. '^7') end
+        return affected
+    end)
+    if Config.Debug then print('^3[DATABASE] Activation success: ' .. tostring(success) .. ', result: ' .. tostring(result) .. '^7') end
+    if success and result and result > 0 then
+        return true, nil
+    elseif success and result == 0 then
+        return false, "Max pets limit reached"
+    else
+        return false, "Database error"
     end
-
-    if Config.Debug then print('^1[DATABASE]^7 Activation failed after ' .. maxRetries .. ' attempts') end
-    return false, "Failed to activate after retries"
 end
 
 ---Deactivate a companion and store in stable
@@ -574,63 +532,6 @@ function Database.GetBreedingParents(citizenid)
     return record.parents and json.decode(record.parents) or {}
 end
 
-
--- ================================================
--- BATCH UPDATE OPERATIONS (P0: Performance Fix)
--- ================================================
-
----Batch update companion data for multiple pets
----Uses CASE WHEN to update all pets in a single query
----@param updates table Array of {companionid, data}
----@return boolean success, number|nil affectedRows
-function Database.BatchUpdateCompanions(updates)
-    if not updates or #updates == 0 then return false, 0 end
-
-    -- Build CASE WHEN statement for JSON data
-    local caseStatements = {}
-    local companionIds = {}
-    local params = {}
-
-    for i, update in ipairs(updates) do
-        if update.companionid and update.data then
-            table.insert(companionIds, '?')
-            table.insert(caseStatements, 'WHEN companionid = ? THEN ?')
-            table.insert(params, update.companionid)
-            table.insert(params, json.encode(update.data))
-        end
-    end
-
-    if #caseStatements == 0 then return false, 0 end
-
-    -- Add companionIds for WHERE IN clause
-    for _, update in ipairs(updates) do
-        if update.companionid then
-            table.insert(params, update.companionid)
-        end
-    end
-
-    local query = string.format([[
-        UPDATE pet_companion
-        SET data = CASE %s END
-        WHERE companionid IN (%s)
-    ]], table.concat(caseStatements, ' '), table.concat(companionIds, ','))
-
-    local success, affectedRows = pcall(
-        MySQL.update.await,
-        query,
-        params
-    )
-
-    if success and affectedRows then
-        if Config.Debug then
-            print(string.format('^2[DATABASE BATCH]^7 Updated %d companions in single query', affectedRows))
-        end
-        return true, affectedRows
-    end
-
-    return false, 0
-end
- 
 -- OWNERSHIP VALIDATION --Verify pet ownership
 ---@param citizenid string
 ---@param companionid string
@@ -639,12 +540,12 @@ function Database.PetOwnership(citizenid, companionid)
     if not citizenid or not companionid then
         return false
     end
-
+    
     local result = MySQL.scalar.await(
         'SELECT COUNT(*) FROM pet_companion WHERE citizenid = ? AND companionid = ?',
         {citizenid, companionid}
     )
-
+    
     return result and tonumber(result) > 0
 end
 

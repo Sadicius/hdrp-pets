@@ -128,7 +128,7 @@ function QuickActions.ShowMenu()
                     lib.notify({  title = locale('cl_info_hunt_disabled'),  description = dismissedCount .. ' pet(s)', type = 'success',  duration = 5000  })
                 end
             end
-        } 
+        }
 
         -- CONTROL 4: MULTI-PET TREASURE HUNT
         local validTreasurePets = 0
@@ -174,8 +174,8 @@ function QuickActions.ShowMenu()
                 lib.notify({  title = locale('cl_success_title'),  description = dismissedCount .. ' pet(s) dismissed', type = 'success',  duration = 5000  })
             end
         }
-        
-        -- CONTROL 6: STORE ALL
+
+        -- CARE 6: STORE ALL
         options[#options + 1] = {
             title = '💤 ' .. locale('cl_action_store_all'),
             onSelect = function()

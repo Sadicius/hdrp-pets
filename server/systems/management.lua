@@ -175,6 +175,7 @@ RegisterServerEvent('hdrp-pets:server:givetreasure', function(petId)
                 data.progression = data.progression or {}
                 data.progression.xp = (data.progression.xp or 0) + xpBonus
                 Database.UpdateCompanionData(petId, data)
+                TriggerClientEvent('hdrp-pets:client:updateanimals', src, petId, data)
             end
 
             if Config.Debug then

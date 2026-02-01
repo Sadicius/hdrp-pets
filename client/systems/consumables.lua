@@ -168,33 +168,15 @@ end)
 -----------------
 -- ACTIONS CLEAN
 -----------------
--- P2 FIX: Rate-limited dirt check thread
--- Prevents all pets from syncing simultaneously (avoids DB spikes)
+-- dirt check thread
 CreateThread(function()
     while true do
         if not State.HasActivePets() then
             Wait(10000)
         else
             local sleep = 5000
-            local petCount = 0
- 
-            -- Count active pets first
-            for _ in pairs(State.GetAllPets()) do
-                petCount = petCount + 1
-            end
- 
-            -- Calculate stagger delay to spread updates over the sync interval
-            -- If 10 pets and 5s interval: 5000ms / 10 = 500ms delay between each
-            local staggerDelay = petCount > 1 and math.floor(sleep / petCount) or 0
- 
-            local index = 0
             for companionid, petData in pairs(State.GetAllPets()) do
                 if petData and petData.spawned and DoesEntityExist(petData.ped) then
-                    -- Stagger the server events to avoid simultaneous burst
-                    if index > 0 and staggerDelay > 0 then
-                        Wait(staggerDelay)
-                    end
- 
                     local petdirt = Citizen.InvokeNative(0x147149F2E909323C, petData.ped, 16, Citizen.ResultAsInteger())
                     -- Sincroniza dirt con el server y actualiza el State local si aplica
                     if companionid and petdirt then
@@ -203,8 +185,6 @@ CreateThread(function()
                             petData.data.stats.dirt = petdirt
                         end
                     end
- 
-                    index = index + 1
                 end
             end
             Wait(sleep)
@@ -222,6 +202,8 @@ AddEventHandler('hdrp-pets:client:brush', function(itemName)
         return
     end
 
+    local pcoords = GetEntityCoords(cache.ped)
+    local hcoords = GetEntityCoords(petData.ped)
     if distance > 2.0 then
         lib.notify({ title = locale('cl_error_brush_need_to_be_closer'), type = 'error', duration = 7000 })
         return
@@ -235,7 +217,6 @@ AddEventHandler('hdrp-pets:client:brush', function(itemName)
     SetCurrentPedWeapon(cache.ped, `WEAPON_UNARMED`, true)
     State.ResetPlayerState()
     Wait(100)
-    local pcoords = GetEntityCoords(cache.ped)
     local boneIndex = GetEntityBoneIndexByName(cache.ped, "SKEL_R_Finger00")
     local brushitem = CreateObject(`p_brushHorse02x`, pcoords.x, pcoords.y, pcoords.z, true, true, true)
     AttachEntityToEntity(brushitem, cache.ped, boneIndex, 0.06, -0.08, -0.03, -30.0, 0.0, 60.0, true, false, true, false, 0, true)
@@ -258,7 +239,7 @@ AddEventHandler('hdrp-pets:client:brush', function(itemName)
     State.ResetPlayerState()
     SetCurrentPedWeapon(cache.ped, `WEAPON_UNARMED`, false)
     local companiondirt = Citizen.InvokeNative(0x147149F2E909323C, petData.ped, 16, Citizen.ResultAsInteger())
-    local dirt = (companiondirt - Config.PetFeed[itemName]["dirt"]) or 0
+    local dirt = (companiondirt - Config.Consumables.Brushdirt) or 0
     Citizen.InvokeNative(0xC6258F41D86676E0, petData.ped, 16, dirt)
     TriggerServerEvent('hdrp-pets:server:useitem', itemName, companionid)
 end)
@@ -299,17 +280,11 @@ end
 
 -- Health/Hunger/Death Check with Safety Timeout
 CreateThread(function()
-    local lastHealthSync = {} -- Track last synced health per pet
-    local healthSyncInterval = 30000 -- Sync every 30 seconds
-    local lastSyncTime = {}
- 
     while true do
         if not State.HasActivePets() then
             Wait(10000)
         else
             local hasCriticalPet = false
-            local currentTime = GetGameTimer()
- 
             for companionid, petData in pairs(State.GetAllPets()) do
                 if petData and petData.spawned and DoesEntityExist(petData.ped) then
                     local sleep = 5000
@@ -317,13 +292,11 @@ CreateThread(function()
                     local vet = petData.data and petData.data.veterinary or {}
                     local pedDead = vet.dead or IsEntityDead(petData.ped)
                     local curHp = GetEntityHealth(petData.ped)
-                    local maxHp = GetEntityMaxHealth(petData.ped)
-                    local healthPercent = math.floor((curHp / maxHp) * 100)
                     local hunger = tonumber(stats.hunger) or 100
                     local thirst = tonumber(stats.thirst) or 100
                     local happiness = tonumber(stats.happiness) or 100
                     local cleanliness = 100 - (tonumber(stats.dirt) or 0)
- 
+
                     if pedDead then
                         -- Marcar como muerto y limpiar estado
                         SetEntityHealth(petData.ped, 0)
@@ -337,43 +310,15 @@ CreateThread(function()
                     else
                         -- Mascota viva: actualizar stats y vida
                         if vet.dead then vet.dead = false end
- 
-                        local healthChanged = false
                         if hunger == 0 or thirst == 0 or happiness < 10 or cleanliness < 20 then
-                            if curHp > 0 then
-                                SetEntityHealth(petData.ped, curHp - 5)
-                                healthChanged = true
-                            end
+                            if curHp > 0 then SetEntityHealth(petData.ped, curHp - 5) end
                         elseif hunger < 30 or thirst < 30 or happiness < 20 or cleanliness < 40 then
-                            if curHp > 0 then
-                                SetEntityHealth(petData.ped, curHp - 1)
-                                healthChanged = true
-                            end
-                        end
- 
-                        -- Sync health to server if changed significantly or interval reached
-                        local lastHealth = lastHealthSync[companionid] or healthPercent
-                        local timeSinceLastSync = (lastSyncTime[companionid] and (currentTime - lastSyncTime[companionid])) or healthSyncInterval
- 
-                        if healthChanged and (math.abs(lastHealth - healthPercent) >= 5 or timeSinceLastSync >= healthSyncInterval) then
-                            -- Update local state
-                            if petData.data and petData.data.stats then
-                                petData.data.stats.health = healthPercent
-                            end
- 
-                            -- Sync to server
-                            TriggerServerEvent('hdrp-pets:server:updatehealth', companionid, healthPercent)
- 
-                            lastHealthSync[companionid] = healthPercent
-                            lastSyncTime[companionid] = currentTime
- 
-                            if Config.Debug then
-                                print(string.format('^3[HEALTH SYNC]^7 Synced health for %s: %d%%', companionid, healthPercent))
-                            end
+                            if curHp > 0 then SetEntityHealth(petData.ped, curHp - 1) end
                         end
                     end
                 end
             end
+            Wait(hasCriticalPet and 1000 or 5000)
         end
     end
 end)
