@@ -346,7 +346,6 @@ RegisterNetEvent('hdrp-pets:server:sterilization', function(companionid)
     local updateSuccess, updateError = pcall(Database.UpdateCompanionData, companionid, currentData)
     if not updateSuccess then
         if Config.Debug then
-            if Config.Debug then
             print('^1[VETERINARY ERROR]^7 Sterilization database update failed:', updateError)
         end
         TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Failed to update pet data', duration = 5000 })
@@ -427,4 +426,5 @@ end)
 
 exports('CalculateDiseaseChance', function(data)
     return calculateDiseaseChance(data)
+
 end)
