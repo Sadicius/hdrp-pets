@@ -118,8 +118,9 @@ function SpawnAnimal(companionid, companionData, components, xp, spawnCoords, sp
     -- 18. WAIT PARA INICIALIZACIÓN
     Wait(100)
     
-    -- 19. ACTUALIZAR ESTADÍSTICAS (FIX v5.8.51+ / v6.0.0)
-    ManageSpawn.UpdatePetStats(newPed, xp, (companionData.stats and companionData.stats.dirt)) -- utils_spawn.lua 
+    -- 18.5. ACTUALIZAR ESTADÍSTICAS CON SALUD (FIX v5.8.51+ / v6.0.0)
+    local currentHealth = companionData.stats and companionData.stats.health or Config.PetAttributes.Starting.Health or 300
+    ManageSpawn.UpdatePetStats(newPed, xp, (companionData.stats and companionData.stats.dirt), currentHealth) -- utils_spawn.lua 
     
     -- 20. CONFIGURAR PROMPTS
 
@@ -153,6 +154,11 @@ function SpawnAnimal(companionid, companionData, components, xp, spawnCoords, sp
         SetEntityHealth(newPed, 0)
         lib.notify({title = locale('cl_error_pet_dead'), type = 'error', duration = 5000})
     end
+
+    -- 23. NOTIFY SERVER THAT PET WAS SPAWNED (FOR MULTIPLAYER SYNC)
+    Wait(100)
+    local spawnCoords = GetEntityCoords(newPed)
+    TriggerServerEvent('hdrp-pets:server:petSpawned', companionid, companionData, spawnCoords)
 
     return newPed, blip
 end
@@ -287,11 +293,11 @@ CreateThread(function()
                     end
                     local dist = State.GetDistanceBetweenEntities(pet.ped, cache.ped)
                     if dist > Config.PetAttributes.FollowDistance then
-                        State.SetMode(companionid, "isFollowing")
+                        State.SetMode(companionid, "isFollowing", true)
                         ManageSpawn.moveCompanionToPlayer(pet.ped, cache.ped)
                         followTimers[companionid] = GetGameTimer() + FOLLOW_TIME
                     elseif not isFollow then
-                        State.SetMode(companionid, "isFollowing")
+                        State.SetMode(companionid, "isFollowing", true)
                         followTimers[companionid] = GetGameTimer() + FOLLOW_TIME
                     end
                 end
@@ -299,7 +305,11 @@ CreateThread(function()
             -- Si está siguiendo, verifica si debe dejar de seguir
             if isFollow and followTimers[companionid] and GetGameTimer() > followTimers[companionid] then
                 followTimers[companionid] = nil
-                State.SetMode(companionid, prevMode or "isWandering")
+                if prevMode then
+                    State.SetMode(companionid, prevMode, true)
+                else
+                    State.SetMode(companionid, "isWandering", true)
+                end
                 if prevMode == "isHerding" then
                     local herdingState = exports['hdrp-pets']:GetPetHerdingState(companionid)
                     if herdingState and not herdingState.active then ResumePetHerding(companionid)
@@ -319,9 +329,24 @@ end)
 CreateThread(function()
     while true do
         Wait(1)
-        if Citizen.InvokeNative(0x91AEF906BCA88877, 0, Config.Prompt.CompanionCall) then
-            ExecuteCommand('pet_call')
-            Wait(2000) -- Anti spam
+        -- Check if player is in a valid state to call pet
+        -- Skip if: in jail, dead, in animation, dead ped, or in UI
+        local playerData = RSGCore.Functions.GetPlayerData()
+        if playerData and playerData.metadata["injail"] == 0 and not IsEntityDead(cache.ped) then
+            -- Additional safety checks to prevent accidental triggers
+            local isInAnimation = IsEntityPlayingAnim(cache.ped, GetAnimDict(cache.ped), GetAnimName(cache.ped), 3) or IsPedRagdoll(cache.ped)
+            local isCanceling = GetLastInputMethod(2) -- Check if using UI
+            
+            -- Only trigger if NOT in animation and key is pressed
+            if not isInAnimation and Citizen.InvokeNative(0x91AEF906BCA88877, 0, Config.Prompt.CompanionCall) then
+                ExecuteCommand('pet_call')
+                Wait(2000) -- Anti spam
+            end
+        end
+        
+        -- If in jail or dead, longer wait
+        if not playerData or playerData.metadata["injail"] ~= 0 or IsEntityDead(cache.ped) then
+            Wait(1000)
         end
     end
 end)

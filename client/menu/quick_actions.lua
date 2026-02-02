@@ -56,9 +56,9 @@ function QuickActions.ShowMenu()
                 for companionid, petData in pairs(spawnedPets) do
                     if DoesEntityExist(petData.ped) then
                         petIndex = petIndex + 1
-                        local isHerding = State.GetFlag(petData.ped, 'isHerding')
-                        local isWandering = State.GetFlag(petData.ped, 'isWandering')
-                        local isFrozen = State.GetFlag(petData.ped, 'isFrozen')
+                        local isHerding = State.GetFlag(petData, 'isHerding')
+                        local isWandering = State.GetFlag(petData, 'isWandering')
+                        local isFrozen = State.GetFlag(petData, 'isFrozen')
                         if isHerding then StopPetHerding(companionid) end
                         if isWandering then StopPetWandering(companionid) end
                         if isFrozen then
@@ -101,13 +101,13 @@ function QuickActions.ShowMenu()
             onSelect = function()
                 local dismissedCount = 0
                 local successCount = 0
-                for companionid, petData in pairs(spawnedPets) do
+                for companionid, petData in pairs(serverPets) do
                     local xp = (petData.progression and petData.progression.xp) or 0
-                    local isHunting = State.GetFlag(petData.ped, "isHunting")
-                    if xp < Config.XP.Trick.Hunt then
-                        lib.notify({ title = locale('cl_error_xp_needed'):format(Config.XP.Trick.Hunt), type = 'error' })
-                        return
-                    end
+                    local isHunting = State.GetFlag(petData, "isHunting")
+                    -- if xp < Config.XP.Trick.Hunt then
+                    --     lib.notify({ title = locale('cl_error_xp_needed'):format(Config.XP.Trick.Hunt), type = 'error' })
+                    --     return
+                    -- end
                     if petData.ped and DoesEntityExist(petData.ped) and not IsEntityDead(petData.ped) and companionid then
                         if not isHunting then
                             State.SetPetTrait(companionid, 'isHunting', true)
@@ -131,7 +131,7 @@ function QuickActions.ShowMenu()
         -- CONTROL 4: MULTI-PET TREASURE HUNT
         local validTreasurePets = 0
         local hasShovel = RSGCore.Functions.HasItem(Config.Items.Treasure)
-        for companionid, petData in pairs(spawnedPets) do
+        for companionid, petData in pairs(serverPets) do
             local xp = (petData.data and petData.data.progression and petData.data.progression.xp) or 0
             if xp >= Config.XP.Trick.TreasureHunt and hasShovel then
                 validTreasurePets = validTreasurePets + 1

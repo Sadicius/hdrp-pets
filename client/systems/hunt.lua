@@ -202,7 +202,7 @@ CreateThread(function()
             if not petPed or not DoesEntityExist(petPed) then
                 goto next_pet
             end
-            local isHunting = State.GetFlag(petPed, "isHunting")
+            local isHunting = State.GetFlag(petData, "isHunting")
             -- Solo actuar si el modo principal es hunting y no está retrieving
             if not isRetrieving and isHunting then
                 local petXp = tonumber(petData and petData.progression and petData.progression.xp) or 0
@@ -296,7 +296,7 @@ RegisterCommand('pet_hunt', function()
 
         for companionid, petData in pairs(spawnedPets) do
             local xp = (petData.progression and petData.progression.xp) or 0
-            local isHunting = State.GetFlag(petData.ped, "isHunting") or false
+            local isHunting = State.GetFlag(petData, "isHunting") or false
             if xp < Config.XP.Trick.Hunt then
                 lib.notify({ title = locale('cl_error_xp_needed'):format(Config.XP.Trick.Hunt), type = 'error' })
                 return

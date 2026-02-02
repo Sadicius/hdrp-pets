@@ -341,9 +341,11 @@ local function GenerateDynamicFormation(petCount, petsArray)
     -- Usar formación preferida si es válida
     if herdingStates and herdingStates.preferredFormation then
         local preferred = herdingStates.preferredFormation
-        local preferredPattern = patternNames[preferred]
-        if preferredPattern and validNames[preferred] then
-            return preferredPattern(petCount)
+        if preferred and patternNames and patternNames[preferred] then
+            local preferredPattern = patternNames[preferred]
+            if preferredPattern and validNames[preferred] then
+                return preferredPattern(petCount)
+            end
         end
     end
     -- Si no hay válidas, fallback a línea

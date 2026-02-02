@@ -173,6 +173,9 @@ function State.DismissPet(companionid)
         RemoveBlip(pet.blip)
     end
 
+    -- NOTIFY SERVER THAT PET WAS DESPAWNED (FOR MULTIPLAYER SYNC)
+    TriggerServerEvent('hdrp-pets:server:petDespawned', companionid)
+
     State.Pets[companionid] = nil
 end
 
@@ -389,15 +392,53 @@ function State.SetPetTrait(companionid, trait, isActive)
     end
 end
 
-function State.GetFlag(pet, flag)
-    return pet and pet.flag and pet.flag[flag]
+---Get flag status for a pet
+---@param petData table Pet data object
+---@param flag string Flag name to check
+---@return boolean Returns true if flag is active, false otherwise
+function State.GetFlag(petData, flag)
+    -- Validar parámetros
+    if not petData or not flag then return false end
+    
+    -- Verificar que tenemos datos válidos y el flag existe
+    if not petData.flag then return false end
+    
+    -- Retornar el valor del flag (asegurar que sea boolean)
+    return petData.flag[flag] == true
 end
 
-function State.SetMode(companionid, mode)
+---Set movement mode for pet (handles mutually exclusive modes)
+---@param companionid string
+---@param flag string Flag to set: "isFollowing", "isHerding", "isWandering", "isHunting"
+---@param value boolean True to activate (deactivates other modes), false to deactivate
+function State.SetMode(companionid, flag, value)
     local pet = State.GetPet(companionid)
     if not pet or not pet.flag then return end
-    for _, flag in ipairs({"isFollowing", "isHerding", "isWandering", "isHunting"}) do
-        pet.flag[flag] = (flag == mode)
+    
+    -- Lista de modos mutuamente exclusivos
+    local exclusiveModes = {
+        ["isFollowing"] = true,
+        ["isHerding"] = true,
+        ["isWandering"] = true,
+        ["isHunting"] = true
+    }
+    
+    -- Validar que el flag es un modo válido
+    if not exclusiveModes[flag] then
+        if Config.Debug then
+            print(string.format("^3[HDRP-PETS WARNING]^7 Invalid mode flag '%s' for SetMode", tostring(flag)))
+        end
+        return
+    end
+    
+    -- Si se activa un modo, desactivar todos los demás modos exclusivos
+    if value == true then
+        for mode in pairs(exclusiveModes) do
+            pet.flag[mode] = (mode == flag)
+        end
+    else
+        -- Si se desactiva, solo desactivar ese flag específico
+        pet.flag[flag] = false
     end
 end
 ------------------------------------------

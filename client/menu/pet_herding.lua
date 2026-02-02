@@ -98,7 +98,7 @@ function StartSelectedHerding()
         end
         lib.notify({
             title = locale('cl_herding_start_title'), 
-            description = string.format(locale('cl_herding_started_desc'), selectedCount),
+            description = string.format(locale('cl_herding_started_desc'), selectedCount, herdingStates.preferredFormation or 'Default'),
             type = 'success',
             duration = 5000
         })
@@ -157,7 +157,7 @@ function StartHerdingSystem()
         end
         lib.notify({
             title = locale('cl_herding_start_title'), 
-            description = string.format(locale('cl_herding_started_desc'), startedCount),
+            description = string.format(locale('cl_herding_started_desc'), startedCount, herdingStates.preferredFormation or 'Default'),
             type = 'success',
             duration = 5000
         })

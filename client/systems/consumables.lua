@@ -220,7 +220,7 @@ AddEventHandler('hdrp-pets:client:brush', function(itemName)
     State.ResetPlayerState()
     SetCurrentPedWeapon(cache.ped, `WEAPON_UNARMED`, false)
     local companiondirt = Citizen.InvokeNative(0x147149F2E909323C, petData.ped, 16, Citizen.ResultAsInteger())
-    local dirt = (companiondirt - Config.Consumables.Brushdirt) or 0
+    local dirt = (companiondirt - Config.PetFeed[itemName]["dirt"]) or 0
     Citizen.InvokeNative(0xC6258F41D86676E0, petData.ped, 16, dirt)
     TriggerServerEvent('hdrp-pets:server:useitem', itemName, companionid)
 end)

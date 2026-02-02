@@ -251,8 +251,13 @@ function ManageSpawn.CalculateScaleFromAge(age)
 end
 
 -- PET STATS UPDATE FUNCTION
-function ManageSpawn.UpdatePetStats(entity, xp, dirt)
+function ManageSpawn.UpdatePetStats(entity, xp, dirt, health)
     if not entity or not DoesEntityExist(entity) then return end
+    
+    -- INITIALIZE HEALTH (CRITICAL FIX FOR DEATH BUG)
+    health = health or Config.PetAttributes.Starting.Health or 300
+    SetEntityHealth(entity, math.floor(health))
+    Citizen.InvokeNative(0x166E7CF68597D8B5, entity, math.floor(health))
     
     -- 13. APLICAR NO MIEDO
     if Config.PetAttributes.NoFear then

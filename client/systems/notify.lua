@@ -7,8 +7,6 @@ lib.locale()
 ----------------------------------
 -- Variables Locales
 local State = exports['hdrp-pets']:GetState()
-local lastDecayNotification = 0
-local decayNotificationCooldown = 30000 -- 30 segundos
 
 -- Monitoring del estado de mascotas
 local function showDecayWarning(petData, petRecord)
@@ -51,12 +49,14 @@ local function showDecayWarning(petData, petRecord)
     end
 
     if next(warnings) then
-        lib.notify({
+        -- Use NotificationManager with 30 second cooldown
+        NotificationManager.Notify({
             type = 'warning',
             title = petData.info.name or locale('cl_pet_your'),
             description = table.concat(warnings, ', '),
             duration = 5000
-        })
+        }, { cooldown = 30000 })
+    end
     end
 end
 
@@ -127,14 +127,14 @@ RegisterNetEvent('hdrp-pets:client:levelUp', function(data)
     local companionid = data.companionid
     
     -- Show notification
-    lib.notify({
+    NotificationManager.Notify({
         title = locale('cl_level_up_title'),
         description = locale('cl_level_up_desc'):format(petName, newLevel),
         type = 'success',
         duration = 8000,
         -- icon = 'fa-solid fa-star',
         iconAnimation = 'bounce'
-    })
+    }, 10) -- 10s cooldown to prevent level-up spam
     
     -- Play sound
     if cfg.PlaySound then

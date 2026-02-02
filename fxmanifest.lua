@@ -3,7 +3,7 @@ rdr3_warning 'I acknowledge that this is a prerelease build of RedM, and I am aw
 game 'rdr3'
 
 description 'hdrp-pets - Advanced Pet System for RedM by Sadicius'
-version '6.9.1'
+version '6.9.2'
 
 shared_scripts {
     '@ox_lib/init.lua',
@@ -32,6 +32,7 @@ shared_scripts {
 client_scripts {
     -- SYSTEM
     'client/state.lua',                 -- State management
+    'client/systems/notification_manager.lua',  -- Notification debouncing system
 
     -- CUSTOMIZATION
     'client/systems/customize.lua',     -- Pet customization system
@@ -49,6 +50,7 @@ client_scripts {
     'client/systems/prompts.lua',       -- Prompt system
     'client/systems/breeding.lua',    -- breeding
     'client/systems/tracking.lua',      -- TRACKING (Find lost pets & track targets)
+    'client/systems/networking.lua',    -- NETWORKING (Multiplayer pet sync)
 
     -- GAMES (Mini-Games for Pets)
     'client/games/bandit.lua',          -- Bandit encounters
@@ -106,6 +108,7 @@ server_scripts {
     'server/systems/veterinary.lua',  -- veterinary services
     'server/systems/breeding.lua',    -- breeding
     'server/systems/xp.lua',          -- xp
+    'server/systems/networking.lua',  -- NETWORKING (Pet replication across players)
 
     'server/main.lua',
     'server/versionchecker.lua',
