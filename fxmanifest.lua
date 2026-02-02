@@ -45,8 +45,7 @@ client_scripts {
     'client/systems/ambient.lua',       -- Ambient dog resting logic
     'client/systems/consumables.lua',   -- Feed, Water, Treats, Revive
     'client/systems/hunt.lua',          -- Pet behavior AI 
-    'client/systems/behavior.lua',      -- Pet behavior AI 
-    'client/systems/notify.lua',        -- Notify decay, level up, etc.
+    'client/systems/behavior.lua',      -- Pet behavior AI
     'client/systems/prompts.lua',       -- Prompt system
     'client/systems/breeding.lua',    -- breeding
     'client/systems/tracking.lua',      -- TRACKING (Find lost pets & track targets)

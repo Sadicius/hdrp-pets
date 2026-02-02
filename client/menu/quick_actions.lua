@@ -101,7 +101,7 @@ function QuickActions.ShowMenu()
             onSelect = function()
                 local dismissedCount = 0
                 local successCount = 0
-                for companionid, petData in pairs(serverPets) do
+                for companionid, petData in pairs(spawnedPets) do
                     local xp = (petData.progression and petData.progression.xp) or 0
                     local isHunting = State.GetFlag(petData, "isHunting")
                     -- if xp < Config.XP.Trick.Hunt then
@@ -131,7 +131,7 @@ function QuickActions.ShowMenu()
         -- CONTROL 4: MULTI-PET TREASURE HUNT
         local validTreasurePets = 0
         local hasShovel = RSGCore.Functions.HasItem(Config.Items.Treasure)
-        for companionid, petData in pairs(serverPets) do
+        for companionid, petData in pairs(spawnedPets) do
             local xp = (petData.data and petData.data.progression and petData.data.progression.xp) or 0
             if xp >= Config.XP.Trick.TreasureHunt and hasShovel then
                 validTreasurePets = validTreasurePets + 1
