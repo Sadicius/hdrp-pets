@@ -334,8 +334,7 @@ CreateThread(function()
         local playerData = RSGCore.Functions.GetPlayerData()
         if playerData and playerData.metadata and playerData.metadata["injail"] == 0 and not IsEntityDead(cache.ped) then
             -- Additional safety checks to prevent accidental triggers
-            local isInAnimation = IsEntityPlayingAnim(cache.ped, GetAnimDict(cache.ped), GetAnimName(cache.ped), 3) or IsPedRagdoll(cache.ped)
-            local isCanceling = GetLastInputMethod(2) -- Check if using UI
+            local isInAnimation = IsPedRagdoll(cache.ped) or IsPedInMeleeCombat(cache.ped)
             
             -- Only trigger if NOT in animation and key is pressed
             if not isInAnimation and Citizen.InvokeNative(0x91AEF906BCA88877, 0, Config.Prompt.CompanionCall) then
