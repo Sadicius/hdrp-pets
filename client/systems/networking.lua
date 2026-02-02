@@ -193,7 +193,7 @@ CreateThread(function()
         
         local playerCoords = GetEntityCoords(cache.ped)
         
-        lib.callback('hdrp-pets:server:getNearbyPets', function(nearbyPets)
+        lib.callback('hdrp-pets:server:getNearbyPets', playerCoords, function(nearbyPets)
             if nearbyPets and #nearbyPets > 0 then
                 for _, petInfo in ipairs(nearbyPets) do
                     -- Check if we already have this pet spawned

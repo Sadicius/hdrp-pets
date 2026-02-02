@@ -332,7 +332,7 @@ CreateThread(function()
         -- Check if player is in a valid state to call pet
         -- Skip if: in jail, dead, in animation, dead ped, or in UI
         local playerData = RSGCore.Functions.GetPlayerData()
-        if playerData and playerData.metadata["injail"] == 0 and not IsEntityDead(cache.ped) then
+        if playerData and playerData.metadata and playerData.metadata["injail"] == 0 and not IsEntityDead(cache.ped) then
             -- Additional safety checks to prevent accidental triggers
             local isInAnimation = IsEntityPlayingAnim(cache.ped, GetAnimDict(cache.ped), GetAnimName(cache.ped), 3) or IsPedRagdoll(cache.ped)
             local isCanceling = GetLastInputMethod(2) -- Check if using UI
@@ -345,7 +345,7 @@ CreateThread(function()
         end
         
         -- If in jail or dead, longer wait
-        if not playerData or playerData.metadata["injail"] ~= 0 or IsEntityDead(cache.ped) then
+        if not playerData or not playerData.metadata or playerData.metadata["injail"] ~= 0 or IsEntityDead(cache.ped) then
             Wait(1000)
         end
     end

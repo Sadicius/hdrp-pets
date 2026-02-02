@@ -57,7 +57,6 @@ local function showDecayWarning(petData, petRecord)
             duration = 5000
         }, { cooldown = 30000 })
     end
-    end
 end
 
 local function checkPetCondition(petData, petRecord)
