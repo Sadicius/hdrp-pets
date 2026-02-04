@@ -6,28 +6,32 @@ local State = exports['hdrp-pets']:GetState()
 -- Companion Flee/Store
 -------------------------------------
 ---Dismiss/remove single pet from game (legacy/robust mode)
----@param entity number|nil Optional specific pet ped to dismiss, defaults to first pet
+---@param petPed number|nil Optional specific pet ped to dismiss, defaults to first pet
 ---@return boolean success True if pet was dismissed successfully
-function Flee(entity)
-    if not entity or not DoesEntityExist(entity) then
+function Flee(petPed)
+    if not petPed or not DoesEntityExist(petPed) then
         return false
     end
 
-    local _, companionid = State.GetPetByEntity(entity)
+    -- Obtener companionid a partir del ped
+    local petData, companionid = State.GetPetByEntity(petPed)
     if companionid then
+        -- Limpieza completa usando State.DismissPet
         State.DismissPet(companionid)
         return true
     else
-        SetEntityAsMissionEntity(entity, true, true)
-        DeletePed(entity)
-        SetEntityAsNoLongerNeeded(entity)
+        -- Fallback: solo limpiar la entidad si no se encuentra companionid
+        SetEntityAsMissionEntity(petPed, true, true)
+        DeletePed(petPed)
+        SetEntityAsNoLongerNeeded(petPed)
         return true
     end
 end
 
-local function SelectActivePet()
+RegisterCommand('pet_store', function()
     local activePets = State.GetAllPets()
-    local petOptions, petDataMap = {}, {}
+    local petOptions = {}
+    local petDataMap = {}
 
     for companionid, petData in pairs(activePets) do
         if petData and petData.spawned and DoesEntityExist(petData.ped) then
@@ -39,7 +43,7 @@ local function SelectActivePet()
 
     if #petOptions == 0 then
         lib.notify({ title = locale('cl_error_pet_no_active'), type = 'error', duration = 5000 })
-        return nil, nil
+        return
     end
 
     local selectedId
@@ -52,37 +56,86 @@ local function SelectActivePet()
                 label = locale('cl_select_pet_to_store'),
                 options = petOptions,
                 required = true,
+                -- icon = 'fa-solid fa-paw',
                 default = petOptions[1].label
             }
         })
-        if not dialog or not dialog[1] then return nil, nil end
+        if not dialog or not dialog[1] then return end
         selectedId = dialog[1]
     end
 
-    return selectedId, petDataMap[selectedId]
-end
-
-local function StoreOrFleePet(action)
-    local selectedId, petData = SelectActivePet()
-    if not selectedId or not petData then return end
-
-    if action == "store" then
-        TriggerServerEvent('hdrp-pets:server:store', selectedId)
-        lib.notify({
-            title = locale('cl_success_pet_storing'),
-            description = locale('cl_success_store_all'):format(1),
-            type = 'success',
-            duration = 5000
-        })
+    local petData = petDataMap[selectedId]
+    if not petData then
+        return
     end
 
-    Flee(petData.ped)
-end
+    -- Desactivar en base de datos
+    TriggerServerEvent('hdrp-pets:server:store', selectedId)
 
-RegisterCommand('pet_store', function()
-    StoreOrFleePet("store")
+    -- Eliminar del cliente si está invocada
+    Flee(petData.ped)
+
+    lib.notify({
+        title = locale('cl_success_pet_storing'),
+        description = locale('cl_success_store_all'):format(1),
+        type = 'success',
+        duration = 5000
+    })
 end, false)
 
+-- Helper function: Flee active pets
+local function FleePets()
+    local activePets = State.GetAllPets()
+    local petOptions = {}
+    local petDataMap = {}
+
+    for companionid, petData in pairs(activePets) do
+        if petData and petData.spawned and DoesEntityExist(petData.ped) then
+            local name = (petData.data and petData.data.info and petData.data.info.name) or (locale('cl_pet_default') .. ' ' .. companionid)
+            table.insert(petOptions, { value = companionid, label = name })
+            petDataMap[companionid] = petData
+        end
+    end
+
+    if #petOptions == 0 then
+        lib.notify({ title = locale('cl_error_pet_no_active'), type = 'error', duration = 5000 })
+        return
+    end
+
+    local selectedId
+    if #petOptions == 1 then
+        selectedId = petOptions[1].value
+    else
+        local dialog = lib.inputDialog(locale('cl_input_store_pet'), {
+            {
+                type = 'select',
+                label = locale('cl_select_pet_to_store'),
+                options = petOptions,
+                required = true,
+                -- icon = 'fa-solid fa-paw',
+                default = petOptions[1].label
+            }
+        })
+        if not dialog or not dialog[1] then return end
+        selectedId = dialog[1]
+    end
+
+    if not petDataMap[selectedId] then
+        return
+    end
+    
+    -- Eliminar del cliente si está invocada
+    Flee(petDataMap[selectedId].ped)
+
+    lib.notify({
+        title = locale('cl_success_pet_storing'),
+        description = locale('cl_success_store_all'):format(1),
+        type = 'success',
+        duration = 5000
+    })
+end
+
 RegisterCommand('pet_flee', function()
-    StoreOrFleePet("flee")
+    FleePets()
+    Wait(1000)
 end, false)

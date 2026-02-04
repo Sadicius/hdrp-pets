@@ -8,13 +8,16 @@ local ManageSpawn = lib.load('client.stable.utils_spawn')
 -----------------------------------------
 
 -- player feed companion
+---
 RegisterNetEvent('hdrp-pets:client:feed')
 AddEventHandler('hdrp-pets:client:feed', function(itemName, companionid)
     local petData, distance
     if companionid then
         petData = State.GetPet(companionid)
         if petData and petData.ped and DoesEntityExist(petData.ped) then
-            distance = State.GetDistanceBetweenEntities(cache.ped, petData.ped)
+            local playerCoords = GetEntityCoords(cache.ped)
+            local petCoords = GetEntityCoords(petData.ped)
+            distance = #(playerCoords - petCoords)
         else
             petData, distance, companionid = State.GetClosestPet()
         end
@@ -74,7 +77,14 @@ AddEventHandler('hdrp-pets:client:feed', function(itemName, companionid)
                 lib.notify({ title = locale('cl_error_not_med_need_to_be_closer'), type = 'error', duration = 7000 })
                 return
             end
-            local objectPos = State.GetPositionInFrontOfEntity(cache.ped, 1.0)
+            local heading = GetEntityHeading(cache.ped)
+            local distanceInFront = -1.00
+            local radians = math.rad(heading)
+            local offsetX = -distanceInFront * math.sin(radians)
+            local offsetY = distanceInFront * math.cos(radians)
+            local objectX = pcoords.x - offsetX
+            local objectY = pcoords.y - offsetY
+            local objectZ = pcoords.z - 1.0
             TaskTurnPedToFaceEntity(cache.ped, petData.ped, 5000)
             ManageSpawn.crouchInspectAnim()
             Wait(3000)
@@ -82,9 +92,9 @@ AddEventHandler('hdrp-pets:client:feed', function(itemName, companionid)
             if itemName == 'raw_meat' or itemName == 'water' then
                 cookitem = nil
             elseif Config.PetFeed[itemName]["ModelHash"] then
-                cookitem = CreateObject(Config.PetFeed[itemName]["ModelHash"], objectPos.x, objectPos.y, objectPos.z, true, true, true)
+                cookitem = CreateObject(Config.PetFeed[itemName]["ModelHash"], objectX, objectY, objectZ, true, true, true)
             else
-                cookitem = CreateObject(`s_dogbowl01x`, objectPos.x, objectPos.y, objectPos.z, true, true, true)
+                cookitem = CreateObject(`s_dogbowl01x`, objectX, objectY, objectZ, true, true, true)
             end
             -- Asociar el objeto de comida a la mascota específica
             if cookitem then
@@ -98,16 +108,25 @@ AddEventHandler('hdrp-pets:client:feed', function(itemName, companionid)
             local maxWaitTime = 10000
             local startTime = GetGameTimer()
             if itemName == 'raw_meat' or itemName == 'water' then
-                ManageSpawn.moveCompanionToPlayer(petData.ped, cache.ped)
+                local player_coords = GetEntityCoords(cache.ped)
+                local dist = #(hcoords - player_coords)
+                TaskGoToCoordAnyMeans(petData.ped, player_coords.x, player_coords.y, player_coords.z, 1.0, 0, false, 786603, 0xbf800000)
+                while dist > 1.0 do
+                    Citizen.Wait(100)
+                    hcoords = GetEntityCoords(petData.ped)
+                    dist = #(hcoords - player_coords)
+                    if GetGameTimer() - startTime > maxWaitTime then break end
+                end
                 TaskTurnPedToFaceEntity(petData.ped, cache.ped, 2000)
                 Wait(500)
             else
                 local p_coords = GetEntityCoords(cookitem)
-                local dist = State.GetDistanceBetweenEntities(petData.ped, cookitem) 
+                local dist = #(hcoords - p_coords)
                 TaskGoToCoordAnyMeans(petData.ped, p_coords.x, p_coords.y, p_coords.z, 1.0, 0, false, 786603, 0xbf800000)
-                while dist > 1.00 do
-                    Wait(100)
-                    dist = State.GetDistanceBetweenEntities(petData.ped, cookitem)
+                while dist > 1.2 do
+                    Citizen.Wait(100)
+                    hcoords = GetEntityCoords(petData.ped)
+                    dist = #(hcoords - p_coords)
                     if GetGameTimer() - startTime > maxWaitTime then break end
                 end
                 TaskTurnPedToFaceEntity(petData.ped, cookitem, 2000)
@@ -185,7 +204,7 @@ AddEventHandler('hdrp-pets:client:brush', function(itemName)
 
     local pcoords = GetEntityCoords(cache.ped)
     local hcoords = GetEntityCoords(petData.ped)
-    if distance > 2.5 then
+    if distance > 2.0 then
         lib.notify({ title = locale('cl_error_brush_need_to_be_closer'), type = 'error', duration = 7000 })
         return
     end
@@ -220,7 +239,7 @@ AddEventHandler('hdrp-pets:client:brush', function(itemName)
     State.ResetPlayerState()
     SetCurrentPedWeapon(cache.ped, `WEAPON_UNARMED`, false)
     local companiondirt = Citizen.InvokeNative(0x147149F2E909323C, petData.ped, 16, Citizen.ResultAsInteger())
-    local dirt = (companiondirt - Config.PetFeed[itemName]["dirt"]) or 0
+    local dirt = (companiondirt - Config.Consumables.Brushdirt) or 0
     Citizen.InvokeNative(0xC6258F41D86676E0, petData.ped, 16, dirt)
     TriggerServerEvent('hdrp-pets:server:useitem', itemName, companionid)
 end)

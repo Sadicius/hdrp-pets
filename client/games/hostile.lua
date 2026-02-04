@@ -113,6 +113,7 @@ RegisterNetEvent('hdrp-pets:client:startHostileEncounter', function()
         local blip = Citizen.InvokeNative(0x23F74C2FDA6E7C61, -1749618580, hostilePed)
         SetBlipSprite(blip, -1379369448)
         SetBlipScale(blip, 0.2)
+        State.AddHostile(hostilePed, blip)
         Wait(100)
     end
 
@@ -190,4 +191,5 @@ end, false)
 -- STOP RESOURCE
 AddEventHandler('onResourceStop', function(resource)
     if GetCurrentResourceName() ~= resource then return end
+    State.CleanupAllHostiles()
 end) ]]

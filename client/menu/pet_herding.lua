@@ -68,137 +68,6 @@ function ClearPetSelection()
 end
 
 ---------------------------------
--- START SELECTED HERDING FUNCTION
----------------------------------
----Inicia el herding para las mascotas seleccionadas
-function StartSelectedHerding()
-    local selectedCount = 0
-    for companionid, petData in pairs(herdingStates.selectedPets) do
-        selectedCount = selectedCount + 1
-        -- Detener wandering si está activo
-        if StopPetWandering then 
-            StopPetWandering(companionid) 
-        end
-        -- Activar herding para esta mascota
-        if SetupPetHerding and petData.ped and DoesEntityExist(petData.ped) then
-            SetupPetHerding(companionid, petData.ped, {formation = herdingStates.preferredFormation})
-        end
-        -- Actualizar flag en State
-        if State.SetPetTrait then
-            State.SetPetTrait(companionid, 'isHerding', true)
-            State.SetPetTrait(companionid, 'isWandering', false)
-        end
-    end
-    
-    if selectedCount > 0 then
-        herdingStates.active = true
-        -- Iniciar el hilo de herding
-        if StartHerdingThread then
-            StartHerdingThread()
-        end
-        lib.notify({
-            title = locale('cl_herding_start_title'), 
-            description = string.format(locale('cl_herding_started_desc'), selectedCount, herdingStates.preferredFormation or 'Default'),
-            type = 'success',
-            duration = 5000
-        })
-        -- Limpiar selección después de iniciar
-        herdingStates.selectedPets = {}
-    else
-        lib.notify({
-            title = locale('cl_error'), 
-            description = locale('cl_herding_no_pets_selected'),
-            type = 'error',
-            duration = 5000
-        })
-    end
-end
-
----------------------------------
--- START/STOP HERDING SYSTEM
----------------------------------
----Inicia el sistema de herding con todas las mascotas cercanas
-function StartHerdingSystem()
-    local nearbyPets = GetNearbyCompanions()
-    
-    if #nearbyPets == 0 then
-        lib.notify({ 
-            title = locale('cl_herding_no_pets'), 
-            description = locale('cl_herding_no_pets_near'),
-            type = 'error',
-            duration = 5000 
-        })
-        return
-    end
-    
-    local startedCount = 0
-    for _, petData in ipairs(nearbyPets) do
-        -- Detener wandering si está activo
-        if StopPetWandering then 
-            StopPetWandering(petData.companionid) 
-        end
-        -- Activar herding
-        if SetupPetHerding and petData.ped and DoesEntityExist(petData.ped) then
-            SetupPetHerding(petData.companionid, petData.ped, {formation = herdingStates.preferredFormation})
-            startedCount = startedCount + 1
-        end
-        -- Actualizar flags
-        if State.SetPetTrait then
-            State.SetPetTrait(petData.companionid, 'isHerding', true)
-            State.SetPetTrait(petData.companionid, 'isWandering', false)
-        end
-    end
-    
-    if startedCount > 0 then
-        herdingStates.active = true
-        -- Iniciar el hilo de herding
-        if StartHerdingThread then
-            StartHerdingThread()
-        end
-        lib.notify({
-            title = locale('cl_herding_start_title'), 
-            description = string.format(locale('cl_herding_started_desc'), startedCount, herdingStates.preferredFormation or 'Default'),
-            type = 'success',
-            duration = 5000
-        })
-    end
-end
-
----Detiene el sistema de herding
-function StopHerding()
-    local allPets = State.GetAllPets and State.GetAllPets() or {}
-    local stoppedCount = 0
-    
-    for companionid, petData in pairs(allPets) do
-        if petData and petData.spawned and DoesEntityExist(petData.ped) then
-            -- Detener herding
-            if StopPetHerding then 
-                StopPetHerding(companionid) 
-            end
-            stoppedCount = stoppedCount + 1
-            -- Reactivar wandering
-            if State.SetPetTrait then
-                State.SetPetTrait(companionid, 'isHerding', false)
-                State.SetPetTrait(companionid, 'isWandering', true)
-            end
-            if SetupPetWandering and petData.ped then 
-                SetupPetWandering(companionid, petData.ped, GetEntityCoords(petData.ped)) 
-            end
-        end
-    end
-    
-    herdingStates.active = false
-    herdingStates.selectedPets = {}
-    
-    lib.notify({
-        title = locale('cl_herding_stopped'), 
-        description = string.format(locale('cl_herding_stopped_desc'), stoppedCount),
-        type = 'warning',
-        duration = 5000
-    })
-end
-
----------------------------------
 -- INDIVIDUAL SELECTION MENU
 ---------------------------------
 function OpenIndividualSelectionMenu()
@@ -405,10 +274,32 @@ function OpenHerdingMainMenu()
             description = locale('cl_herding_stop_title_desc'),
             icon = 'fa-solid fa-power-off',
             onSelect = function()
-                StopHerding()
+                -- Detener herding en todas las mascotas activas
+                local allPets = State.GetAllPets and State.GetAllPets() or {}
+                for companionid, petData in pairs(allPets) do
+                    if petData and petData.flag and petData.flag.isHerding then
+                        if StopPetHerding then StopPetHerding(companionid) end
+                        if State.SetPetTrait then State.SetPetTrait(companionid, 'isWandering', true) end
+                        if SetupPetWandering and petData.ped then SetupPetWandering(companionid, petData.ped, GetEntityCoords(petData.ped)) end
+                    end
+                end
+                if StopHerding then StopHerding() end
+                lib.notify({title = locale('cl_herding_stop_off'), description = locale('cl_herding_stop_off_desc'):format(#herdingStates.pets), type = 'warning'})
                 OpenHerdingMainMenu()
             end
         })
+
+        -- Herding por distancia
+        if Config.Herding.DistanceSelection then
+            table.insert(options, {
+                title = locale('cl_herding_distance_title'),
+                icon = 'fa-solid fa-ruler',
+                description = string.format(locale('cl_herding_distance_desc'), Config.Herding.Distance),
+                onSelect = function()
+                    TriggerEvent('hdrp-pets:client:StartDistanceHerding')
+                end
+            })
+        end
 
         -- Toggle modo automático/preferido
         if herdingStates.preferredFormation then
@@ -433,42 +324,12 @@ function OpenHerdingMainMenu()
                 OpenFormationSelectionMenu()
             end
         })
-        
-    else
-        -- Herding inactivo - mostrar opciones de inicio
-        table.insert(options, {
-            title = locale('cl_herding_start'),
-            description = locale('cl_herding_start_desc'),
-            icon = 'fa-solid fa-play',
-            onSelect = function()
-                StartHerdingSystem()
-                OpenHerdingMainMenu()
-            end
-        })
-
-        -- Herding por distancia
-        if Config.Herding.DistanceSelection then
-            table.insert(options, {
-                title = locale('cl_herding_distance_title'),
-                icon = 'fa-solid fa-ruler',
-                description = string.format(locale('cl_herding_distance_desc'), Config.Herding.Distance),
-                onSelect = function()
-                    StartHerdingSystem()
-                    OpenHerdingMainMenu()
-                end
-            })
-        end
 
         -- Selección individual
         if Config.Herding.IndividualSelection then
-            local selectedCount = 0
-            for _ in pairs(herdingStates.selectedPets) do
-                selectedCount = selectedCount + 1
-            end
-            
             table.insert(options, {
                 title = locale('cl_herding_individual_title'),
-                description = string.format(locale('cl_herding_individual_desc'), selectedCount),
+                description = locale('cl_herding_individual_desc'),
                 icon = 'fa-solid fa-paw',
                 arrow = true,
                 onSelect = function()
@@ -476,6 +337,24 @@ function OpenHerdingMainMenu()
                 end
             })
         end
+        
+    else
+        table.insert(options, {
+            title = locale('cl_herding_start'),
+            description = locale('cl_herding_start_desc'),
+            icon = 'fa-solid fa-play',
+            onSelect = function()
+                -- Iniciar herding en las mascotas seleccionadas
+                for companionid, petData in pairs(herdingStates.selectedPets or {}) do
+                    if StopPetWandering then StopPetWandering(companionid) end
+                    if State.SetPetTrait then State.SetPetTrait(companionid, 'isHerding', false) end
+                    if SetupPetHerding and petData.ped then SetupPetHerding(companionid, petData.ped, {}) end
+                end
+                if StartHerdingSystem then StartHerdingSystem() end
+                lib.notify({title = locale('cl_herding_start_title'), description = locale('cl_herding_start_title_desc'), type = 'success'})
+                OpenHerdingMainMenu()
+            end
+        })
     end
 
     lib.registerContext({

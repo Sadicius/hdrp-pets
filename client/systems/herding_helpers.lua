@@ -6,7 +6,6 @@ local RSGCore = exports['rsg-core']:GetCoreObject()
 lib.locale()
 
 local State = exports['hdrp-pets']:GetState()
-local herdingStates = exports['hdrp-pets']:GetHerdingStates()
 
 ---Genera un número aleatorio en rango (incluye ambos extremos)
 ---@param min number
@@ -341,11 +340,9 @@ local function GenerateDynamicFormation(petCount, petsArray)
     -- Usar formación preferida si es válida
     if herdingStates and herdingStates.preferredFormation then
         local preferred = herdingStates.preferredFormation
-        if preferred and patternNames and patternNames[preferred] then
-            local preferredPattern = patternNames[preferred]
-            if preferredPattern and validNames[preferred] then
-                return preferredPattern(petCount)
-            end
+        local preferredPattern = patternNames[preferred]
+        if preferredPattern and validNames[preferred] then
+            return preferredPattern(petCount)
         end
     end
     -- Si no hay válidas, fallback a línea

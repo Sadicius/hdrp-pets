@@ -1,6 +1,5 @@
 # 🐾 HDRP-PETS
 - Advanced and modular pet/companion system for RedM, built on `rsg-core` and `ox_lib`. Supports multi-pet, progression, games, care, inventory, herding, and full localization (es/en).
-- Version 6.8.6
 
 ## Features
 - 🐕 **Multi-Pet**: Manage up to 10 active pets simultaneously

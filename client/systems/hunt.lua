@@ -25,7 +25,8 @@ local function ReturnKillToPlayer(petId, fetchedKill, player)
     
     while true do
         coords = GetEntityCoords(player)
-        local dist = State.GetDistanceBetweenEntities(petPed, player)
+        local coords2 = GetEntityCoords(petPed)
+        local dist = #(coords - coords2)
         local sleep = dist > 15.0 and 3000 or (dist > 5.0 and 1500 or 500)
         Wait(sleep)
         TaskGoToCoordAnyMeans(petPed, coords.x, coords.y, coords.z, 1.5, 0, 0, 786603, 0xbf800000)
@@ -61,6 +62,7 @@ end
 local function RetrieveKill(petId, ClosestPed)
     local petData = State.GetPet(petId)
     if not petData or not petData.spawned or not DoesEntityExist(petData.ped) or IsEntityDead(petData.ped) then 
+        lib.notify({ title = locale('cl_error_no_pet'), type = 'error', duration = 7000 }) 
         return 
     end
     
@@ -78,17 +80,19 @@ local function RetrieveKill(petId, ClosestPed)
 
     -- end)
             
-    if State.GetDistanceBetweenEntities(fetchedObj[petId], petPed) > (Config.PetAttributes.SearchRadius or 100) then 
+    if #(coords - GetEntityCoords(petPed)) > Config.PetAttributes.SearchRadius then 
         lib.notify({ title = locale('cl_error_retrieve_distance'), type = 'error', duration = 7000 }) 
         return 
     end
     
     TaskGoToCoordAnyMeans(petPed, coords.x, coords.y, coords.z, 2.0, 0, 0, 786603, 0xbf800000)
+
     isRetrieving = true
     
     while true do
+        local petCoords = GetEntityCoords(petPed)
         coords = GetEntityCoords(fetchedObj[petId])
-        local dist = State.GetDistanceBetweenEntities(petPed, fetchedObj[petId])
+        local dist = #(coords - petCoords)
         local sleep = dist > 10.0 and 2000 or 1000
         Wait(sleep)
         
@@ -126,7 +130,8 @@ local function GetClosestAnimalPed(playerPed, radius)
 				local pedType = GetPedType(ped)
 				local model = GetEntityModel(ped)
 				if pedType == 28 and IsEntityDead(ped) and not RetrievedEntities[ped] and Config.RetrievableAnimals[model] then
-					local distance = State.GetDistanceBetweenEntities(playerPed, ped)
+					local pedCoords = GetEntityCoords(ped)
+					local distance = #(playerCoords - pedCoords)
 					if distance < minDist then
 						closestPed = ped
 						minDist = distance
@@ -167,7 +172,8 @@ local function GetClosestFightingPed(playerPed, radius)
 			if playerPed ~= ped and not isPet then
 				local pedType = GetPedType(ped)
 				local model = GetEntityModel(ped)
-				local distance = State.GetDistanceBetweenEntities(playerPed, ped)
+				local pedCoords = GetEntityCoords(ped)
+				local distance = #(playerCoords - pedCoords)
 				if IsPedInCombat(playerPed, ped) then
 					closestPed = ped
 					minDist = distance
@@ -193,7 +199,12 @@ CreateThread(function()
             Wait(10000)
             goto continue
         end
-
+        -- Debug: mostrar flags de todas las mascotas
+        for _, petInfo in ipairs(activePets) do
+            local petId = petInfo.id
+            local petPed = petInfo.ped
+            local petData = State.GetPet(petId)
+        end
         -- Check hunt mode for each pet
         for _, petInfo in ipairs(activePets) do
             local petId = petInfo.id
@@ -202,20 +213,19 @@ CreateThread(function()
             if not petPed or not DoesEntityExist(petPed) then
                 goto next_pet
             end
-            local isHunting = State.GetFlag(petData, "isHunting")
             -- Solo actuar si el modo principal es hunting y no está retrieving
-            if not isRetrieving and isHunting then
+            if not isRetrieving and (petData and petData.flag and petData.flag.isHunting) then
                 local petXp = tonumber(petData and petData.progression and petData.progression.xp) or 0
                 if Config.PetAttributes.RaiseAnimal and petXp < Config.XP.Trick.Hunt then
                     goto next_pet
                 end
-                local ClosestPed = GetClosestAnimalPed(petPed, Config.PetAttributes.SearchRadius)
+                local ClosestPed = GetClosestAnimalPed(cache.ped, Config.PetAttributes.SearchRadius)
                 local pedType = ClosestPed and GetPedType(ClosestPed) or nil
                 local alreadyRetrieved = RetrievedEntities[petId] and RetrievedEntities[petId][ClosestPed]
                 local claimedByAnother = ClaimedAnimals[ClosestPed] and ClaimedAnimals[ClosestPed] ~= petId
                 if pedType == 28 and IsEntityDead(ClosestPed) and not alreadyRetrieved and not claimedByAnother then
                     local whoKilledPed = GetPedSourceOfDeath(ClosestPed)
-                    if petPed == whoKilledPed then
+                    if cache.ped == whoKilledPed then
                         local model = GetEntityModel(ClosestPed)
                         for k, v in pairs(Config.RetrievableAnimals) do
                             if model == k then
@@ -253,12 +263,12 @@ CreateThread(function()
                 petData.timers = petData.timers or {}
                 petData.timers.recentlyCombatTime = petData.timers.recentlyCombatTime or 0
                 if petData.timers.recentlyCombatTime <= 0 then
-                    local enemyPed = GetClosestFightingPed(petPed, 10.0)
-                    local playerCoords = GetEntityCoords(petPed)
+                    local enemyPed = GetClosestFightingPed(cache.ped, 10.0)
+                    local playerCoords = GetEntityCoords(cache.ped)
                     if enemyPed then
                         ClearPedTasks(petPed)
                         local targetCoords = GetEntityCoords(enemyPed)
-                        local distance = State.GetDistanceBetweenEntities(petPed, enemyPed)
+                        local distance = #(playerCoords - targetCoords)
                         if distance <= 10.0 then
                             lib.notify({ title = locale('cl_defensive_attack'), type = 'info', duration = 7000 })
                             AttackTarget(enemyPed)
@@ -296,7 +306,7 @@ RegisterCommand('pet_hunt', function()
 
         for companionid, petData in pairs(spawnedPets) do
             local xp = (petData.progression and petData.progression.xp) or 0
-            local isHunting = State.GetFlag(petData, "isHunting") or false
+            local isHunting = (petData and petData.flag and petData.flag.isHunting) or false
             if xp < Config.XP.Trick.Hunt then
                 lib.notify({ title = locale('cl_error_xp_needed'):format(Config.XP.Trick.Hunt), type = 'error' })
                 return

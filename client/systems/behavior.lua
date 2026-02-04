@@ -19,11 +19,6 @@ function CleanUpRelationshipGroup()
     end
 end
 
-local function IsPedAnimal(entity)
-    local pedType = GetPedType(entity)    -- Use GetPedType() to identify animal-like entities
-    return pedType >= 28 and pedType <= 31    -- Animal types are typically different from human types
-end
-
 ---Command a pet to attack a target
 ---@param data table|number Target entity or data table {entity = target, petId = optional}
 function AttackTarget(data)
@@ -39,7 +34,7 @@ function AttackTarget(data)
         return
     end
     
-    if not target or not DoesEntityExist(target) or (not IsPedHuman(target) and not IsPedAnimal(target)) or IsPedAPlayer(target) then
+    if not target or not DoesEntityExist(target) or (not IsPedHuman(target) and not State.IsPedAnimal(target)) or IsPedAPlayer(target) then
         lib.notify({ title = locale('cl_error_attack_inv_target'), description = locale('cl_error_attack_inv_target_des'), type = 'error' })
         return
     end
@@ -75,7 +70,7 @@ exports('AttackTarget', function(data) AttackTarget(data) end)
 function AttackTargetAllPets(data)
     local target = type(data) == "table" and data.entity or data
     
-    if not target or not DoesEntityExist(target) or (not IsPedHuman(target) and not IsPedAnimal(target)) or IsPedAPlayer(target) then
+    if not target or not DoesEntityExist(target) or (not IsPedHuman(target) and not State.IsPedAnimal(target)) or IsPedAPlayer(target) then
         lib.notify({ title = locale('cl_error_attack_inv_target'), description = locale('cl_error_attack_inv_target_des'), type = 'error' })
         return
     end
@@ -137,7 +132,7 @@ function TrackTarget(data)
         return 
     end
     
-    if not target or not DoesEntityExist(target) or (not IsPedHuman(target) and not IsPedAnimal(target)) or IsPedAPlayer(target) then
+    if not target or not DoesEntityExist(target) or (not IsPedHuman(target) and not State.IsPedAnimal(target)) or IsPedAPlayer(target) then
         lib.notify({title = locale('cl_error_track_inv_target'), type = 'error'})
         return
     end
@@ -163,8 +158,9 @@ function TrackTarget(data)
         local timeout = 0
         local success, err = pcall(function()
             while true do
+                local companionCoords = GetEntityCoords(petPed)
                 local targetCoords = GetEntityCoords(target)
-                local distance = State.GetDistanceBetweenEntities(petPed, target)
+                local distance = #(companionCoords - targetCoords)
                 local sleep = distance > 15.0 and 1000 or (distance > 5.0 and 500 or 150)
 
                 -- Prevent freezing by yielding each loop
@@ -260,7 +256,7 @@ function HuntAnimals(data)
             if not DoesEntityExist(target) then break end
             Wait(100)
             
-            local distance = State.GetDistanceBetweenEntities(petPed, target)
+            local distance = #(GetEntityCoords(petPed) - GetEntityCoords(target))
             if distance <= 3.0 then
                 TaskCombatPed(petPed, target, 0, 16)
             end

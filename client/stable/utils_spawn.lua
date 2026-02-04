@@ -32,13 +32,23 @@ function ManageSpawn.moveCompanionToPlayer(entity, playerPed)
     if not playerPed or not DoesEntityExist(playerPed) then
         playerPed = cache.ped
     end
-
-    State.petUnfreeze(entity)
-
-    TaskGoToEntity(entity, playerPed, -1, 2.0, 2.0, 1073741824, 0)
-
-    local _, petId = State.GetPetByEntity(entity)
+    
+    -- Unfreeze pet if it was frozen using State
+    local petData, petId = State.GetPetByEntity(entity)
     if petId then
+        State.petUnfreeze(entity)
+    end
+    
+    -- Limpiar tareas anteriores
+    FreezeEntityPosition(entity, false)
+    ClearPedTasksImmediately(entity)
+    
+    -- Ir hacia el jugador
+    TaskGoToEntity(entity, playerPed, -1, 2.0, 2.0, 1073741824, 0)
+    
+    -- Actualizar State por entity y enviar XP
+    local petData, petId = State.GetPetByEntity(entity)
+    if petData and petId then
         State.SetPetTrait(petId, 'isCall', true)
         TriggerServerEvent('hdrp-pets:server:useitem', 'no-item', petId)
     end
@@ -251,13 +261,8 @@ function ManageSpawn.CalculateScaleFromAge(age)
 end
 
 -- PET STATS UPDATE FUNCTION
-function ManageSpawn.UpdatePetStats(entity, xp, dirt, health)
+function ManageSpawn.UpdatePetStats(entity, xp, dirt)
     if not entity or not DoesEntityExist(entity) then return end
-    
-    -- INITIALIZE HEALTH (CRITICAL FIX FOR DEATH BUG)
-    health = health or Config.PetAttributes.Starting.Health or 300
-    SetEntityHealth(entity, math.floor(health))
-    Citizen.InvokeNative(0x166E7CF68597D8B5, entity, math.floor(health))
     
     -- 13. APLICAR NO MIEDO
     if Config.PetAttributes.NoFear then
@@ -285,7 +290,7 @@ function ManageSpawn.UpdatePetStats(entity, xp, dirt, health)
     -- Set dirt level
     Citizen.InvokeNative(0x5DA12E025D47D4E5, entity, 16, dirt) -- set dirt
     
-    -- Calculate hValue based on XP (same logic as hdrp-companion and SpawnAnimal)
+    -- Calculate hValue based on XP (same logic as hdrp-companion and SpawnPetBase)
     local hValue = 0
     for i, level in ipairs(Config.PetAttributes.levelAttributes) do
         if xp >= level.xpMin and xp <= level.xpMax then

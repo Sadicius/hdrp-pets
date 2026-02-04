@@ -34,7 +34,6 @@ RegisterNetEvent("hdrp-pets:client:buryBone", function()
             if numberGenerator <= tonumber(gameBuriedConfig.lostBone) then
                 TriggerServerEvent("hdrp-pets:server:removeitem", Config.Items.Bone)
                 buriedBoneCoords = nil
-                -- Use NotificationManager to prevent spam
                 lib.notify({ title = locale('cl_lost_bone'), type = 'error' })
             end
 

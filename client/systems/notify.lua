@@ -7,6 +7,8 @@ lib.locale()
 ----------------------------------
 -- Variables Locales
 local State = exports['hdrp-pets']:GetState()
+local lastDecayNotification = 0
+local decayNotificationCooldown = 30000 -- 30 segundos
 
 -- Monitoring del estado de mascotas
 local function showDecayWarning(petData, petRecord)
@@ -49,13 +51,12 @@ local function showDecayWarning(petData, petRecord)
     end
 
     if next(warnings) then
-        -- Use NotificationManager with 30 second cooldown
-        NotificationManager.Notify({
+        lib.notify({
             type = 'warning',
             title = petData.info.name or locale('cl_pet_your'),
             description = table.concat(warnings, ', '),
             duration = 5000
-        }, { cooldown = 30000 })
+        })
     end
 end
 
@@ -126,14 +127,14 @@ RegisterNetEvent('hdrp-pets:client:levelUp', function(data)
     local companionid = data.companionid
     
     -- Show notification
-    NotificationManager.Notify({
+    lib.notify({
         title = locale('cl_level_up_title'),
         description = locale('cl_level_up_desc'):format(petName, newLevel),
         type = 'success',
         duration = 8000,
         -- icon = 'fa-solid fa-star',
         iconAnimation = 'bounce'
-    }, 10) -- 10s cooldown to prevent level-up spam
+    })
     
     -- Play sound
     if cfg.PlaySound then
@@ -167,8 +168,8 @@ RegisterCommand('pet_xp', function()
     local playerData = RSGCore.Functions.GetPlayerData()
     if not playerData or not playerData.group or playerData.group ~= 'admin' then
         lib.notify({
-            title = locale('cl_error_access_denied') or 'Acceso denegado',
-            description = locale('cl_error_admin_only') or 'Este comando solo puede ser ejecutado por administradores.',
+            title = 'Acceso denegado',
+            description = 'Este comando solo puede ser ejecutado por administradores.',
             type = 'error'
         })
         return
@@ -176,39 +177,39 @@ RegisterCommand('pet_xp', function()
     -- Construir opciones para el select de mascotas activas
     local petOptions = {}
     for companionid, petData in pairs(State.GetAllPets()) do
-        local name = petData.data and petData.data.info and petData.data.info.name or (locale('cl_pet_id') or 'ID: ')..tostring(companionid)
+        local name = petData.data and petData.data.info and petData.data.info.name or ('ID: '..tostring(companionid))
         table.insert(petOptions, { label = name..' ['..tostring(companionid)..']', value = companionid })
     end
     lib.inputDialog({
-        title = locale('cl_manage_pet_xp_title') or 'Gestionar XP de Mascota',
-        description = locale('cl_manage_pet_xp_desc') or 'Selecciona o escribe el Companion ID para modificar la experiencia',
+        title = 'Gestionar XP de Mascota',
+        description = 'Selecciona o escribe el Companion ID para modificar la experiencia',
         inputs = {
             {
                 type = 'input',
-                label = locale('cl_input_companionid_manual') or 'Companion ID (manual)',
+                label = 'Companion ID (manual)',
                 name = 'companionid_input',
                 required = false
             },
             {
                 type = 'select',
-                label = locale('cl_input_select_pet') or 'Seleccionar Mascota',
+                label = 'Seleccionar Mascota',
                 name = 'companionid_select',
                 options = petOptions,
                 required = false
             },
             {
                 type = 'select',
-                label = locale('cl_input_action') or 'Acción',
+                label = 'Acción',
                 name = 'accion',
                 options = {
-                    {label = locale('cl_action_givexp') or 'Dar XP', value = 'givexp'},
-                    {label = locale('cl_action_removexp') or 'Quitar XP', value = 'removexp'}
+                    {label = 'Dar XP', value = 'givexp'},
+                    {label = 'Quitar XP', value = 'removexp'}
                 },
                 required = true
             },
             {
                 type = 'input',
-                label = locale('cl_input_xp_amount') or 'Cantidad de XP',
+                label = 'Cantidad de XP',
                 name = 'amount',
                 required = true
             }
@@ -218,8 +219,8 @@ RegisterCommand('pet_xp', function()
         local companionid = values.companionid_input and values.companionid_input ~= '' and values.companionid_input or values.companionid_select
         if not companionid then
             lib.notify({
-                title = locale('cl_error') or 'Error',
-                description = locale('cl_error_select_companionid') or 'Debes seleccionar o escribir un Companion ID',
+                title = 'Error',
+                description = 'Debes seleccionar o escribir un Companion ID',
                 type = 'error'
             })
             return
@@ -227,8 +228,8 @@ RegisterCommand('pet_xp', function()
         local amount = tonumber(values.amount)
         if not amount or amount < 0 then
             lib.notify({
-                title = locale('cl_error') or 'Error',
-                description = locale('cl_error_invalid_amount') or 'Cantidad inválida',
+                title = 'Error',
+                description = 'Cantidad inválida',
                 type = 'error'
             })
             return

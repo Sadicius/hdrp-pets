@@ -1,3 +1,5 @@
+-- Ambient dog resting logic
+
 local State = exports['hdrp-pets']:GetState()
 local canDoAction = false
 local isBusy = false
@@ -13,9 +15,7 @@ local function ambientLogic()
 
     for companionid, pet in pairs(pets) do
         if pet and DoesEntityExist(pet.ped) then
-            local isHunting = State.GetFlag(pet, "isHunting")
-            local isRace = State.GetFlag(pet, "isRace")
-            local canDoAction = not isHunting and not isRace
+            local canDoAction = not (pet.flag and pet.flag.isHunting) and not (pet.flag and pet.flag.isRace)
             local XP = (pet.data and pet.data.progression and pet.data.progression.xp) or 0
             local canXP
 
@@ -27,11 +27,12 @@ local function ambientLogic()
 
             isBusy = isBusy or false
 
-            local dist = State.GetDistanceBetweenEntities(cache.ped, pet.ped)
+            local dist = #(playerCoords - GetEntityCoords(pet.ped))
 
             if isBusy and dist < 12 then
                 if Citizen.InvokeNative(0x57AB4A3080F85143, pet.ped) then -- IsPedUsingAnyScenario
                     ClearPedTasks(pet.ped)
+                    -- State.SetPetTrait(companionid, 'isBusy', false)
                     isBusy = false
                 end
             end
